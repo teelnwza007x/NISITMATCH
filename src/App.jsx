@@ -286,7 +286,7 @@ function LiveMicWave({ stream }) {
   return <span className="record-wave live-mic-wave" ref={bars} aria-label="คลื่นเสียงจากไมโครโฟนแบบเรียลไทม์">{Array.from({length:29}, (_, i) => <i key={i}/>)}</span>
 }
 
-function Messages({ me, matches, notify, reload, onOpenProfile }) {
+function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }) {
   const [selectedId, setSelectedId] = useState(() => {
     try { return sessionStorage.getItem(`nisit-active-chat:${me}`) || null } catch { return null }
   })
@@ -468,8 +468,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
       if (!active) return
       if (error) notify(error.message)
       else { setMsgs((data || []).reverse()); setHasMore((data || []).length === 40) }
-      await supabase.from('messages').update({ read_at: new Date().toISOString() })
+      const { error: readError } = await supabase.from('messages').update({ read_at: new Date().toISOString() })
         .eq('match_id', roomId).neq('sender_id', me).is('read_at', null)
+      if (!readError) onMessagesRead?.()
     }
     load()
     const channel = supabase.channel('chat-' + roomId, { config: { presence: { key: me } } })
@@ -477,6 +478,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         if (!active) return
         if (payload.eventType === 'INSERT' && payload.new?.id) {
           const incoming = payload.new
+          if (incoming.sender_id !== me) {
+            supabase.from('messages').update({ read_at: new Date().toISOString() })
+              .eq('id', incoming.id).is('read_at', null)
+              .then(({ error }) => { if (!error) onMessagesRead?.() })
+          }
           // The optimistic bubble already represents our outgoing message.
           const alreadyPending = [...pendingSends.current.values()].some(p =>
             p.roomId === roomId && p.body === incoming.body && incoming.sender_id === me
@@ -1303,7 +1309,7 @@ function PreferencesEditor({ initial, profile, onSave, onClose }) {
 
 export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
-  const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [detail, setDetail] = useState(null)
+  const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [newMatch, setNewMatch] = useState(null)
   const [reportTarget, setReportTarget] = useState(null)
   const [reportReason, setReportReason] = useState('fake_profile')
@@ -1361,6 +1367,30 @@ export default function App() {
   useEffect(() => { if (userId) setModal('') }, [userId])
   const loadProfile = useCallback(async () => { if (!userId) return; const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
   const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false).in('type', ['interest', 'match']); setUnread(count || 0) }, [userId])
+  // Message badges are separate from activity notifications: unread chat messages
+  // animate the Messages tab, without generating a noisy notification for each text.
+  const loadUnreadMessages = useCallback(async () => {
+    if (!userId) { setUnreadMessages(0); return }
+    const { data: rooms, error: roomsError } = await supabase.from('matches')
+      .select('id').or(`user_a.eq.${userId},user_b.eq.${userId}`)
+    if (roomsError || !rooms?.length) { if (!roomsError) setUnreadMessages(0); return }
+    const { count, error } = await supabase.from('messages')
+      .select('id', { count: 'exact', head: true })
+      .in('match_id', rooms.map(r => r.id))
+      .neq('sender_id', userId).is('read_at', null)
+    if (!error) setUnreadMessages(count || 0)
+  }, [userId])
+  useEffect(() => {
+    if (!userId) { setUnreadMessages(0); return }
+    loadUnreadMessages()
+    const channel = supabase.channel(`unread-messages-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadUnreadMessages())
+      .subscribe()
+    const refresh = () => { if (document.visibilityState === 'visible') loadUnreadMessages() }
+    document.addEventListener('visibilitychange', refresh)
+    return () => { document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
+  }, [userId, loadUnreadMessages])
+
   
 const loadMatches = useCallback(async () => {
   if (!user?.id) return
@@ -1601,11 +1631,11 @@ const loadMatches = useCallback(async () => {
   return (
     <div className="app-shell">
       <aside className={'sidebar ' + (nav ? 'show' : '')}><Brand onClick={() => go('home')} /><div className="side-label">เมนูหลัก</div>
-        {items.map(([id, label, I]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} onClick={() => go(id)}><I size={18} />{label}{id === 'messages' && matches.length > 0 && <span className="nav-count">{matches.length}</span>}{id === 'notifs' && unread > 0 && <span className="nav-count">{unread}</span>}</button>)}
+        {items.map(([id, label, I]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '') + (id === 'messages' && unreadMessages > 0 ? ' has-unread-messages' : '')} onClick={() => go(id)}><I size={18} />{label}{id === 'messages' && unreadMessages > 0 && <span className="nav-count">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}{id === 'notifs' && unread > 0 && <span className="nav-count">{unread}</span>}</button>)}
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
-        {[["home","ปัด",Heart],["profile","โปรไฟล์",UserRound],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={view === id ? "bottom-nav-item active" : "bottom-nav-item"} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}</span><span>{label}</span></button>)}
+        {[["home","ปัด",Heart],["profile","โปรไฟล์",UserRound],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <i className="message-unread-dot"/>}</span><span>{label}</span></button>)}
       </nav>
       <main className="main-area">
         <header className="topbar"><button className="mobile-menu icon-btn" onClick={() => setNav(!nav)}><Menu /></button><div className="breadcrumb">พื้นที่สำหรับความสัมพันธ์ดี ๆ <span>/</span> <b>{items.find((i) => i[0] === view)?.[1] || 'หน้าหลัก'}</b></div><div className="top-actions"><span className="online-pill"><i /> Your space, your pace</span><button className="profile-chip" onClick={() => go('profile')}><Av u={profile} cls="avatar sm" /><span>{profile.display_name}</span></button></div></header>
@@ -1618,7 +1648,7 @@ const loadMatches = useCallback(async () => {
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
-          {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} />}
+          {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={loadUnreadMessages} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}

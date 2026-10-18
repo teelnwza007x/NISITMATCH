@@ -1153,3 +1153,18 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .chat-theme-choice svg{margin-left:auto}
 .chat-theme-popover>small{display:block;margin-top:12px;color:#b5bdd2;font-size:10px}
 @media(max-width:420px){.chat-theme-popover{right:-72px}.chat-fullscreen .chat-header{gap:4px!important}.chat-fullscreen .chat-header .icon-btn{padding:3px!important}}
+
+/* v41: unread chat attention without creating per-message notifications */
+@keyframes nisit-message-wiggle{0%,100%{transform:rotate(0) scale(1)}12%{transform:rotate(-12deg) scale(1.08)}25%{transform:rotate(10deg) scale(1.08)}38%{transform:rotate(-7deg)}50%{transform:rotate(5deg)}64%,90%{transform:rotate(0) scale(1)}}
+.bottom-nav-item.has-unread-messages .bottom-icon svg,.nav-item.has-unread-messages>svg{animation:nisit-message-wiggle 2.7s ease-in-out infinite;transform-origin:center}
+.bottom-icon{position:relative}
+.message-unread-dot{position:absolute;top:-4px;right:-6px;width:9px;height:9px;background:#ff5c9f;border-radius:50%;border:2px solid #131c2c;box-shadow:0 0 0 2px #ff5c9f30}
+.nav-item.has-unread-messages .nav-count{background:#d74c91;color:white}
+/* v41: native WebKit range thumb aligned exactly to the painted 4px track */
+.itunes-premium-timeline input[type=range]{height:22px!important;min-height:22px!important;padding:0!important;touch-action:pan-y;background:transparent!important;--track-fill:#e8a0e9}
+.itunes-premium-timeline input[type=range]::-webkit-slider-runnable-track{height:4px;border:0;border-radius:999px;background:linear-gradient(to right,#ff8cc7 0%,#d09dfb var(--progress),rgba(255,255,255,.2) var(--progress),rgba(255,255,255,.2) 100%)}
+.itunes-premium-timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;box-sizing:border-box;width:16px;height:16px;margin-top:-6px!important;border:2px solid #fff;border-radius:50%;background:#ff8cc7;box-shadow:0 0 0 3px #ff8cc733,0 2px 8px #0004;transform:none!important}
+.itunes-premium-timeline input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.2)}
+.itunes-premium-timeline input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#d09dfb}
+.itunes-premium-timeline input[type=range]::-moz-range-thumb{box-sizing:border-box;width:16px;height:16px;border:2px solid #fff;border-radius:50%;background:#ff8cc7}
+@media(prefers-reduced-motion:reduce){.bottom-nav-item.has-unread-messages .bottom-icon svg,.nav-item.has-unread-messages>svg{animation:none!important}}
