@@ -20,7 +20,11 @@ Deno.serve(async (req) => {
   for (const item of queue || []) {
     const { data: subs, error: subError } = await db.from('push_subscriptions').select('endpoint,p256dh,auth').eq('user_id',item.user_id)
     if (subError) continue
-    const payload = JSON.stringify({ title: item.type === 'match' ? 'คุณมี Match ใหม่! 💗' : 'Nisit Match 💌', body: item.type === 'match' ? 'มีคนถูกใจคุณเหมือนกัน เปิดดูเลย' : 'คุณได้รับข้อความใหม่', tag: 'nisit-'+item.id })
+    if (item.type !== 'match' && item.type !== 'interest') {
+      await db.from('push_queue').update({ processed_at: new Date().toISOString() }).eq('id', item.id)
+      continue
+    }
+    const payload = JSON.stringify({ title: 'NISIT MATCH', body: item.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : 'มีคนกำลังสนใจคุณอยู่', tag: 'nisit-'+item.id })
     let transientFailure = false
     for (const s of subs || []) {
       try {

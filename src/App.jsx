@@ -567,14 +567,31 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
 
 function Notifs({ me, refresh, go }) {
   const [rows, setRows] = useState(null)
-  const load = useCallback(async () => { const { data } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50); setRows(data || []) }, [])
+  const [busy, setBusy] = useState(false)
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('notifications').select('*').eq('user_id', me).in('type', ['interest', 'match']).order('created_at', { ascending: false }).limit(50)
+    if (!error) setRows(data || [])
+  }, [me])
   useEffect(() => { load() }, [load])
-  const readAll = async () => { await supabase.from('notifications').update({ read: true }).eq('user_id', me).eq('read', false); load(); refresh() }
+  const allRead = rows !== null && rows.every(n => n.read)
+  const readAll = async () => {
+    if (busy || allRead) return
+    setBusy(true)
+    const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', me).in('type', ['interest', 'match']).eq('read', false)
+    if (!error) { setRows(prev => prev?.map(n => ({ ...n, read: true })) || []); refresh() }
+    setBusy(false)
+  }
   return (<>
-    <Heading kicker="STAY IN THE LOOP" title="การแจ้งเตือน" sub="แมตช์ใหม่และข้อความใหม่จะแสดงที่นี่"><button className="btn btn-ghost" onClick={readAll}><Check size={16} /> อ่านทั้งหมด</button></Heading>
-    {rows === null ? <div className="page-center"><span className="spin" /></div> : !rows.length ? <div className="empty-state"><div className="empty-icon"><Bell /></div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีแมตช์หรือข้อความใหม่ จะขึ้นที่นี่</p></div> :
-      <div className="notif-list">{rows.map((n) => <div key={n.id} className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => { await supabase.from('notifications').update({ read: true }).eq('id', n.id); refresh(); go('messages') }}>
-        <span className="settings-icon">{n.type === 'match' ? <Heart /> : <MessageCircle />}</span><div><b>{n.type === 'match' ? 'คุณมีแมตช์ใหม่!' : 'มีข้อความใหม่'}</b><small>{new Date(n.created_at).toLocaleString('th-TH')}</small></div></div>)}</div>}
+    <Heading kicker="STAY IN THE LOOP" title="การแจ้งเตือน" sub="แจ้งเฉพาะเมื่อมีคนสนใจคุณหรือคุณได้รับแมตช์ใหม่"><button className="btn btn-ghost" disabled={busy || rows === null || allRead} onClick={readAll}><Check size={16} /> {allRead ? 'อ่านทั้งหมดแล้ว' : busy ? 'กำลังบันทึก...' : 'อ่านทั้งหมด'}</button></Heading>
+    {rows === null ? <div className="page-center"><span className="spin" /></div> : !rows.length ? <div className="empty-state"><div className="empty-icon"><Bell /></div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีคนสนใจคุณหรือแมตช์ใหม่ จะขึ้นที่นี่</p></div> :
+      <div className="notif-list">{rows.map((n) => <div key={n.id} className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => {
+        if (!n.read) {
+          const { error } = await supabase.from('notifications').update({ read: true }).eq('id', n.id).eq('user_id', me)
+          if (!error) { setRows(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x)); refresh() }
+        }
+        go(n.type === 'match' ? 'messages' : 'home')
+      }}>
+        <span className="settings-icon"><Heart /></span><div><b>{n.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : 'มีคนกำลังสนใจคุณอยู่'}</b><small>{new Date(n.created_at).toLocaleString('th-TH')}</small></div></div>)}</div>}
   </>)
 }
 
@@ -1106,7 +1123,7 @@ function SettingsPage({ user, notify }) {
     <div className="settings-grid">
       <div className="settings-card"><div className="settings-icon"><ShieldCheck /></div><div><h3>ความเป็นส่วนตัวและความปลอดภัย</h3><p>หน้าค้นหาไม่แสดงอีเมลและวันเกิดของคุณ และคุณสามารถบล็อกหรือรายงานผู้ใช้ได้</p></div><span className="settings-status">เปิดใช้งาน</span></div>
       <div className="settings-card"><div className="settings-icon"><LockKeyhole /></div><div><h3>รหัสผ่าน</h3><p>ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่ {user.email}</p></div><button className="btn btn-ghost btn-small" onClick={reset}>ส่งลิงก์</button></div>
-      <div className="settings-card"><div className="settings-icon"><Bell /></div><div><h3>Push Notifications</h3><p>รับแจ้งเตือน Match และข้อความใหม่บนโทรศัพท์ หลังตั้งค่าระบบส่ง Push</p></div><button className="btn btn-ghost btn-small" disabled={pushBusy} onClick={pushEnabled ? disablePush : enablePush}>{pushBusy ? "กำลังตั้งค่า..." : pushEnabled ? "ปิดแจ้งเตือน" : "เปิดแจ้งเตือน"}</button></div>
+      <div className="settings-card"><div className="settings-icon"><Bell /></div><div><h3>Push Notifications</h3><p>รับแจ้งเตือนเมื่อมีคนสนใจคุณหรือแมตช์ใหม่บนโทรศัพท์ หลังตั้งค่าระบบส่ง Push</p></div><button className="btn btn-ghost btn-small" disabled={pushBusy} onClick={pushEnabled ? disablePush : enablePush}>{pushBusy ? "กำลังตั้งค่า..." : pushEnabled ? "ปิดแจ้งเตือน" : "เปิดแจ้งเตือน"}</button></div>
       <div className="settings-card"><div className="settings-icon"><Users /></div><div><h3>ชุมชน nisit match</h3><p>เคารพขอบเขตของกันและกัน ไม่ส่งข้อความคุกคาม และรายงานพฤติกรรมที่ไม่เหมาะสม</p></div></div>
       <div className="settings-danger"><div><h3>ออกจากระบบ</h3><p>ออกจากบัญชีนี้บนอุปกรณ์ปัจจุบัน</p></div><button className="btn btn-danger" onClick={() => supabase.auth.signOut()}><LogOut size={16} /> ออกจากระบบ</button></div>
     </div></>)
@@ -1223,7 +1240,7 @@ export default function App() {
   }, [])
   useEffect(() => { if (userId) setModal('') }, [userId])
   const loadProfile = useCallback(async () => { if (!userId) return; const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
-  const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false); setUnread(count || 0) }, [userId])
+  const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false).in('type', ['interest', 'match']); setUnread(count || 0) }, [userId])
   
 const loadMatches = useCallback(async () => {
   if (!user?.id) return
@@ -1374,7 +1391,7 @@ const loadMatches = useCallback(async () => {
   useEffect(() => { const refresh = () => { if (document.visibilityState === 'visible' && user?.id) loadMatches() }; document.addEventListener('visibilitychange', refresh); return () => document.removeEventListener('visibilitychange', refresh) }, [user?.id, loadMatches])
   useEffect(() => {
     if (!user) return
-    const ch = supabase.channel('notif-' + user.id).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (p) => { notify(p.new.type === 'match' ? 'คุณมีแมตช์ใหม่!' : 'มีข้อความใหม่'); loadUnread(); loadMatches() }).subscribe()
+    const ch = supabase.channel('notif-' + user.id).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (p) => { if (!['interest', 'match'].includes(p.new.type)) return; notify(p.new.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : 'มีคนกำลังสนใจคุณอยู่'); loadUnread(); if (p.new.type === 'match') loadMatches() }).subscribe()
     return () => supabase.removeChannel(ch)
   }, [user, notify, loadUnread, loadMatches])
 
