@@ -566,6 +566,39 @@ function ITunesSongCard({ track, compact = false }) {
   </section>
 }
 
+// iTunes supports JSONP; this avoids mobile browser cross-origin fetch failures.
+// Each request cleans up its script, callback and timeout on completion/cancel.
+let itunesSearchSerial = 0
+function searchITunesJSONP(query, signal) {
+  return new Promise((resolve, reject) => {
+    const callbackName = '__nisitItunes_' + (++itunesSearchSerial)
+    const script = document.createElement('script')
+    let finished = false
+    const cleanup = () => {
+      clearTimeout(timeout)
+      script.remove()
+      delete window[callbackName]
+      signal?.removeEventListener('abort', onAbort)
+    }
+    const finish = (error, data) => {
+      if (finished) return
+      finished = true
+      cleanup()
+      error ? reject(error) : resolve(data)
+    }
+    const onAbort = () => finish(new DOMException('Aborted', 'AbortError'))
+    const timeout = setTimeout(() => finish(new Error('Search timeout')), 9000)
+    window[callbackName] = (data) => finish(null, data)
+    script.onerror = () => finish(new Error('iTunes unavailable'))
+    signal?.addEventListener('abort', onAbort, { once: true })
+    if (signal?.aborted) return onAbort()
+    const params = new URLSearchParams({ term: query, media: 'music', entity: 'song', country: 'TH', limit: '20', callback: callbackName })
+    script.src = 'https://itunes.apple.com/search?' + params.toString()
+    script.async = true
+    document.head.appendChild(script)
+  })
+}
+
 function ITunesSongPicker({ value, onChange }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -579,10 +612,18 @@ function ITunesSongPicker({ value, onChange }) {
     setBusy(true); setSearched(false); setError(''); setResults([])
     const timer = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ term: q, media: 'music', entity: 'song', country: 'TH', limit: '25' })
-        const response = await fetch('https://itunes.apple.com/search?' + params.toString(), { signal: controller.signal })
-        if (!response.ok) throw new Error('HTTP ' + response.status)
-        const data = await response.json()
+        // JSONP works on mobile browsers that block cross-origin iTunes fetch.
+        // If the script endpoint fails, try the ordinary JSON endpoint too.
+        let data
+        try {
+          data = await searchITunesJSONP(q, controller.signal)
+        } catch (jsonpError) {
+          if (controller.signal.aborted) return
+          const params = new URLSearchParams({ term: q, media: 'music', entity: 'song', country: 'TH', limit: '20' })
+          const response = await fetch('https://itunes.apple.com/search?' + params, { signal: controller.signal })
+          if (!response.ok) throw new Error('HTTP ' + response.status)
+          data = await response.json()
+        }
         if (controller.signal.aborted) return
         setResults((Array.isArray(data.results) ? data.results : []).filter(item => item.kind === 'song' && item.trackId).map(item => ({
           id: String(item.trackId), name: item.trackName || 'ไม่ระบุชื่อเพลง', artist: item.artistName || 'ไม่ระบุศิลปิน',
@@ -590,9 +631,9 @@ function ITunesSongPicker({ value, onChange }) {
         })))
         setSearched(true)
       } catch (err) {
-        if (!controller.signal.aborted) setError('ค้นหาเพลงไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่')
+        if (!controller.signal.aborted) setError('เชื่อมต่อบริการค้นหาเพลงไม่ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง')
       } finally { if (!controller.signal.aborted) setBusy(false) }
-    }, 500)
+    }, 650)
     return () => { clearTimeout(timer); controller.abort() }
   }, [query])
   return <section className="itunes-picker">
@@ -970,7 +1011,7 @@ const loadMatches = useCallback(async () => {
         <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{detail.display_name}, {detail.age}</h2>
           <p><GraduationCap size={15} />{uniName(detail.university_id)} · {detail.faculty}</p><p>{detail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags">{(detail.interests || []).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
-          <ITunesSongCard track={itunesTrack(detail)} />
+          <div className="match-profile-song"><ITunesSongCard track={itunesTrack(detail)} compact /></div>
           {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(detail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
           <div className="detail-secondary"><button onClick={() => report(detail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(detail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
       {newMatch && <div className="match-overlay"><div className="match-dialog"><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X/></button><div className="match-confetti" aria-hidden="true">{Array.from({length: 22}, (_,i) => <span key={i} style={{'--i':i,'--delay':`${(i%8)*.11}s`}}>{i%3===0?'♥':'✦'}</span>)}</div><div className="match-hearts">💗 ✨ 💗</div><div className="match-eyebrow">A NEW CONNECTION</div><h1>It's a Match!</h1><p>คุณและ {newMatch.p.display_name} ถูกใจกันและกัน</p><div className="match-avatars"><Av u={profile}/><Heart fill="currentColor"/><Av u={newMatch.p}/></div><button className="btn btn-pink btn-full" onClick={() => { setNewMatch(null); go('messages') }}>เริ่มพูดคุยเลย <MessageCircle size={18}/></button><button className="match-later" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}

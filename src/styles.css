@@ -465,3 +465,17 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 @media (prefers-reduced-motion: reduce) { .chat-jump-latest { animation: none; } }
 /* The fullscreen chat is z-index:10000; partner detail must appear above it. */
 .modal-backdrop:has(.detail-modal) { z-index: 11000 !important; }
+
+/* v4: compact song player in match profile modal (mobile first) */
+.detail-modal .match-profile-song{width:100%;min-width:0;margin:10px 0 14px}
+.detail-modal .match-profile-song .itunes-song-card.itunes-premium{margin:0;padding:8px 10px;border-radius:14px;box-shadow:0 5px 16px rgba(4,8,25,.13)}
+.detail-modal .match-profile-song .itunes-premium-main{gap:8px}
+.detail-modal .match-profile-song .itunes-premium-artwrap{flex:0 0 36px;width:36px;height:36px;border-radius:9px}
+.detail-modal .match-profile-song .itunes-premium-copy strong{font-size:12px}
+.detail-modal .match-profile-song .itunes-premium-copy>span{font-size:10px}
+.detail-modal .match-profile-song .itunes-premium-eyebrow{font-size:7px;letter-spacing:.6px}
+.detail-modal .match-profile-song .itunes-premium-play{flex:0 0 30px;width:30px;height:30px;border-radius:10px}
+.detail-modal .match-profile-song .itunes-premium-eq{height:10px;margin-top:1px}
+.detail-modal .match-profile-song .itunes-premium-timeline{margin-top:6px;gap:6px}
+.detail-modal .match-profile-song .itunes-premium-timeline>span{font-size:9px}
+@media(max-width:600px){.detail-modal .match-profile-song .itunes-song-card.itunes-premium{padding:7px 9px}}
