@@ -125,7 +125,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
 }
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
-  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [exitHold, setExitHold] = useState(null), [cardEntering, setCardEntering] = useState(false)
+  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [swipeBurstToken, setSwipeBurstToken] = useState(0), [exitHold, setExitHold] = useState(null), [cardEntering, setCardEntering] = useState(false)
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
   const dragFrame = useRef(0)
@@ -134,6 +134,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   const noRef = useRef(null)
   const busyRef = useRef(false)
   const enterTimer = useRef(0)
+  const burstTimer = useRef(0)
   // Hold the outgoing card for the short compositor animation while the data deck advances immediately.
   const person = exitHold || people[0]
   // Keep the immediate next profile (B) underneath the outgoing card, even before the deck state settles.
@@ -142,7 +143,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
-    card.style.transition = animate ? 'transform 360ms cubic-bezier(.2,.85,.25,1)' : 'none'
+    card.style.transition = animate ? 'transform 640ms cubic-bezier(.22,.72,.18,1)' : 'none'
     card.style.transform = `translate3d(${x}px,${y}px,0) rotate(${x / 18}deg)`
     const strength = Math.min(Math.abs(x) / 125, 1)
     for (const [el, visible] of [[yesRef.current, x > 12], [noRef.current, x < -12]]) {
@@ -151,14 +152,13 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
       el.style.transform = `translate3d(0,${(1-strength)*14}px,0) scale(${.83+strength*.17})`
     }
   }, [])
-  useEffect(() => () => { cancelAnimationFrame(dragFrame.current); window.clearTimeout(enterTimer.current) }, [])
+  useEffect(() => () => { cancelAnimationFrame(dragFrame.current); window.clearTimeout(enterTimer.current); window.clearTimeout(burstTimer.current) }, [])
   useLayoutEffect(() => {
     window.clearTimeout(enterTimer.current)
     setCardEntering(true)
     enterTimer.current = window.setTimeout(() => setCardEntering(false), window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 300)
     setPhoto(0)
     setSuperBurst(false)
-    setSwipeBurst(null)
     start.current = null
     dragNow.current = { x: 0, y: 0 }
     busyRef.current = false
@@ -184,6 +184,8 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     setBusy(true)
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(like ? 12 : 7)
     setSwipeBurst(like ? 'like' : 'pass')
+    setSwipeBurstToken(token => token + 1)
+    window.clearTimeout(burstTimer.current)
     // Start persistence immediately, but never wait for the network before animating.
     // App optimistically advances the deck and rolls back if persistence fails.
     try {
@@ -191,14 +193,15 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
       setExitHold(person)
       const result = like ? onLike(person) : onSkip(person)
       Promise.resolve(result).catch(() => {})
-      paint(like ? 520 : -520, -20, true)
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      paint(like ? 560 : -560, -14, true)
       window.setTimeout(() => {
         setExitHold(current => current?.id === outgoingId ? null : current)
-        setSwipeBurst(null)
         busyRef.current = false
         setBusy(false)
         paint(0, 0)
-      }, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 375)
+      }, reduceMotion ? 0 : 660)
+      burstTimer.current = window.setTimeout(() => setSwipeBurst(null), reduceMotion ? 180 : 1260)
     } catch (error) {
       setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0)
     }
@@ -266,7 +269,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <div className="nm-superburst-star"><Star size={68} strokeWidth={1.7} fill="currentColor"/></div>
         <div className="nm-superburst-title">SUPER LIKE</div><div className="nm-superburst-caption">ส่งความพิเศษไปแล้ว</div>
       </div>}
-    </article></div><div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
+    </article></div>{swipeBurst && createPortal(<div key={swipeBurstToken} className={'v64-swipe-burst nm-swipe-center ' + swipeBurst} aria-hidden="true"><div className="nm-swipe-aura"/><div className="nm-swipe-ring ring-a"/><div className="nm-swipe-ring ring-b"/><div className="nm-swipe-icon-wrap"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={72} strokeWidth={1.4}/> : <X size={72} strokeWidth={1.8}/>}</div></div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span><small>{swipeBurst === 'like' ? 'หัวใจถูกส่งออกไปแล้ว' : 'กำลังพบคนที่ใช่สำหรับคุณ'}</small>{Array.from({length:18},(_,i)=><i key={i} style={{'--i':i,'--angle':`${i*20}deg`}}/>)}</div>, document.body)}<div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
 
 function CampusVerifiedBadge() {
