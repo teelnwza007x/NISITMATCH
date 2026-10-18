@@ -973,3 +973,26 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .chat-presence.online{color:#65deb0!important}
 .chat-presence.typing{color:#ff9cca!important}
 @media(max-width:800px){.chat-fullscreen .chat-compose{padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px))!important;gap:6px!important}.chat-fullscreen .chat-compose input:not([type=file]){padding:12px 10px!important}}
+
+/* v36: mobile chat owns the screen. Never let the app navigation cover the composer.
+   Important: prior fullscreen height:100dvh!important overrode the v34 inline
+   visualViewport height, so the keyboard could still hide the input. */
+@media (max-width: 800px) {
+  body:has(.chat-layout.chat-fullscreen) .bottom-nav { display: none !important; }
+  body:has(.chat-layout.chat-fullscreen) { overflow: hidden !important; }
+  .chat-layout.chat-fullscreen {
+    position: fixed !important;
+    top: var(--chat-viewport-top, 0px) !important;
+    bottom: auto !important;
+    height: var(--chat-viewport-height, 100dvh) !important;
+    max-height: var(--chat-viewport-height, 100dvh) !important;
+    min-height: 0 !important;
+    z-index: 11000 !important;
+  }
+  .chat-fullscreen .chat-window { height: 100% !important; min-height: 0 !important; }
+  .chat-fullscreen .chat-compose {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+}

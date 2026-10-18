@@ -564,7 +564,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const report = async () => { if (!sel) return; const reason = prompt('เหตุผลในการรายงาน'); if (!reason) return; const { error } = await supabase.from('reports').insert({ reporter: me, reported: sel.p.id, reason: reason.slice(0,500) }); notify(error ? error.message : 'ส่งรายงานแล้ว') }
   return (<>
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
-    <div className={"chat-layout " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open")} style={sel && chatViewport ? { height: `${chatViewport.height}px`, top: `${chatViewport.top}px`, bottom: "auto" } : undefined}>
+    <div className={"chat-layout " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
         {matches.map(m => <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '')} onClick={() => setSelectedId(m.id)}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small>💗 Match กันแล้ว</small></span></button>)}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
