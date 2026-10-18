@@ -115,7 +115,7 @@ function SwipeDeck({ people, onLike, onSkip, onOpen, onReport }) {
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photos.length - 1, v + 1))}/>
       {drag.x > 25 && <div className="swipe-stamp yes">LIKE</div>}{drag.x < -25 && <div className="swipe-stamp no">NOPE</div>}
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p><p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
-    </article></div><div className="swipe-controls"><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม"><X size={28}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูรายละเอียด"><UserRound size={23}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ"><Heart size={29} fill="currentColor"/></button><button className="swipe-control info" onClick={() => onReport(person)} aria-label="รายงาน"><Flag size={20}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
+    </article></div><div className="swipe-controls"><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
 
 function PersonCard({ p, onLike, onSkip, onOpen, onReport }) {
@@ -612,17 +612,27 @@ function ITunesSongPicker({ value, onChange }) {
     setBusy(true); setSearched(false); setError(''); setResults([])
     const timer = setTimeout(async () => {
       try {
-        // JSONP works on mobile browsers that block cross-origin iTunes fetch.
-        // If the script endpoint fails, try the ordinary JSON endpoint too.
+        // Route mobile searches through our Supabase Edge Function first.
+        // Direct iTunes calls are often blocked on mobile networks or by CSP.
         let data
         try {
-          data = await searchITunesJSONP(q, controller.signal)
-        } catch (jsonpError) {
+          const { data: proxyData, error: proxyError } = await supabase.functions.invoke('itunes-search', {
+            body: { query: q }, signal: controller.signal
+          })
+          if (proxyError || !Array.isArray(proxyData?.results)) throw proxyError || new Error('Invalid response')
+          data = proxyData
+        } catch (proxyError) {
           if (controller.signal.aborted) return
-          const params = new URLSearchParams({ term: q, media: 'music', entity: 'song', country: 'TH', limit: '20' })
-          const response = await fetch('https://itunes.apple.com/search?' + params, { signal: controller.signal })
-          if (!response.ok) throw new Error('HTTP ' + response.status)
-          data = await response.json()
+          // Keep a direct-browser fallback for installations without the function.
+          try {
+            data = await searchITunesJSONP(q, controller.signal)
+          } catch {
+            if (controller.signal.aborted) return
+            const params = new URLSearchParams({ term: q, media: 'music', entity: 'song', country: 'TH', limit: '20' })
+            const response = await fetch('https://itunes.apple.com/search?' + params, { signal: controller.signal })
+            if (!response.ok) throw new Error('HTTP ' + response.status)
+            data = await response.json()
+          }
         }
         if (controller.signal.aborted) return
         setResults((Array.isArray(data.results) ? data.results : []).filter(item => item.kind === 'song' && item.trackId).map(item => ({
@@ -631,7 +641,7 @@ function ITunesSongPicker({ value, onChange }) {
         })))
         setSearched(true)
       } catch (err) {
-        if (!controller.signal.aborted) setError('เชื่อมต่อบริการค้นหาเพลงไม่ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง')
+        if (!controller.signal.aborted) setError('ค้นหาเพลงไม่ได้ กรุณาตรวจสอบว่า Deploy Edge Function itunes-search แล้ว (ดูคู่มือใน ZIP)')
       } finally { if (!controller.signal.aborted) setBusy(false) }
     }, 650)
     return () => { clearTimeout(timer); controller.abort() }
