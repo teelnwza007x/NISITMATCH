@@ -573,7 +573,6 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
         <div className="chat-messages" ref={scrollBox} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
-          {partnerTyping && <div className="typing-status" role="status">กำลังพิมพ์<span className="typing-dots"><i/><i/><i/></span></div>}
           {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
             {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
             <div className="message-bubble">
@@ -581,7 +580,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
               <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me && m.read_at ? ' · อ่านแล้ว' : ''}</small>{m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
             </div>
           </div>)}
-          {!msgs.length && <div className="chat-empty">ทักทาย {partnerName(sel.p)} เป็นคนแรกสิ</div>}
+          {partnerTyping && <div className="message-row typing-message-row" role="status" aria-label={`${partnerName(sel.p)} กำลังพิมพ์`}>
+            <Av u={sel.p} cls="avatar sm" />
+            <div className="messenger-typing-bubble" aria-hidden="true"><span/><span/><span/></div>
+          </div>}
+          {!msgs.length && !partnerTyping && <div className="chat-empty">ทักทาย {partnerName(sel.p)} เป็นคนแรกสิ</div>}
           <div ref={end}/>
         </div>
         {showLatestButton && <button type="button" className="chat-jump-latest" onClick={() => scrollToLatest(true)} aria-label="กลับไปข้อความล่าสุด"><ArrowRight size={16} style={{transform:"rotate(90deg)"}} /> กลับไปข้อความล่าสุด</button>}

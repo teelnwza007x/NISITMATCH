@@ -996,3 +996,13 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
     padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* v37 — Messenger-style three-dot typing bubble, after latest message */
+.typing-message-row{align-items:flex-end;gap:8px;margin-top:8px;margin-bottom:10px;animation:nm37Appear .22s ease-out both}
+.messenger-typing-bubble{display:flex;align-items:center;justify-content:center;gap:5px;min-width:65px;height:38px;padding:0 14px;border-radius:19px 19px 19px 6px;background:rgba(135,137,153,.16);border:1px solid rgba(135,137,153,.08)}
+.messenger-typing-bubble span{display:block;width:8px;height:8px;border-radius:50%;background:#9a9aa8;animation:nm37Bounce 1.15s ease-in-out infinite;will-change:transform,opacity}
+.messenger-typing-bubble span:nth-child(2){animation-delay:.15s}
+.messenger-typing-bubble span:nth-child(3){animation-delay:.3s}
+@keyframes nm37Bounce{0%,55%,100%{transform:translateY(0);opacity:.48}25%{transform:translateY(-5px);opacity:1}}
+@keyframes nm37Appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.messenger-typing-bubble span,.typing-message-row{animation:none!important}}
