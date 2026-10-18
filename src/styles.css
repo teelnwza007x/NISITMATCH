@@ -1686,3 +1686,15 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .v64-reaction-options button{font-size:24px;min-width:45px;min-height:43px;line-height:1.1;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif}
 .v64-reaction-pill{font-size:19px;line-height:1.2}
 @media(prefers-reduced-motion:reduce){.swipe-stage .v64-swipe-burst,.swipe-stage .v64-swipe-burst *, .v67-match-dialog,.v67-match-dialog *, .v67-match-confetti i,.v67-match-shockwave,.v67-match-crown{animation:none!important}.v67-match-shockwave,.v67-match-confetti,.v67-match-crown{display:none!important}}
+
+/* v69: iPhone voice composer, keyboard safe area, accessible controls */
+.chat-compose .mic-launch,.chat-compose .chat-media-btn,.chat-compose .send-btn{flex-shrink:0;touch-action:manipulation;min-width:42px;min-height:42px}
+.chat-compose .chat-text-input{min-width:0;font-size:16px}
+.voice-recorder{min-width:0;flex:1;display:flex;align-items:center;gap:8px}
+.voice-recorder .record-clock{font-variant-numeric:tabular-nums;white-space:nowrap}
+.voice-recorder .live-mic-wave{min-width:0;flex:1;overflow:hidden}
+.voice-recorder .record-cancel,.voice-recorder .record-send{min-width:40px;min-height:40px;flex-shrink:0;touch-action:manipulation}
+.voice-bubble .voice-play{touch-action:manipulation;flex-shrink:0}
+.voice-bubble .voice-wave{touch-action:pan-y;min-width:0}
+@media(max-width:390px){.voice-recorder{gap:5px}.voice-recorder .record-clock{font-size:11px}.voice-recorder .live-mic-wave i:nth-child(3n){display:none}.chat-compose{gap:5px}}
+@media(prefers-reduced-motion:reduce){.voice-bubble *,.voice-recorder *{animation-duration:.01ms!important;transition-duration:.01ms!important}}

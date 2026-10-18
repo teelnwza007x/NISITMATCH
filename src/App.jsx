@@ -261,6 +261,7 @@ function Heading({ kicker, title, sub, children }) {
 
 function VoiceBubble({ src, mine }) {
   const audio = useRef(null)
+  const seekingRef = useRef(false)
   const [playing, setPlaying] = useState(false)
   const [duration, setDuration] = useState(0)
   const [position, setPosition] = useState(0)
@@ -304,7 +305,7 @@ function VoiceBubble({ src, mine }) {
       playsInline
       onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
       onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-      onTimeUpdate={e => { if (!seekingRef.current) setPosition(e.currentTarget.currentTime) }}
+      onTimeUpdate={e => setPosition(e.currentTarget.currentTime)}
       onPlaying={() => { setPlaying(true); setAudioError(false) }}
       onPause={() => setPlaying(false)}
       onEnded={() => { setPlaying(false); setPosition(0); if (audio.current) audio.current.currentTime = 0 }}
@@ -471,6 +472,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   const [recording, setRecording] = useState(false)
   const [micStream, setMicStream] = useState(null)
   const [recordSeconds, setRecordSeconds] = useState(0)
+  const recordingRoom = useRef(null)
+  const recordingStopTimer = useRef(null)
+  const [micBusy, setMicBusy] = useState(false)
   const discardRecord = useRef(false)
   const [mediaUrls, setMediaUrls] = useState({})
   const [openChatImage, setOpenChatImage] = useState(null)
@@ -578,6 +582,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   }, [roomId, partnerTyping, chatViewport?.height, msgs.length])
 
   useEffect(() => { if (!recording) return; const id = setInterval(() => setRecordSeconds(s => s + 1),1000); return () => clearInterval(id) }, [recording])
+  useEffect(() => { if (!recording) return; recordingStopTimer.current = setTimeout(() => { if (recorder.current?.state === 'recording') recorder.current.stop(); setRecording(false); setMicStream(null) }, 60000); return () => { clearTimeout(recordingStopTimer.current); recordingStopTimer.current = null } }, [recording])
+  useEffect(() => { if (recording && recordingRoom.current !== roomId) { discardRecord.current = true; if (recorder.current?.state === 'recording') recorder.current.stop(); setRecording(false); setMicStream(null) } }, [roomId, recording])
   const partnerName = p => p?.display_name?.trim() || 'คู่ Match'
 
   const fetchMessages = useCallback(async (older = false) => {
@@ -779,39 +785,45 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   }
   const quoteFor = (message) => message.attachment_type === 'image' ? 'รูปภาพ' : message.attachment_type === 'audio' ? 'ข้อความเสียง' : (message.body || 'ข้อความ')
   const dateLabel = (date) => { const d = new Date(date); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' }) }
-  const sendMedia = async (file, type) => {
-    if (!roomId || !file) return
+  const sendMedia = async (file, type, targetRoom = roomId) => {
+    if (!targetRoom || !file) return
     if (file.size > 10 * 1024 * 1024) return notify('ไฟล์ต้องมีขนาดไม่เกิน 10 MB')
     if (type === 'image' && !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) return notify('รองรับ JPG, PNG, WebP และ GIF')
-    if (type === 'audio' && !file.type.startsWith('audio/')) return notify('ไฟล์เสียงไม่รองรับ')
+    if (type === 'audio' && !['audio/webm','audio/mp4','audio/ogg','audio/mpeg','audio/x-m4a'].includes(file.type.split(';')[0])) return notify('ไฟล์เสียงไม่รองรับ')
     setUploading(true)
     const extension = (file.name?.split('.').pop() || (type === 'audio' ? 'webm' : 'jpg')).replace(/[^a-z0-9]/gi, '').toLowerCase()
-    const path = `${roomId}/${crypto.randomUUID()}.${extension}`
-    const { error: uploadError } = await supabase.storage.from('chat-media').upload(path, file, { contentType: file.type, upsert: false })
+    const path = `${targetRoom}/${crypto.randomUUID()}.${extension}`
+    const { error: uploadError } = await supabase.storage.from('chat-media').upload(path, file, { contentType: file.type.split(';')[0], upsert: false })
     if (uploadError) { setUploading(false); return notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message) }
-    const { error } = await supabase.from('messages').insert({ match_id: roomId, sender_id: me, body: type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง', attachment_type: type, attachment_path: path })
+    const { error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body: type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง', attachment_type: type, attachment_path: path })
     setUploading(false)
-    if (error) notify('ส่งไฟล์ไม่สำเร็จ: ' + error.message)
-    else { forceNextScroll.current = true; scrollToLatest(true) }
+    if (error) { await supabase.storage.from('chat-media').remove([path]); notify('ส่งไฟล์ไม่สำเร็จ: ' + error.message) }
+    else if (roomId === targetRoom) { forceNextScroll.current = true; scrollToLatest(true) }
   }
   const toggleRecord = async () => {
     if (recording) { recorder.current?.stop(); setRecording(false); setMicStream(null); return }
+    if (micBusy) return
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') return notify('เบราว์เซอร์นี้ไม่รองรับการอัดเสียง')
+    setMicBusy(true)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mime = ['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(t => MediaRecorder.isTypeSupported(t)) || ''
       const r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
-      recorder.current = r; recordParts.current = []
+      recorder.current = r; recordingRoom.current = roomId; recordParts.current = []
       r.ondataavailable = e => { if (e.data.size) recordParts.current.push(e.data) }
       r.onstop = () => {
         stream.getTracks().forEach(t => t.stop()); setMicStream(null)
         if (discardRecord.current) { discardRecord.current = false; return }
+        const targetRoom = recordingRoom.current
+        if (!recordParts.current.length) return notify('ไม่มีข้อมูลเสียง กรุณาลองอัดใหม่')
         const blob = new Blob(recordParts.current, { type: r.mimeType || 'audio/webm' })
         const ext = blob.type.includes('mp4') ? 'm4a' : 'webm'
-        sendMedia(new File([blob], `voice.${ext}`, { type: blob.type }), 'audio')
+        if (blob.size < 400) return notify('เสียงสั้นเกินไป กรุณาลองใหม่')
+        sendMedia(new File([blob], `voice.${ext}`, { type: blob.type }), 'audio', targetRoom)
       }
-      discardRecord.current = false; setRecordSeconds(0); r.start(); setMicStream(stream); setRecording(true)
+      discardRecord.current = false; setRecordSeconds(0); r.start(250); setMicStream(stream); setRecording(true)
     } catch { notify('ไม่สามารถใช้ไมโครโฟนได้ กรุณาอนุญาตการเข้าถึงไมโครโฟน') }
+    finally { setMicBusy(false) }
   }
   const cancelRecord = () => { discardRecord.current = true; if (recorder.current?.state === 'recording') recorder.current.stop(); setRecording(false); setMicStream(null); setRecordSeconds(0) }
   useEffect(() => () => { if (recorder.current?.state === 'recording') { recorder.current.onstop = null; recorder.current.stop(); recorder.current.stream?.getTracks().forEach(t => t.stop()) } }, [])
@@ -873,7 +885,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
-          {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')}</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading} onClick={toggleRecord}><Mic size={20}/></button><input className="chat-text-input" value={text} onChange={e => onCompose(e.target.value)} onFocus={() => { if (stickToBottom.current) requestAnimationFrame(() => scrollToLatest(false)) }} placeholder="พิมพ์ข้อความ..." aria-label="พิมพ์ข้อความ" maxLength={2000} autoComplete="off"/><button className="send-btn" type="submit" title="ส่งข้อความ" aria-label="ส่งข้อความ" disabled={!text.trim() || uploading}><Send size={19}/></button></>}
+          {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')} / 1:00</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading || micBusy} onClick={toggleRecord} aria-label="เริ่มอัดข้อความเสียง"><Mic size={20}/></button><input className="chat-text-input" value={text} onChange={e => onCompose(e.target.value)} onFocus={() => { if (stickToBottom.current) requestAnimationFrame(() => scrollToLatest(false)) }} placeholder="พิมพ์ข้อความ..." aria-label="พิมพ์ข้อความ" maxLength={2000} autoComplete="off"/><button className="send-btn" type="submit" title="ส่งข้อความ" aria-label="ส่งข้อความ" disabled={!text.trim() || uploading}><Send size={19}/></button></>}
         </form>
         {uploading && <div className="chat-upload-status">กำลังอัปโหลดไฟล์...</div>}
       </> : <div className="chat-placeholder"><MessageCircle/><h3>บทสนทนาของคุณ</h3><p>เลือก Match เพื่อเริ่มพูดคุย</p></div>}</div>
