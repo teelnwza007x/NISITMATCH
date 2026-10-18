@@ -125,7 +125,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
 }
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
-  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false)
+  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false)
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
   const dragFrame = useRef(0)
@@ -149,6 +149,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
   useLayoutEffect(() => {
     setPhoto(0)
+    setSuperBurst(false)
     start.current = null
     dragNow.current = { x: 0, y: 0 }
     busyRef.current = false
@@ -164,6 +165,22 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     await new Promise(resolve => setTimeout(resolve, 220))
     try { await (like ? onLike(person) : onSkip(person)) }
     finally { busyRef.current = false; setBusy(false); paint(0, 0) }
+  }
+  const doSuperLike = async () => {
+    if (!person || busyRef.current) return
+    busyRef.current = true
+    setBusy(true)
+    try {
+      const ok = await onSuperLike(person)
+      if (!ok) return
+      setSuperBurst(true)
+      // Keep the current card visible long enough for the animation to finish.
+      await new Promise(resolve => setTimeout(resolve, 1050))
+    } finally {
+      setSuperBurst(false)
+      busyRef.current = false
+      setBusy(false)
+    }
   }
   const down = (e) => {
     if (busyRef.current || (e.pointerType === 'mouse' && e.button !== 0)) return
@@ -203,7 +220,14 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge />}{person.relationship_intent && <span className="nm-intent-tag">{intentLabel(person.relationship_intent)}</span>}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
-    </article></div><div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={() => onSuperLike(person)} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
+      {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
+        <div className="nm-superburst-halo" />
+        <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />
+        {Array.from({length: 14}, (_, i) => <i key={i} className="nm-superburst-particle" style={{'--i':i,'--angle':`${i*360/14}deg`}} />)}
+        <div className="nm-superburst-star"><Star size={68} strokeWidth={1.7} fill="currentColor"/></div>
+        <div className="nm-superburst-title">SUPER LIKE</div><div className="nm-superburst-caption">ส่งความพิเศษไปแล้ว</div>
+      </div>}
+    </article></div><div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
 
 function CampusVerifiedBadge() {
@@ -1859,11 +1883,14 @@ const loadMatches = useCallback(async () => {
     const { error } = await supabase.rpc('v60_super_like', { p_target: p.id })
     setSuperBusy(false)
     if (error) return notify(error.message.includes('limit') ? 'ใช้ Super Like ครบ 3 ครั้งของวันนี้แล้ว' : 'Super Like ไม่สำเร็จ: '+error.message)
-    setPeople(old => (old || []).filter(x=>x.id!==p.id)); setLastSwipe(null)
+    setLastSwipe(null)
     notify(`ส่ง Super Like ให้ ${p.display_name} แล้ว`)
+    // Delay card removal until the Super Like burst has played.
+    setTimeout(() => setPeople(old => (old || []).filter(x=>x.id!==p.id)), 950)
     const [a,b]=[user.id,p.id].sort()
     const {data}=await supabase.from('matches').select('id').eq('user_a',a).eq('user_b',b).maybeSingle()
-    if(data){setNewMatch({id:data.id,p}); await loadMatches()}
+    if(data){setTimeout(() => setNewMatch({id:data.id,p}), 1050); await loadMatches()}
+    return true
   }
   const report = (p) => { if (!p?.id) return; setReportTarget(p); setReportReason('fake_profile'); setReportNotes('') }
   const submitReport = async () => {

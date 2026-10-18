@@ -1574,3 +1574,22 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .chat-messages .chat-message-focused .chat-message-menu{z-index:6;animation:nisitMenuPop .2s ease-out both}
 @keyframes nisitBubbleFocusV62{0%{transform:translateY(0) scale(1)}55%{transform:translateY(-4px) scale(1.045)}100%{transform:translateY(-2px) scale(1.025)}}
 @media(prefers-reduced-motion:reduce){.chat-messages .message-bubble.chat-message-focused{animation:none!important;transform:none!important}.chat-messages.chat-focus-active .message-row{transition:none!important}}
+
+/* v63 — cinematic Super Like success effect, confined to the swipe card */
+.swipe-front{isolation:isolate}
+.nm-superburst{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;pointer-events:none;color:#fff;animation:nmSuperVeil 1.05s ease both;background:radial-gradient(circle at 50% 46%,rgba(95,70,210,.52),rgba(11,12,38,.85) 75%)}
+.nm-superburst-halo{position:absolute;width:85%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(115,204,255,.42),rgba(117,72,255,.19) 38%,transparent 68%);filter:blur(10px);animation:nmSuperHalo 1.05s ease-out both}
+.nm-superburst-ring{position:absolute;width:150px;aspect-ratio:1;border:2px solid rgba(167,222,255,.8);border-radius:50%;box-shadow:0 0 28px rgba(117,190,255,.65);animation:nmSuperRing .9s cubic-bezier(.15,.65,.2,1) both}
+.nm-superburst-ring.ring-two{animation-delay:.13s;border-color:rgba(205,156,255,.65)}
+.nm-superburst-star{position:relative;z-index:2;color:#bdefff;filter:drop-shadow(0 0 24px #5cc7ff);animation:nmSuperStar 1.05s cubic-bezier(.18,.9,.25,1) both}
+.nm-superburst-title{position:relative;z-index:2;margin-top:20px;font-size:clamp(26px,8vw,40px);font-weight:900;letter-spacing:.14em;text-shadow:0 0 25px #6dcaff;animation:nmSuperText 1.05s both}
+.nm-superburst-caption{position:relative;z-index:2;margin-top:6px;font-size:13px;letter-spacing:.04em;color:#d8e9ff;animation:nmSuperText 1.05s .08s both}
+.nm-superburst-particle{position:absolute;top:46%;left:50%;width:7px;height:18px;border-radius:8px;background:linear-gradient(#fff,#75d9ff);box-shadow:0 0 13px #84d9ff;transform:rotate(var(--angle)) translateY(0);animation:nmSuperParticle .88s cubic-bezier(.1,.5,.3,1) both;animation-delay:calc(var(--i)*12ms)}
+.swipe-control.super:not(:disabled):active{transform:scale(.9)}
+@keyframes nmSuperVeil{0%{opacity:0}13%{opacity:1}82%{opacity:1}100%{opacity:0}}
+@keyframes nmSuperHalo{0%{transform:scale(.25);opacity:0}32%{opacity:1}100%{transform:scale(1.6);opacity:0}}
+@keyframes nmSuperRing{0%{transform:scale(.15);opacity:0}25%{opacity:1}100%{transform:scale(3.3);opacity:0}}
+@keyframes nmSuperStar{0%{transform:scale(.2) rotate(-50deg);opacity:0}30%{transform:scale(1.35) rotate(12deg);opacity:1}48%{transform:scale(.94) rotate(-4deg)}75%{transform:scale(1.06) rotate(0)}100%{transform:scale(1.1);opacity:0}}
+@keyframes nmSuperText{0%,15%{transform:translateY(20px) scale(.85);opacity:0}42%,75%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-10px);opacity:0}}
+@keyframes nmSuperParticle{0%{transform:rotate(var(--angle)) translateY(0) scale(.3);opacity:0}25%{opacity:1}100%{transform:rotate(var(--angle)) translateY(-180px) scale(.25);opacity:0}}
+@media(prefers-reduced-motion:reduce){.nm-superburst,.nm-superburst *{animation:none!important}.nm-superburst{background:rgba(14,15,39,.88)}.nm-superburst-ring,.nm-superburst-particle,.nm-superburst-halo{display:none}}
