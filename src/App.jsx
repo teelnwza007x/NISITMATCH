@@ -1185,6 +1185,12 @@ export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [detail, setDetail] = useState(null)
   const [newMatch, setNewMatch] = useState(null)
+  const [reportTarget, setReportTarget] = useState(null)
+  const [reportReason, setReportReason] = useState('fake_profile')
+  const [reportNotes, setReportNotes] = useState('')
+  const [reportBusy, setReportBusy] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [guideStep, setGuideStep] = useState(0)
   const [verifiedCampusIds, setVerifiedCampusIds] = useState([])
   const [fl, setFl] = useState({ q: '', uni: '', min: 18, max: 40, gender: '' }), [filterOpen, setFilterOpen] = useState(false)
   const [discovery, setDiscovery] = useState(null), [discoveryReady, setDiscoveryReady] = useState(false), [discoveryEditing, setDiscoveryEditing] = useState(false)
@@ -1382,8 +1388,37 @@ const loadMatches = useCallback(async () => {
       else notify(`ส่งหัวใจให้ ${p.display_name} แล้ว 💙`)
     } else notify('ข้ามโปรไฟล์แล้ว')
   }
-  const report = async (p) => { const reason = prompt('เหตุผลในการรายงาน (เช่น โปรไฟล์ปลอม / คุกคาม)'); if (!reason) return; const { error } = await supabase.from('reports').insert({ reporter: user.id, reported: p.id, reason: reason.slice(0, 500) }); notify(error ? error.message : 'ส่งรายงานให้ทีมดูแลแล้ว') }
-  const block = async (p) => { if (!confirm(`ต้องการบล็อก ${p.display_name} ใช่ไหม?`)) return; const { error } = await supabase.from('blocks').insert({ blocker: user.id, blocked: p.id }); if (error) return notify(error.message); setPeople((l) => l.filter((x) => x.id !== p.id)); setDetail(null); notify('บล็อกบัญชีแล้ว') }
+  const report = (p) => { if (!p?.id) return; setReportTarget(p); setReportReason('fake_profile'); setReportNotes('') }
+  const submitReport = async () => {
+    if (!reportTarget?.id || reportBusy) return
+    setReportBusy(true)
+    const labels = { fake_profile: 'โปรไฟล์ปลอมหรือแอบอ้าง', harassment: 'คุกคามหรือใช้คำพูดไม่เหมาะสม', inappropriate: 'เนื้อหาไม่เหมาะสม', scam: 'หลอกลวงหรือสแปม', other: 'อื่น ๆ' }
+    const reason = [labels[reportReason] || labels.other, reportNotes.trim()].filter(Boolean).join(' — ').slice(0, 500)
+    const { error } = await supabase.from('reports').insert({ reporter: user.id, reported: reportTarget.id, reason })
+    setReportBusy(false)
+    if (error) return notify('รายงานไม่สำเร็จ: ' + error.message)
+    setReportTarget(null)
+    notify('ส่งรายงานให้ทีมดูแลแล้ว')
+  }
+  const block = async (p) => {
+    if (!p?.id || !confirm(`ต้องการบล็อก ${p.display_name || 'ผู้ใช้นี้'} ใช่ไหม?\nหลังบล็อกจะไม่เห็นโปรไฟล์นี้อีก`)) return
+    const { error } = await supabase.from('blocks').insert({ blocker: user.id, blocked: p.id })
+    if (error && error.code !== '23505') return notify('บล็อกไม่สำเร็จ: ' + error.message)
+    setPeople(l => (l || []).filter(x => x.id !== p.id))
+    setMatches(l => l.filter(x => x.p?.id !== p.id))
+    setDetail(null)
+    notify('บล็อกผู้ใช้นี้แล้ว')
+    loadMatches()
+  }
+  useEffect(() => {
+    if (!userId || !profile || !discoveryReady || !discovery) return
+    const key = `nisit-intro-v1:${userId}`
+    try { if (!localStorage.getItem(key)) { setGuideStep(0); setGuideOpen(true) } } catch {}
+  }, [userId, profile, discoveryReady, discovery])
+  const closeGuide = () => {
+    setGuideOpen(false)
+    try { if (userId) localStorage.setItem(`nisit-intro-v1:${userId}`, 'done') } catch {}
+  }
   const openDetail = async (person) => {
     setDetail(person)
     if (!person?.id) return
@@ -1446,7 +1481,7 @@ const loadMatches = useCallback(async () => {
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}
-          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => notify('หากพบการละเมิด โปรดรายงานผ่านโปรไฟล์ผู้ใช้')}>ช่วยเหลือและความปลอดภัย</button></footer>
+          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => { setGuideStep(0); setGuideOpen(true) }}>คู่มือและความปลอดภัย</button></footer>
         </div>
       </main>
       {visibleDetail && <div className={"modal-backdrop detail-backdrop" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
@@ -1458,6 +1493,8 @@ const loadMatches = useCallback(async () => {
           {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(visibleDetail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
           <button type="button" className="detail-bottom-close" onClick={() => setDetail(null)}>← กลับไปหน้าปัด</button>
           <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
+      {reportTarget && <div className="modal-backdrop nm-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>}
+      {guideOpen && <div className="modal-backdrop nm-dialog-backdrop" role="presentation"><div className="nm-dialog nm-guide" role="dialog" aria-modal="true" aria-labelledby="nm-guide-title"><button className="nm-dialog-close" type="button" onClick={closeGuide} aria-label="ปิดคู่มือ"><X size={20}/></button><div className="nm-dialog-eyebrow"><Sparkles size={16}/> WELCOME TO NISIT MATCH</div><div className="nm-guide-counter">{guideStep + 1} / 4</div><div className="nm-guide-illustration">{guideStep === 0 ? <Heart size={46}/> : guideStep === 1 ? <MessageCircle size={46}/> : guideStep === 2 ? <GraduationCap size={46}/> : <ShieldCheck size={46}/>}</div><h2 id="nm-guide-title">{['เริ่มค้นหาคนที่ใช่','แมตช์แล้วเริ่มคุยกัน','ยืนยันสถานะนักศึกษา','พื้นที่ปลอดภัยสำหรับทุกคน'][guideStep]}</h2><p>{['ปัดขวาเมื่อถูกใจ ปัดซ้ายเพื่อข้าม หรือแตะโปรไฟล์เพื่อทำความรู้จักเพิ่มเติม','เมื่อคุณและอีกฝ่ายกดถูกใจตรงกัน จะเกิด Match และสามารถเริ่มแชตได้','ยืนยันอีเมลมหาวิทยาลัยเพื่อแสดงเครื่องหมายยืนยันบนโปรไฟล์ โดยไม่เปิดเผยอีเมลของคุณ','หากพบโปรไฟล์ปลอม การคุกคาม หรือข้อความไม่เหมาะสม สามารถรายงานหรือบล็อกผู้ใช้ได้'][guideStep]}</p><div className="nm-guide-dots">{[0,1,2,3].map(i => <span key={i} className={i === guideStep ? 'active' : ''}/>)}</div><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={guideStep === 0 ? closeGuide : () => setGuideStep(x => x - 1)}>{guideStep === 0 ? 'ข้าม' : 'ย้อนกลับ'}</button><button type="button" className="btn btn-pink" onClick={guideStep === 3 ? closeGuide : () => setGuideStep(x => x + 1)}>{guideStep === 3 ? 'เริ่มใช้งาน' : 'ถัดไป'} <ArrowRight size={16}/></button></div></div></div>}
       {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog"><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
       {Toast}
     </div>
