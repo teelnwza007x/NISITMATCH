@@ -28,32 +28,18 @@ const Av = ({ u, cls = 'avatar' }) => {
 const Brand = ({ onClick }) => <button className="brand" onClick={onClick}><span className="brand-icon"><Heart fill="currentColor" /></span><span>nisit <b>match</b></span></button>
 
 function Landing({ onLogin, onRegister }) {
-  return (
-    <div className="landing">
-      <nav className="landing-nav"><Brand /><div className="landing-links"><a href="#how">วิธีใช้งาน</a><a href="#safety">ความปลอดภัย</a><button onClick={onLogin}>เข้าสู่ระบบ</button><button className="btn btn-pink" onClick={onRegister}>เริ่มต้นใช้งาน <ArrowRight size={16} /></button></div></nav>
-      <section className="hero">
-        <div className="hero-copy">
-          <div className="eyebrow"><Sparkles size={15} /> A LITTLE CLOSER TO SOMETHING REAL</div>
-          <h1>เจอคนที่ใช่<br /><span>ในแบบที่เป็นคุณ</span><Heart className="hero-heart" fill="currentColor" /></h1>
-          <p>พื้นที่เล็ก ๆ สำหรับนิสิตนักศึกษาที่อยากรู้จักใครสักคน<br />เริ่มจากบทสนทนาดี ๆ แล้วปล่อยให้ความสัมพันธ์ค่อย ๆ เติบโต</p>
-          <div className="hero-actions"><button className="btn btn-pink btn-lg" onClick={onRegister}>หา Match ของฉัน <ArrowRight size={18} /></button><button className="btn btn-ghost btn-lg" onClick={onLogin}>เข้าสู่ระบบ</button></div>
-          <div className="hero-trust"><span><ShieldCheck size={17} /> ใส่ใจความเป็นส่วนตัว</span><span><Heart size={17} /> ความสัมพันธ์ที่จริงใจ</span><span><Users size={17} /> Community ของนิสิต</span></div>
-        </div>
-        <div className="hero-visual"><div className="glow glow-a" />
-          <div className="hero-photo-main"><img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=1000&auto=format&fit=crop&q=85" alt="" /><div className="photo-overlay" /><div className="photo-caption"><span className="caption-heart"><Heart fill="currentColor" /></span><div><b>Good people.</b><p>Better tomorrow.</p></div></div></div>
-          <div className="floating-card floating-match"><span className="safe-icon" style={{ color: '#ff75b8', background: '#ff75b81a' }}><Heart size={19} fill="currentColor" /></span><div><b>It's a Match!</b><small>จุดเริ่มต้นของเรื่องราวดี ๆ</small></div></div>
-          <div className="floating-card floating-safe"><span className="safe-icon"><ShieldCheck size={19} /></span><div><b>พื้นที่ที่คุณสบายใจ</b><small>คุณควบคุมประสบการณ์ได้</small></div></div>
-          <span className="sparkle s1">✦</span><span className="sparkle s2">✧</span></div>
-      </section>
-      <section className="landing-stats"><div><b>01</b><span>เริ่มจากเป็นตัวเอง</span></div><div><b>02</b><span>ค้นหาคนที่มีอะไรคล้ายกัน</span></div><div><b>03</b><span>ค่อย ๆ รู้จักกันในจังหวะของคุณ</span></div></section>
-      <section className="how-section" id="how"><div className="section-kicker">HOW IT WORKS</div><h2>ความสัมพันธ์ดี ๆ <span>เริ่มง่ายกว่าที่คิด</span></h2><p className="section-sub">ไม่ต้องรีบ ไม่ต้องฝืน แค่เริ่มต้นจากความเป็นตัวเอง</p>
-        <div className="steps">{[[UserRound, 'สร้างโปรไฟล์', 'เล่าเรื่องของคุณ ความสนใจ และสิ่งที่ทำให้คุณเป็นคุณ'], [Heart, 'ค้นหาคนที่ใช่', 'สำรวจผู้คนที่มีความสนใจและมุมมองที่เข้ากันได้'], [MessageCircle, 'เริ่มบทสนทนา', 'เมื่อถูกใจกันทั้งสองฝ่าย ก็เริ่มคุยกันได้เลย']].map(([I, t, d], i) => <div className="step" key={t}><div className="step-icon"><I /></div><span>STEP 0{i + 1}</span><h3>{t}</h3><p>{d}</p></div>)}</div></section>
-      <section className="safety-section" id="safety"><div><div className="section-kicker">YOUR SAFETY MATTERS</div><h2>ความสบายใจของคุณ<br /><span>สำคัญที่สุด</span></h2><p>เครื่องมือให้คุณควบคุมประสบการณ์ของตัวเองได้ ตั้งแต่การเลือกเปิดเผยข้อมูลไปจนถึงการบล็อกและรายงานผู้ใช้</p>
-        <div className="safety-points"><span><Check /> บล็อกหรือรายงานบัญชีได้</span><span><Check /> ไม่เปิดเผยอีเมลและวันเกิดในหน้าค้นหา</span><span><Check /> ส่งข้อความได้เมื่อ Match กันเท่านั้น</span></div></div>
-        <div className="safety-art"><div className="shield-large"><ShieldCheck size={66} /></div><div className="safety-note"><LockKeyhole size={18} /><span><b>Your space.</b><small>Your boundaries.</small></span></div></div></section>
-      <footer className="footer"><Brand /><span>© 2026 nisit match · สร้างความสัมพันธ์อย่างใส่ใจ</span></footer>
-    </div>
-  )
+  return <div className="landing landing-editorial">
+    <nav className="landing-nav"><Brand /><div className="landing-links"><a href="#how">วิธีใช้งาน</a><a href="#safety">ความปลอดภัย</a><button onClick={onLogin}>เข้าสู่ระบบ</button><button className="btn btn-pink" onClick={onRegister}>สมัครสมาชิก <ArrowRight size={16}/></button></div></nav>
+    <main className="editorial-hero">
+      <div className="editorial-topline"><span>FOR UNIVERSITY STUDENTS</span><span>MEET YOUR KIND OF PEOPLE — 2026</span></div>
+      <div className="editorial-title-wrap"><span className="editorial-orbit" aria-hidden="true"/><h1>เริ่มต้นจาก<br/><em>ความบังเอิญ</em><br/>ที่ตั้งใจ.</h1><p className="editorial-side-note">YOUR STORY<br/>STARTS HERE <ArrowRight size={17}/></p></div>
+      <div className="editorial-bottom"><div><span className="editorial-kicker">NISIT MATCH / 01</span><p>พบคนที่คลิกกัน จากรั้วมหาวิทยาลัยเดียวกันหรือใกล้กัน<br/>ปัดเมื่อพร้อม คุยเมื่อใช่ ในจังหวะที่เป็นตัวคุณ</p></div><div className="editorial-actions"><button className="editorial-primary" onClick={onRegister}>เริ่มต้นใช้งาน <ArrowRight size={21}/></button><button className="editorial-secondary" onClick={onLogin}>มีบัญชีแล้ว? เข้าสู่ระบบ</button></div></div>
+      <div className="editorial-marquee" aria-hidden="true"><span>GOOD CONNECTIONS START SOMEWHERE</span><span className="editorial-dot"/><span>GOOD CONNECTIONS START SOMEWHERE</span></div>
+    </main>
+    <section className="editorial-process" id="how"><div className="editorial-section-head"><span>THE PROCESS / 02</span><h2>ง่าย ๆ แค่เป็นตัวเอง</h2></div><div className="editorial-process-grid">{[["01","สร้างโปรไฟล์","เล่าเรื่องของคุณในแบบที่คุณชอบ"],["02","ปัดเพื่อค้นพบ","เจอคนที่เรียนใกล้กันและมีอะไรตรงกัน"],["03","เริ่มบทสนทนา","เมื่อชอบตรงกัน ก็เริ่มทำความรู้จักกัน"]].map(([n,t,d])=><div className="editorial-process-item" key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p><ArrowRight size={19}/></div>)}</div></section>
+    <section className="editorial-safety" id="safety"><div><span>YOUR SPACE / 03</span><h2>เป็นตัวเองได้<br/><em>อย่างสบายใจ.</em></h2></div><div><p>คุณเลือกได้ว่าจะรู้จักใคร และจะคุยกับใคร ข้อมูลส่วนตัวที่สำคัญไม่ถูกแสดงบนโปรไฟล์สาธารณะ</p><div className="editorial-safety-list"><span><ShieldCheck size={18}/> บล็อกและรายงานผู้ใช้ได้</span><span><LockKeyhole size={18}/> คุยได้เมื่อ Match กันเท่านั้น</span></div><button onClick={onRegister}>เริ่มต้นเรื่องราวของคุณ <ArrowRight size={17}/></button></div></section>
+    <footer className="editorial-footer"><Brand/><span>© 2026 NISIT MATCH</span><button onClick={onLogin}>เข้าสู่ระบบ <ArrowRight size={14}/></button></footer>
+  </div>
 }
 
 function AuthModal({ mode, setMode, close, notify }) {
@@ -93,8 +79,11 @@ function AuthModal({ mode, setMode, close, notify }) {
 function SwipeDeck({ people, onLike, onSkip, onOpen, onReport }) {
   const [photo, setPhoto] = useState(0), [drag, setDrag] = useState({ x: 0, y: 0 }), [busy, setBusy] = useState(false)
   const start = useRef(null)
+  const dragNow = useRef({ x: 0, y: 0 })
+  const dragFrame = useRef(0)
+  useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
   const person = people[0]
-  useEffect(() => { setPhoto(0); setDrag({ x: 0, y: 0 }); setBusy(false) }, [person?.id])
+  useEffect(() => { setPhoto(0); dragNow.current = { x: 0, y: 0 }; setDrag({ x: 0, y: 0 }); setBusy(false) }, [person?.id])
   const photos = person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : []
   const act = async (like) => {
     if (!person || busy) return
@@ -104,17 +93,25 @@ function SwipeDeck({ people, onLike, onSkip, onOpen, onReport }) {
     await (like ? onLike(person) : onSkip(person))
     setBusy(false)
   }
-  const down = (e) => { if (busy) return; start.current = { x: e.clientX, y: e.clientY }; e.currentTarget.setPointerCapture(e.pointerId) }
-  const move = (e) => { if (start.current && !busy) setDrag({ x: e.clientX - start.current.x, y: e.clientY - start.current.y }) }
-  const up = () => { if (!start.current) return; start.current = null; if (Math.abs(drag.x) > 95) act(drag.x > 0); else setDrag({ x: 0, y: 0 }) }
+  const down = (e) => { if (busy || e.pointerType === 'mouse' && e.button !== 0) return; start.current = { x: e.clientX, y: e.clientY }; e.currentTarget.setPointerCapture(e.pointerId) }
+  const move = (e) => { if (start.current && !busy) { if (e.cancelable) e.preventDefault(); dragNow.current = { x: e.clientX - start.current.x, y: e.clientY - start.current.y }; if (!dragFrame.current) dragFrame.current = requestAnimationFrame(() => { dragFrame.current = 0; setDrag(dragNow.current) }) } }
+  const up = () => { if (!start.current) return; start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; const x = dragNow.current.x; if (Math.abs(x) > 95) act(x > 0); else { dragNow.current = { x: 0, y: 0 }; setDrag({ x: 0, y: 0 }) } }
+  const swipeStrength = Math.min(Math.abs(drag.x) / 125, 1)
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
-    <article className="swipe-card swipe-front" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ transform: `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 18}deg)`, transition: start.current ? 'none' : 'transform .22s ease', touchAction: 'pan-y' }}>
+    <article className="swipe-card swipe-front" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ transform: `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 18}deg)`, transition: start.current ? 'none' : 'transform .22s ease', touchAction: 'none' }}>
       <img draggable="false" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
       <div className="swipe-photo-bars">{(photos.length ? photos : [null]).map((_, i) => <span key={i} className={i === photo ? 'active' : ''}/>)}</div>
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photos.length - 1, v + 1))}/>
-      {drag.x > 25 && <div className="swipe-stamp yes">LIKE</div>}{drag.x < -25 && <div className="swipe-stamp no">NOPE</div>}
+      <div className="swipe-feedback yes" aria-hidden="true" style={{ opacity: drag.x > 12 ? swipeStrength : 0, transform: `translate3d(0,${(1-swipeStrength)*14}px,0) rotate(${-11 + (1-swipeStrength)*5}deg) scale(${.83+swipeStrength*.17})` }}>
+        <span className="swipe-feedback-spark spark-one"/><span className="swipe-feedback-spark spark-two"/><span className="swipe-feedback-spark spark-three"/>
+        <span className="swipe-feedback-icon"><Heart size={25} fill="currentColor" strokeWidth={1.8}/></span><span className="swipe-feedback-label">LIKE</span><span className="swipe-feedback-caption">ชอบคนนี้</span>
+      </div>
+      <div className="swipe-feedback no" aria-hidden="true" style={{ opacity: drag.x < -12 ? swipeStrength : 0, transform: `translate3d(0,${(1-swipeStrength)*14}px,0) rotate(${11 - (1-swipeStrength)*5}deg) scale(${.83+swipeStrength*.17})` }}>
+        <span className="swipe-feedback-spark spark-one"/><span className="swipe-feedback-spark spark-two"/><span className="swipe-feedback-spark spark-three"/>
+        <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
+      </div>
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p><p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
     </article></div><div className="swipe-controls"><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
@@ -882,7 +879,31 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       </form></div></>)
 }
 
+const THEME_OPTIONS = [
+  { id: 'midnight', name: 'Midnight', detail: 'เข้ม เรียบ และคลาสสิก', colors: ['#0b101b','#f45ca5','#8e72ff'] },
+  { id: 'rose', name: 'Rose', detail: 'ชมพูอ่อน อบอุ่น สบายตา', colors: ['#fff5f9','#d95d91','#f3b7ce'] },
+  { id: 'ocean', name: 'Ocean', detail: 'น้ำเงินหม่น ดูสงบ', colors: ['#0b1b2c','#4aa9c7','#8ad6dc'] },
+  { id: 'sage', name: 'Sage', detail: 'เขียวธรรมชาติ มินิมอล', colors: ['#15231f','#89b99e','#d3d5a2'] },
+  { id: 'lavender', name: 'Lavender', detail: 'ม่วงละมุน นุ่มนวล', colors: ['#1b162a','#b299ed','#efacd7'] },
+]
+const THEME_KEY = 'nisit-match-theme-v1'
+function applyTheme(theme) {
+  const next = THEME_OPTIONS.some(item => item.id === theme) ? theme : 'midnight'
+  document.documentElement.dataset.theme = next
+  try { localStorage.setItem(THEME_KEY, next) } catch {}
+}
+if (typeof document !== 'undefined') {
+  let saved = 'midnight'
+  try { saved = localStorage.getItem(THEME_KEY) || saved } catch {}
+  applyTheme(saved)
+}
+
 function SettingsPage({ user, notify }) {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
+  })
+  const chooseTheme = (id) => { setTheme(id); applyTheme(id) }
+
   const [pushBusy, setPushBusy] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
   useEffect(() => {
@@ -925,6 +946,14 @@ function SettingsPage({ user, notify }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
+    <section className="theme-gallery" aria-label="เลือกธีมของแอป">
+      <div className="theme-gallery-heading"><div><span className="theme-kicker">APPEARANCE</span><h3>ธีมของคุณ</h3><p>เลือกบรรยากาศที่ชอบ เปลี่ยนได้ทุกเมื่อ</p></div><span className="theme-selected-label">{THEME_OPTIONS.find(t => t.id === theme)?.name || 'Midnight'}</span></div>
+      <div className="theme-options">{THEME_OPTIONS.map(t => <button type="button" key={t.id} className={'theme-option' + (theme === t.id ? ' is-selected' : '')} aria-pressed={theme === t.id} onClick={() => chooseTheme(t.id)}>
+        <span className="theme-swatch" style={{ background: t.colors[0] }}><span className="theme-swatch-card" style={{ background: t.colors[1] }} /><span className="theme-swatch-pill" style={{ background: t.colors[2] }} /><span className="theme-swatch-dot" style={{ background: t.colors[1] }} /></span>
+        <span className="theme-option-label"><strong>{t.name}</strong><small>{t.detail}</small></span>
+        <span className="theme-check">{theme === t.id && <Check size={14}/>}</span>
+      </button>)}</div>
+    </section>
     <div className="settings-grid">
       <div className="settings-card"><div className="settings-icon"><ShieldCheck /></div><div><h3>ความเป็นส่วนตัวและความปลอดภัย</h3><p>หน้าค้นหาไม่แสดงอีเมลและวันเกิดของคุณ และคุณสามารถบล็อกหรือรายงานผู้ใช้ได้</p></div><span className="settings-status">เปิดใช้งาน</span></div>
       <div className="settings-card"><div className="settings-icon"><LockKeyhole /></div><div><h3>รหัสผ่าน</h3><p>ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่ {user.email}</p></div><button className="btn btn-ghost btn-small" onClick={reset}>ส่งลิงก์</button></div>
@@ -959,7 +988,7 @@ function DiscoverySetup({ initial, profile, onSave, onClose, isEditing = false }
   const [pref, setPref] = useState(() => ({ ...defaultDiscovery, ...initial }))
   const [saving, setSaving] = useState(false)
   const [closing, setClosing] = useState(false)
-  const closeSmoothly = () => { if (closing) return; setClosing(true); window.setTimeout(onClose, 310) }
+  const closeSmoothly = () => { if (closing) return; setClosing(true); window.setTimeout(onClose, 190) }
   const homeHasCoords = hasCampusCoordinates(profile.university_id)
   const toggleUni = id => setPref(p => ({ ...p, universities: p.universities.includes(id) ? p.universities.filter(x => x !== id) : [...p.universities, id] }))
   const finish = async () => { setSaving(true); try { await onSave(pref) } finally { setSaving(false) } }
@@ -981,7 +1010,7 @@ function PreferencesEditor({ initial, profile, onSave, onClose }) {
   const [saving, setSaving] = useState(false)
   const [closing, setClosing] = useState(false)
   const hasCoords = hasCampusCoordinates(profile?.university_id)
-  const close = () => { if (closing || saving) return; setClosing(true); window.setTimeout(onClose, 360) }
+  const close = () => { if (closing || saving) return; setClosing(true); window.setTimeout(onClose, 190) }
   const update = patch => setPref(p => ({ ...p, ...patch }))
   const toggleUni = id => setPref(p => ({ ...p, universities: p.universities.includes(id) ? p.universities.filter(x => x !== id) : [...p.universities, id] }))
   const valid = !(pref.mode === 'selected' && !pref.universities.length) && !(pref.mode === 'nearby' && !hasCoords)
@@ -1019,7 +1048,7 @@ export default function App() {
     if (detail) { setVisibleDetail(detail); setDetailLeaving(false); return }
     if (!visibleDetail) return
     setDetailLeaving(true)
-    const timer = window.setTimeout(() => { setVisibleDetail(null); setDetailLeaving(false) }, 330)
+    const timer = window.setTimeout(() => { setVisibleDetail(null); setDetailLeaving(false) }, 190)
     return () => window.clearTimeout(timer)
   }, [detail])
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
