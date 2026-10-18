@@ -1187,3 +1187,29 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
   .chat-fullscreen .chat-theme-overlay{position:absolute;inset:0;padding:16px max(12px,env(safe-area-inset-right)) 16px max(12px,env(safe-area-inset-left))}
 }
 @media(prefers-reduced-motion:reduce){.chat-theme-overlay,.chat-theme-dialog{animation:none!important}.chat-fullscreen .chat-messages{scroll-behavior:auto}}
+
+/* v43: silky music seek bar with touch-friendly, aligned native thumb */
+.itunes-song-card .itunes-premium-timeline input[type=range]{
+  cursor:pointer;touch-action:pan-y;transition:filter .22s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.itunes-song-card .itunes-premium-timeline input[type=range]:hover,
+.itunes-song-card .itunes-premium-timeline input[type=range]:focus-visible{filter:brightness(1.12)}
+.itunes-song-card .itunes-premium-timeline input[type=range]::-webkit-slider-thumb{
+  transition:box-shadow .22s ease,background-color .22s ease,scale .22s cubic-bezier(.2,.8,.2,1)!important;
+  scale:1;
+}
+.itunes-song-card .itunes-premium-timeline input[type=range].music-seek-active::-webkit-slider-thumb{
+  scale:1.17;box-shadow:0 0 0 5px #ff8cc73b,0 3px 13px #0005;
+}
+.itunes-song-card .itunes-premium-timeline input[type=range]::-moz-range-thumb{
+  transition:box-shadow .22s ease,transform .22s ease;
+}
+.itunes-song-card .itunes-premium-timeline input[type=range].music-seek-active::-moz-range-thumb{
+  transform:scale(1.17);box-shadow:0 0 0 5px #ff8cc73b;
+}
+@media(prefers-reduced-motion:reduce){
+  .itunes-song-card .itunes-premium-timeline input[type=range],
+  .itunes-song-card .itunes-premium-timeline input[type=range]::-webkit-slider-thumb,
+  .itunes-song-card .itunes-premium-timeline input[type=range]::-moz-range-thumb{transition:none!important}
+}

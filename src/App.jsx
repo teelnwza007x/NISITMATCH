@@ -224,7 +224,7 @@ function VoiceBubble({ src, mine }) {
       playsInline
       onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
       onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-      onTimeUpdate={e => setPosition(e.currentTarget.currentTime)}
+      onTimeUpdate={e => { if (!seekingRef.current) setPosition(e.currentTarget.currentTime) }}
       onPlaying={() => { setPlaying(true); setAudioError(false) }}
       onPause={() => setPlaying(false)}
       onEnded={() => { setPlaying(false); setPosition(0); if (audio.current) audio.current.currentTime = 0 }}
@@ -722,6 +722,30 @@ function ITunesSongCard({ track, compact = false }) {
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(30)
+  const seekingRef = useRef(false)
+  const seekAnimationRef = useRef(null)
+  const [seeking, setSeeking] = useState(false)
+  // Update the position at display refresh rate, rather than only on the
+  // browser's infrequent timeupdate events. Pause updates while dragging.
+  useEffect(() => {
+    if (!playing) return
+    let lastPaint = 0
+    const frame = now => {
+      const audio = audioRef.current
+      if (audio && !seekingRef.current && now - lastPaint >= 32) {
+        setPosition(audio.currentTime)
+        lastPaint = now
+      }
+      seekAnimationRef.current = requestAnimationFrame(frame)
+    }
+    seekAnimationRef.current = requestAnimationFrame(frame)
+    return () => {
+      if (seekAnimationRef.current != null) cancelAnimationFrame(seekAnimationRef.current)
+      seekAnimationRef.current = null
+    }
+  }, [playing])
+  const startSeek = () => { seekingRef.current = true; setSeeking(true) }
+  const endSeek = () => { seekingRef.current = false; setSeeking(false) }
   const barsRef = useRef(null)
   const animationRef = useRef(null)
   const audioContextRef = useRef(null)
@@ -818,7 +842,7 @@ function ITunesSongCard({ track, compact = false }) {
     </div>
     {preview && <div className="itunes-premium-timeline">
       <span>{formatTime(position)}</span>
-      <input type="range" min="0" max="100" step="0.1" value={progress} onChange={seek} style={{'--progress': `${progress}%`}} aria-label="เลื่อนตำแหน่งเพลง" />
+      <input className={seeking ? "music-seek-active" : ""} type="range" min="0" max="100" step="0.1" value={progress} onPointerDown={startSeek} onPointerUp={endSeek} onPointerCancel={endSeek} onBlur={endSeek} onChange={seek} style={{'--progress': `${progress}%`}} aria-label="เลื่อนตำแหน่งเพลง" />
       <span>{formatTime(duration)}</span>
     </div>}
     {!compact && <div className="itunes-premium-footer"><span>♫ เพลงที่บอกความเป็นฉัน</span>{safeUrl(track.url) && <a href={safeUrl(track.url)} target="_blank" rel="noopener noreferrer">Apple Music ↗</a>}</div>}
