@@ -1223,3 +1223,45 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .chat-image-close{position:absolute;top:-18px;right:-8px;z-index:2;display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.22);border-radius:50%;background:rgba(20,25,40,.85);color:#fff;cursor:pointer;transform:translateY(-100%)}
 @keyframes nm44ImageIn{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.chat-image-lightbox{animation:none}}
+
+
+/* v45 — refined music card surface. Playback, seek bar and live EQ remain untouched. */
+.itunes-song-card.itunes-premium{
+  background:linear-gradient(135deg,rgba(30,32,53,.97) 0%,rgba(18,24,41,.98) 57%,rgba(34,26,49,.97) 100%);
+  border:1px solid rgba(226,212,255,.18);
+  border-radius:20px;
+  box-shadow:0 12px 32px rgba(12,15,34,.19),inset 0 1px 0 rgba(255,255,255,.11);
+  padding:14px 15px;
+  transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s ease,border-color .35s ease;
+}
+.itunes-song-card.itunes-premium:hover{
+  transform:translateY(-2px);
+  border-color:rgba(228,190,246,.32);
+  box-shadow:0 18px 42px rgba(12,15,34,.26),0 0 24px rgba(194,135,230,.07);
+}
+.itunes-song-card.itunes-premium .itunes-premium-glow{
+  width:230px;height:230px;left:-90px;top:-135px;
+  background:radial-gradient(circle,rgba(214,139,224,.20),transparent 68%);
+  opacity:.72;animation:nm45Ambient 7s ease-in-out infinite alternate;
+}
+.itunes-song-card.itunes-premium .itunes-premium-artwrap{
+  border-radius:13px;border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 7px 18px rgba(0,0,0,.24);
+  transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s ease;
+}
+.itunes-song-card.itunes-premium:hover .itunes-premium-artwrap{
+  transform:rotate(-2deg) scale(1.035);
+  box-shadow:0 10px 24px rgba(0,0,0,.3);
+}
+.itunes-song-card.itunes-premium .itunes-premium-eyebrow{color:#e6b7e9;letter-spacing:1.25px}
+.itunes-song-card.itunes-premium .itunes-premium-copy strong{color:#fff9ff;letter-spacing:-.25px}
+.itunes-song-card.itunes-premium .itunes-premium-copy>span{color:#c5bfd4}
+.itunes-song-card.itunes-premium .itunes-premium-footer{border-top-color:rgba(255,255,255,.09);color:#c3b8ce}
+.itunes-song-card.itunes-premium .itunes-premium-footer a{color:#f0b9e2;transition:color .2s ease}
+.itunes-song-card.itunes-premium .itunes-premium-footer a:hover{color:#fff}
+.itunes-song-card.itunes-premium.compact{padding:11px 12px;border-radius:17px}
+@keyframes nm45Ambient{from{transform:translate3d(-9px,-5px,0);opacity:.45}to{transform:translate3d(20px,12px,0);opacity:.85}}
+@media(prefers-reduced-motion:reduce){
+ .itunes-song-card.itunes-premium,.itunes-song-card.itunes-premium .itunes-premium-artwrap{transition:none!important}
+ .itunes-song-card.itunes-premium .itunes-premium-glow{animation:none!important}
+}
