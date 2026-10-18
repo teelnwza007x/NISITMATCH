@@ -1559,3 +1559,18 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 @keyframes nisitBubbleFocus {0%{transform:scale(1)}45%{transform:scale(1.065) translateY(-5px)}75%{transform:scale(1.025) translateY(-3px)}100%{transform:scale(1.035) translateY(-3px)}}
 @keyframes nisitMenuPop {from{opacity:0;transform:translateY(-8px) scale(.93)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.chat-message-focus-dismiss,.chat-messages .message-bubble.chat-message-focused,.chat-messages .chat-message-focused .chat-message-menu{animation:none!important}.chat-messages .message-bubble.chat-message-focused{transform:none!important}}
+
+/* v62: iOS message focus without a full-screen blur overlay or native text selection. */
+.chat-message-focus-dismiss{display:none!important}
+.chat-messages .message-bubble, .chat-messages .message-bubble small, .chat-messages .chat-reply-quote{
+  -webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;
+  -webkit-tap-highlight-color:transparent;
+}
+.chat-messages .message-bubble:not(:has(button,audio,input)){touch-action:pan-y}
+.chat-messages.chat-focus-active .message-row:not(:has(.chat-message-focused)){opacity:.48;filter:none;transition:opacity .18s ease}
+.chat-messages.chat-focus-active .chat-date-divider,.chat-messages.chat-focus-active .chat-empty{opacity:.55}
+.chat-messages .message-bubble.chat-message-focused{z-index:4;isolation:isolate;filter:none!important;animation:nisitBubbleFocusV62 .3s cubic-bezier(.2,1.2,.3,1) both!important}
+.chat-messages .message-row:has(.chat-message-focused){position:relative;z-index:5;opacity:1!important}
+.chat-messages .chat-message-focused .chat-message-menu{z-index:6;animation:nisitMenuPop .2s ease-out both}
+@keyframes nisitBubbleFocusV62{0%{transform:translateY(0) scale(1)}55%{transform:translateY(-4px) scale(1.045)}100%{transform:translateY(-2px) scale(1.025)}}
+@media(prefers-reduced-motion:reduce){.chat-messages .message-bubble.chat-message-focused{animation:none!important;transform:none!important}.chat-messages.chat-focus-active .message-row{transition:none!important}}
