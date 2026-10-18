@@ -1168,3 +1168,22 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .itunes-premium-timeline input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#d09dfb}
 .itunes-premium-timeline input[type=range]::-moz-range-thumb{box-sizing:border-box;width:16px;height:16px;border:2px solid #fff;border-radius:50%;background:#ff8cc7}
 @media(prefers-reduced-motion:reduce){.bottom-nav-item.has-unread-messages .bottom-icon svg,.nav-item.has-unread-messages>svg{animation:none!important}}
+
+/* v42 — accessible chat theme sheet, never clipped by the header's overflow rule. */
+.chat-theme-control{flex:0 0 auto!important;overflow:visible!important}
+.chat-theme-overlay{position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,10,20,.66);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);animation:nm42Fade .2s ease-out}
+.chat-theme-dialog{width:min(350px,100%);max-height:min(75dvh,520px);overflow-y:auto;overscroll-behavior:contain;border-radius:22px;padding:20px;background:#192238;color:#f9f9fc;border:1px solid #ffffff27;box-shadow:0 22px 70px #0009;animation:nm42Rise .25s cubic-bezier(.2,.8,.2,1)}
+.chat-theme-dialog .chat-theme-heading{font-size:16px;margin-bottom:16px}
+.chat-theme-dialog .chat-theme-choice{min-height:48px;font-size:13px;transition:transform .2s ease,background .2s ease,border-color .2s ease}
+.chat-theme-dialog .chat-theme-choice:active{transform:scale(.96)}
+.chat-theme-dialog .chat-theme-choice.active{border-color:#c4a7ff;background:#ffffff22}
+.chat-theme-dialog>small{display:block;margin-top:15px;color:#b5bdd2;font-size:11px}
+@keyframes nm42Fade{from{opacity:0}to{opacity:1}}
+@keyframes nm42Rise{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.chat-fullscreen .chat-messages{scroll-behavior:smooth;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+@media(max-width:800px){
+  .chat-layout.chat-inbox-open{height:min(72dvh,680px)!important;min-height:0!important;max-height:calc(100dvh - 190px)!important;overflow:hidden!important}
+  .chat-layout.chat-inbox-open .chat-list{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .chat-fullscreen .chat-theme-overlay{position:absolute;inset:0;padding:16px max(12px,env(safe-area-inset-right)) 16px max(12px,env(safe-area-inset-left))}
+}
+@media(prefers-reduced-motion:reduce){.chat-theme-overlay,.chat-theme-dialog{animation:none!important}.chat-fullscreen .chat-messages{scroll-behavior:auto}}
