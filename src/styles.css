@@ -1769,3 +1769,42 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
   .swipe-stage .swipe-front,.swipe-stage .swipe-front.swipe-entering{animation:none!important;transition:none!important}
   .swipe-stage .swipe-feedback,.swipe-stage .swipe-control:not(:disabled){transition:none!important}
 }
+
+
+/* v73: correct next-card identity and premium swipe feedback */
+.swipe-stage .swipe-behind{
+  transition:transform .42s cubic-bezier(.18,.78,.22,1),opacity .32s ease,filter .32s ease;
+  transform:scale(.925) translate3d(0,16px,0);
+  opacity:.72;
+  filter:saturate(.86) brightness(.82);
+  backface-visibility:hidden;
+}
+.swipe-stage .swipe-behind-next{
+  transform:scale(.965) translate3d(0,7px,0);
+  opacity:.96;
+  filter:saturate(1) brightness(.94);
+}
+.swipe-stage .swipe-behind-image{transform:translateZ(0);}
+.swipe-stage .v64-swipe-burst.like{
+  overflow:hidden;
+  background:radial-gradient(circle at 50% 47%,rgba(255,91,174,.27) 0%,rgba(156,77,255,.15) 28%,rgba(23,12,46,.54) 63%,transparent 82%);
+  animation:v73-like-overlay .82s cubic-bezier(.16,.7,.2,1) both;
+}
+.swipe-stage .v64-swipe-burst.like::before,
+.swipe-stage .v64-swipe-burst.like::after{
+  content:"";position:absolute;left:50%;top:45%;width:min(76vw,330px);aspect-ratio:1;border-radius:50%;
+  border:1.5px solid rgba(255,190,225,.88);box-shadow:0 0 24px rgba(255,87,173,.4),inset 0 0 26px rgba(255,87,173,.15);
+  transform:translate(-50%,-50%) scale(.22);opacity:0;pointer-events:none;
+  animation:v73-heart-ring .8s cubic-bezier(.12,.7,.2,1) both;
+}
+.swipe-stage .v64-swipe-burst.like::after{width:min(57vw,245px);border-color:rgba(225,193,255,.92);animation-delay:.07s;}
+.swipe-stage .v64-swipe-burst.like .v64-swipe-burst-icon{position:relative;z-index:1;animation:v73-heart-pop .72s cubic-bezier(.18,1.55,.25,1) both;filter:drop-shadow(0 0 12px #ff4e9b) drop-shadow(0 0 36px #b75cff);}
+.swipe-stage .v64-swipe-burst.like>span{position:relative;z-index:1;text-shadow:0 0 18px rgba(255,105,190,.95),0 3px 24px #1a061a;}
+.swipe-stage .v64-swipe-burst.like i{z-index:1;width:6px;height:6px;box-shadow:0 0 12px currentColor;background:linear-gradient(135deg,#fff,#ff9fce);}
+@keyframes v73-like-overlay{0%{opacity:0}12%{opacity:1}72%{opacity:1}100%{opacity:0}}
+@keyframes v73-heart-ring{0%{opacity:0;transform:translate(-50%,-50%) scale(.22)}22%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) scale(1.22)}}
+@keyframes v73-heart-pop{0%{opacity:0;transform:scale(.25) rotate(-18deg)}38%{opacity:1;transform:scale(1.16) rotate(5deg)}62%{transform:scale(.96) rotate(-2deg)}100%{opacity:0;transform:scale(1.32) rotate(0)}}
+@media(prefers-reduced-motion:reduce){
+ .swipe-stage .swipe-behind{transition:none!important}
+ .swipe-stage .v64-swipe-burst.like,.swipe-stage .v64-swipe-burst.like::before,.swipe-stage .v64-swipe-burst.like::after,.swipe-stage .v64-swipe-burst.like .v64-swipe-burst-icon{animation:none!important}
+}

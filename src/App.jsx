@@ -136,6 +136,9 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   const enterTimer = useRef(0)
   // Hold the outgoing card for the short compositor animation while the data deck advances immediately.
   const person = exitHold || people[0]
+  // Keep the immediate next profile (B) underneath the outgoing card, even before the deck state settles.
+  // Using people[1] during exit would expose C for a frame and then snap back to B.
+  const behindPerson = exitHold ? (people.find(p => p.id !== exitHold.id) || people[1]) : people[1]
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
@@ -241,7 +244,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
-    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
+    {behindPerson && <div className={`swipe-card swipe-behind${exitHold ? ' swipe-behind-next' : ''}`} key={`behind-${behindPerson.id}`}><Av u={behindPerson} cls="swipe-behind-image" /></div>}
     <article className={`swipe-card swipe-front${cardEntering ? ' swipe-entering' : ''}`} ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
       <img key={`${person.id}-${photo}`} className="swipe-main-photo" draggable="false" decoding="async" fetchPriority="high" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
       <div className="swipe-photo-bars">{(photos.length ? photos : [null]).map((_, i) => <span key={i} className={i === photo ? 'active' : ''}/>)}</div>
