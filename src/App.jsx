@@ -167,9 +167,14 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     // Keep the current profile visible during the cinematic charge-up.
     // The parent only advances the deck after the transition has completed.
     try {
-      await new Promise(resolve => setTimeout(resolve, 420))
-      paint(like ? 520 : -520, -38, true)
-      await (like ? onLike(person) : onSkip(person))
+      // Give the visual feedback a short beat, then move the card on the compositor.
+      // The database request runs concurrently with the exit animation.
+      await new Promise(resolve => setTimeout(resolve, 175))
+      paint(like ? 520 : -520, -28, true)
+      await Promise.all([
+        (like ? onLike(person) : onSkip(person)),
+        new Promise(resolve => setTimeout(resolve, 385))
+      ])
     } finally { setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0) }
   }
   const doSuperLike = async () => {
@@ -1879,8 +1884,7 @@ const loadMatches = useCallback(async () => {
     const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
     if (error) return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
     setLastSwipe({ person: p, at: Date.now(), matched: false })
-    // Hold the card until the exit transition completes; never jump to the next face.
-    await new Promise(resolve => setTimeout(resolve, 650))
+    // The deck owns the exit animation; don't add a second 650ms wait after the request.
     setPeople((l) => (l || []).filter((x) => x.id !== p.id)); setDetail(null)
     if (is_like) {
       const [a, b] = [user.id, p.id].sort()
