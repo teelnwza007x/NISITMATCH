@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
@@ -321,6 +322,32 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   }
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
+  // v48: Freeze the underlying page at its exact scroll position while a chat room is open.
+  // Only the message list scrolls; releasing the lock restores the previous page position.
+  useEffect(() => {
+    if (!roomId || typeof window === 'undefined' || !window.matchMedia('(max-width: 800px)').matches) return
+    const body = document.body
+    const root = document.documentElement
+    const y = window.scrollY
+    const old = { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, width: body.style.width, overflow: body.style.overflow, rootOverflow: root.style.overflow }
+    body.style.position = 'fixed'
+    body.style.top = `-${y}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+    root.style.overflow = 'hidden'
+    return () => {
+      body.style.position = old.position
+      body.style.top = old.top
+      body.style.left = old.left
+      body.style.right = old.right
+      body.style.width = old.width
+      body.style.overflow = old.overflow
+      root.style.overflow = old.rootOverflow
+      window.scrollTo(0, y)
+    }
+  }, [roomId])
   const [msgs, setMsgs] = useState([])
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
@@ -656,13 +683,13 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
             <img src={openChatImage} alt="รูปภาพในแชตขนาดใหญ่" />
           </div>
         </div>}
-        {themePickerOpen && <div className="chat-theme-overlay" onClick={() => setThemePickerOpen(false)}>
+        {themePickerOpen && createPortal(<div className="chat-theme-overlay chat-theme-portal" onClick={() => setThemePickerOpen(false)}>
           <div className="chat-theme-dialog" role="dialog" aria-modal="true" aria-label="เลือกธีมแชต" onClick={e => e.stopPropagation()}>
             <div className="chat-theme-heading">ธีมบทสนทนา <button type="button" onClick={() => setThemePickerOpen(false)} aria-label="ปิด"><X size={18}/></button></div>
             <div className="chat-theme-grid">{CHAT_THEMES.map(t => <button type="button" key={t.id} className={'chat-theme-choice' + (chatTheme === t.id ? ' active' : '')} onClick={() => chooseChatTheme(t.id)} aria-pressed={chatTheme === t.id}><span className="chat-theme-dot" style={{background:t.swatch}} />{t.name}{chatTheme === t.id && <Check size={15}/>}</button>)}</div>
             <small>ธีมนี้แสดงเฉพาะบนอุปกรณ์ของคุณ</small>
           </div>
-        </div>}
+        </div>, document.body)}
         <div className="chat-messages" ref={scrollBox} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
           {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
@@ -1005,6 +1032,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const [newPhotos, setNewPhotos] = useState([])
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
+  const [editTab, setEditTab] = useState('photos')
+  const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music]]
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
@@ -1055,9 +1084,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const save = async (e) => {
     e.preventDefault()
     const u = UNIVERSITIES.find((x) => x.id === f.uni)
-    if (!u) return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ')
-    if (!f.birth_date || ageOf(f.birth_date) < 18) return notify('ต้องมีอายุอย่างน้อย 18 ปี')
-    if (!f.faculty?.trim()) return notify('กรุณาเลือกคณะ')
+    if (!f.display_name.trim()) { setEditTab('basic'); return notify('กรุณากรอกชื่อที่อยากให้เรียก') }
+    if (!u) { setEditTab('campus'); return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ') }
+    if (!f.birth_date || ageOf(f.birth_date) < 18) { setEditTab('basic'); return notify('ต้องมีอายุอย่างน้อย 18 ปี') }
+    if (!f.faculty?.trim()) { setEditTab('campus'); return notify('กรุณาเลือกคณะ') }
     setBusy(true)
     const uploaded = [...photos]
     const keyMap = {}
@@ -1085,23 +1115,20 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const toggle = (i) => setF({ ...f, interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i].slice(0, 12) })
   return (<>
     <Heading kicker={onboarding ? 'WELCOME' : 'THIS IS YOU'} title={onboarding ? 'สร้างโปรไฟล์ของคุณ' : 'โปรไฟล์ของฉัน'} sub="เล่าเรื่องของคุณในแบบที่เป็นตัวเอง" />
-    <div className="profile-edit-layout">
-      <div className="profile-preview"><div className="preview-cover"><div className="preview-glow" /></div><div className="preview-content">
-        <img className="preview-avatar" src={preview} alt="" />
+    <div className="nm-profile-editor">
+      <nav className="nm-edit-tabs" aria-label="หมวดแก้ไขโปรไฟล์" role="tablist">{editTabs.map(([id, name, Icon]) => <button key={id} type="button" role="tab" aria-selected={editTab === id} className={editTab === id ? 'active' : ''} onClick={() => setEditTab(id)}><Icon size={17}/><span>{name}</span></button>)}</nav>
+      <div className="nm-edit-workspace">
+      {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
         <div className="photo-editor"><b>รูปโปรไฟล์ ({photos.length + newPhotos.length}/6)</b><p>แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key)})), ...newPhotos].map(item => <div className="photo-tile" key={item.key}><img src={item.url} alt="รูปโปรไฟล์"/><button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button><button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button></div>)}{photos.length + newPhotos.length < 6 && <label className="photo-add"><Camera size={21}/><span>เพิ่มรูป</span><input type="file" accept="image/*" multiple onChange={e => {addPhotos(e.target.files); e.target.value = ''}} /></label>}</div></div>
-        <h2>{f.display_name || 'ชื่อของคุณ'}{f.birth_date ? `, ${ageOf(f.birth_date)}` : ''}</h2>
-        <p><GraduationCap size={15} />{uniName(f.uni) || 'เลือกมหาวิทยาลัย'}</p>
-        {profileEmailVerified && <div className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/><span>ยืนยันอีเมลมหาวิทยาลัยแล้ว</span></div>}
-        {f.relationship_intent && <span className="nm-intent-tag">{intentLabel(f.relationship_intent)}</span>}
-        <p className="preview-bio">{f.bio || 'เพิ่มเรื่องราวของคุณเพื่อให้คนอื่นรู้จักคุณมากขึ้น'}</p>
-        <div className="tags centered">{f.interests.map((x) => <span className="tag" key={x}>{x}</span>)}</div>
-        {song && <ITunesSongCard track={song} compact/>}
-        <div className="privacy-note"><ShieldCheck size={16} /> อายุคำนวณจากวันเกิดอัตโนมัติ และไม่แสดงวันเกิดในหน้าค้นหา</div></div></div>
-      <form className="form-panel" onSubmit={save}>
-        <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>
+      </section>}
+      <form className="form-panel nm-tab-form" onSubmit={save} noValidate>
+        {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
+        {editTab === 'basic' && <>
         <label>ชื่อที่อยากให้เรียก<input required maxLength={40} value={f.display_name} onChange={set('display_name')} /></label>
         <div className="nm-intent-editor"><strong>ตอนนี้กำลังมองหาอะไร?</strong><p>เลือกได้หนึ่งอย่าง เปลี่ยนได้ทุกเมื่อ และจะแสดงบนโปรไฟล์ของคุณ</p><div className="nm-intent-options">{RELATIONSHIP_INTENTS.map(item => <button type="button" key={item.id} className={f.relationship_intent === item.id ? 'selected' : ''} aria-pressed={f.relationship_intent === item.id} onClick={() => setF(old => ({ ...old, relationship_intent: old.relationship_intent === item.id ? '' : item.id }))}>{item.label}</button>)}</div></div>
         <div className="form-row"><label>วันเกิด (ต้องอายุ 18+)<input type="date" required value={f.birth_date} onChange={set('birth_date')} /></label><label>เพศ<select value={f.gender} onChange={set('gender')}>{Object.entries(GENDERS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label></div>
+        </>}
+        {editTab === 'campus' && <>
         <section className="choice-section" aria-label="เลือกมหาวิทยาลัย">
           <div className="choice-heading"><div><span className="choice-step">STEP 01 · CAMPUS</span><h3>เรียนอยู่ที่ไหน? <span>✦</span></h3><p>เลือกมหาวิทยาลัยเพื่อเจอคนในคอมมูนิตี้เดียวกัน</p></div><span className="choice-count">{UNIVERSITIES.length}+ สถาบัน</span></div>
           <div className="uni-search"><Search size={17}/><input aria-label="ค้นหามหาวิทยาลัย" placeholder="พิมพ์ชื่อมหาวิทยาลัย..." value={uniQuery} onChange={(e) => setUniQuery(e.target.value)} /><span>{filteredUniversities.length} รายการ</span></div>
@@ -1116,12 +1143,15 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
           <div className="faculty-grid">{FACULTIES.map((x, i) => <button type="button" key={x} className={'faculty-option ' + (f.faculty === x ? 'selected' : '')} onClick={() => setF({ ...f, faculty: x })}><span className="faculty-number">{String(i + 1).padStart(2, '0')}</span><span>{x}</span>{f.faculty === x && <Check size={15}/>}</button>)}</div>
           <div className="major-field"><label>สาขาวิชา <span className="optional">ไม่บังคับ</span><input value={f.major} onChange={set('major')} placeholder="เช่น วิศวกรรมคอมพิวเตอร์" /></label></div>
         </section>
+        </>}
+        {editTab === 'interests' && <>
         <label>แนะนำตัว<textarea rows={4} maxLength={300} value={f.bio} onChange={set('bio')} placeholder="เล่าเกี่ยวกับตัวคุณ ความสนใจ หรือสิ่งที่ชอบ..." /><small className="char-count">{f.bio.length}/300</small></label>
         <div className="label-title">ความสนใจ <span className="optional">เลือกได้หลายข้อ</span></div>
         <div className="interest-picker">{INTERESTS.map((i) => <button type="button" key={i} className={'interest-option ' + (f.interests.includes(i) ? 'chosen' : '')} onClick={() => toggle(i)}>{f.interests.includes(i) && <Check size={13} />} {i}</button>)}</div>
-        <ITunesSongPicker value={song} onChange={setSong} />
+        </>}
+        {editTab === 'music' && <ITunesSongPicker value={song} onChange={setSong} />}
         <button className="btn btn-pink btn-lg save-btn" disabled={busy}>{busy ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'} <Check size={17} /></button>
-      </form></div></>)
+      </form></div></div></>)
 }
 
 const THEME_OPTIONS = [
