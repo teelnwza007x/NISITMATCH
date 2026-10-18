@@ -1741,29 +1741,31 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
   .swipe-stage .swipe-front{will-change:auto}
 }
 
-/* v71.1 — immediate, smooth swipe feedback without waiting for Supabase */
+/* v71 Instant Swipe Engine: keep the hot path on the compositor. */
+.swipe-stage .swipe-front{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;contain:layout paint style;}
+.swipe-stage .swipe-main-photo{opacity:1;animation:nisit-photo-enter .18s ease-out both;transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.swipe-stage .swipe-card img{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;}
+@keyframes nisit-photo-enter{from{opacity:.45}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.swipe-stage .swipe-main-photo{animation:none!important}.swipe-stage .swipe-front{will-change:auto}}
+
+/* v72 — finish the swipe before swapping identity; soften the next-card arrival. */
 .swipe-stage .swipe-front{
-  transition:transform 320ms cubic-bezier(.22,.78,.22,1), opacity 320ms ease;
-  transform:translate3d(0,0,0);
-  transform-origin:50% 55%;
-  backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;
+  transform-origin:50% 50%;
+  transition:transform 360ms cubic-bezier(.22,.78,.22,1);
 }
-.swipe-stage .swipe-front:active{cursor:grabbing}
-.swipe-stage .swipe-behind{
-  transition:transform 320ms cubic-bezier(.22,.78,.22,1),opacity 260ms ease;
+.swipe-stage .swipe-front.swipe-entering{
+  animation:nisit-swipe-arrive 300ms cubic-bezier(.2,.75,.25,1) both;
+  pointer-events:auto;
 }
-.swipe-stage .swipe-control.accept:active{transform:scale(.92)}
-.swipe-stage .swipe-control.reject:active{transform:scale(.92)}
+@keyframes nisit-swipe-arrive{
+  from{opacity:.68;filter:blur(2px)}
+  to{opacity:1;filter:blur(0)}
+}
+.swipe-stage .swipe-feedback{transition:opacity 100ms linear,transform 140ms cubic-bezier(.2,.8,.2,1)}
+.swipe-stage .swipe-control:not(:disabled){transition:transform 180ms cubic-bezier(.2,.8,.2,1),filter 180ms ease}
+.swipe-stage .swipe-control.accept:active{transform:scale(.91);filter:drop-shadow(0 0 12px rgba(255,100,174,.45))}
+.swipe-stage .swipe-control.reject:active{transform:scale(.91)}
 @media(prefers-reduced-motion:reduce){
-  .swipe-stage .swipe-front,.swipe-stage .swipe-behind,.swipe-stage .swipe-control.accept,.swipe-stage .swipe-control.reject{transition:none!important}
-}
-/* v71.1 — make the Like/Pass burst finish while the card exits */
-.swipe-stage .v64-swipe-burst{animation-duration:.34s!important}
-.swipe-stage .v64-swipe-burst-icon{animation-duration:.30s!important}
-.swipe-stage .v64-swipe-burst>span{animation-duration:.31s!important}
-.swipe-stage .v64-swipe-burst i{animation-duration:.32s!important}
-.swipe-stage .swipe-front{contain:layout paint;}
-@media(prefers-reduced-motion:reduce){
-  .swipe-stage .v64-swipe-burst,.swipe-stage .v64-swipe-burst *{animation:none!important}
+  .swipe-stage .swipe-front,.swipe-stage .swipe-front.swipe-entering{animation:none!important;transition:none!important}
+  .swipe-stage .swipe-feedback,.swipe-stage .swipe-control:not(:disabled){transition:none!important}
 }
