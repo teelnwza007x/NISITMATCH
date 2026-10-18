@@ -1265,3 +1265,26 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
  .itunes-song-card.itunes-premium,.itunes-song-card.itunes-premium .itunes-premium-artwrap{transition:none!important}
  .itunes-song-card.itunes-premium .itunes-premium-glow{animation:none!important}
 }
+
+/* v46 — other-user profile: balanced, non-stretched portrait and responsive sheet */
+.modal-backdrop.detail-backdrop{box-sizing:border-box;padding:clamp(10px,2.5vw,24px);align-items:center;justify-content:center;overflow:hidden}
+.modal-backdrop.detail-backdrop .detail-modal{box-sizing:border-box;width:min(100%,440px);max-width:440px;max-height:min(850px,calc(100dvh - 32px));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;border-radius:24px;background:#fff;color:#322638;border:1px solid rgba(234,207,224,.85);box-shadow:0 24px 85px rgba(30,16,38,.28);scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.detail-modal .detail-gallery{position:relative;width:100%;height:auto;overflow:hidden;background:#e9dfe9}
+.detail-modal .detail-gallery>.detail-cover{display:block;width:100%;height:auto!important;aspect-ratio:4/4.5;max-height:440px;object-fit:cover!important;object-position:center 32%;border-radius:0;flex:none}
+.detail-modal .detail-body{box-sizing:border-box;padding:20px 22px 24px;min-width:0;overflow-wrap:anywhere}
+.detail-modal .detail-body h2{font-size:clamp(21px,5vw,27px);line-height:1.2;letter-spacing:-.5px;margin:6px 0 12px;color:#312337}
+.detail-modal .detail-body p{font-size:13px;line-height:1.65;flex-wrap:wrap;min-width:0}
+.detail-modal .detail-body .tags{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 18px}
+.detail-modal .gallery-thumbnails{max-width:100%;overflow-x:auto;scrollbar-width:thin;background:#faf3f8}
+.detail-modal .gallery-thumbnails img{width:100%;height:100%;object-fit:cover}
+.detail-modal .detail-close-btn{z-index:5}
+.detail-modal .match-profile-song{max-width:100%;min-width:0}
+@media(max-width:600px){
+ .modal-backdrop.detail-backdrop{padding:10px 10px max(10px,env(safe-area-inset-bottom));align-items:center}
+ .modal-backdrop.detail-backdrop .detail-modal{width:min(100%,410px);max-height:calc(100dvh - 20px);border-radius:22px}
+ .detail-modal .detail-gallery>.detail-cover{aspect-ratio:4/4;max-height:min(45dvh,380px)}
+ .detail-modal .detail-body{padding:17px 17px 22px}
+ .detail-modal .detail-body p{font-size:12px}
+}
+@media(max-height:700px){.detail-modal .detail-gallery>.detail-cover{max-height:35dvh;aspect-ratio:4/3}}
+@media(prefers-reduced-motion:reduce){.detail-modal .detail-gallery>.detail-cover{transition:none}}

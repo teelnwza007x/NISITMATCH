@@ -1700,7 +1700,7 @@ const loadMatches = useCallback(async () => {
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => { setGuideStep(0); setGuideOpen(true) }}>คู่มือและวิธีเพิ่มแอปลงหน้าจอโฮม</button></footer>
         </div>
       </main>
-      {visibleDetail && <div className={"modal-backdrop detail-backdrop" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
+      {visibleDetail && <div className={"modal-backdrop detail-backdrop" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
         <ProfileGallery person={visibleDetail} />
         <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{visibleDetail.display_name}, {visibleDetail.age}</h2>
           <p><GraduationCap size={15} />{uniName(visibleDetail.university_id)} · {visibleDetail.faculty}</p>{verifiedCampusIds.includes(visibleDetail.id) && <CampusVerifiedBadge />}{visibleDetail.relationship_intent && <span className="nm-intent-tag">{intentLabel(visibleDetail.relationship_intent)}</span>}<p>{visibleDetail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
