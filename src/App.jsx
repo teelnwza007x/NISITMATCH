@@ -6,6 +6,26 @@ import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
 
 const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(b), c => c.charCodeAt(0)) }
+// v66: Deterministic daily picks, drawn exclusively from the existing privacy-filtered discover RPC.
+// No client-side bypass of blocked, hidden, or previously swiped profiles.
+const dailyPickRank = (candidate, self, day) => {
+  const mine = new Set((self?.interests || []).map(v => String(v).trim().toLowerCase()))
+  const shared = (candidate.interests || []).filter(v => mine.has(String(v).trim().toLowerCase())).length
+  const sameCampus = !!self?.university_id && candidate.university_id === self.university_id
+  const sameIntent = !!self?.relationship_intent && candidate.relationship_intent === self.relationship_intent
+  const seed = `${day}:${self?.id || ''}:${candidate.id || ''}`
+  let hash = 2166136261
+  for (let i = 0; i < seed.length; i++) hash = Math.imul(hash ^ seed.charCodeAt(i), 16777619) >>> 0
+  return shared * 100 + (sameIntent ? 40 : 0) + (sameCampus ? 25 : 0) + (hash % 20)
+}
+const dailyPickReason = (candidate, self) => {
+  const mine = new Set((self?.interests || []).map(v => String(v).trim().toLowerCase()))
+  const shared = (candidate.interests || []).filter(v => mine.has(String(v).trim().toLowerCase()))
+  if (shared.length) return `สนใจ${shared.slice(0,2).join(' · ')}เหมือนกัน`
+  if (self?.relationship_intent && candidate.relationship_intent === self.relationship_intent) return 'มองหาความสัมพันธ์แบบเดียวกัน'
+  if (self?.university_id && candidate.university_id === self.university_id) return 'เรียนมหาวิทยาลัยเดียวกัน'
+  return 'โปรไฟล์ที่น่าทำความรู้จักวันนี้'
+}
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
 const uniName = (id) => UNIVERSITIES.find((u) => u.id === id)?.name || id
@@ -162,6 +182,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     if (!person || busyRef.current) return
     busyRef.current = true
     setBusy(true)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(like ? 18 : 9)
     setSwipeBurst(like ? 'like' : 'pass')
     paint(like ? 550 : -550, -30, true)
     try { await (like ? onLike(person) : onSkip(person)) }
@@ -174,6 +195,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     try {
       const ok = await onSuperLike(person)
       if (!ok) return
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([18, 35, 28])
       setSuperBurst(true)
       // Keep the current card visible long enough for the animation to finish.
       await new Promise(resolve => setTimeout(resolve, 1050))
@@ -1950,6 +1972,16 @@ const loadMatches = useCallback(async () => {
   const filteredPeople = (people || []).filter(campusFiltered)
   const nearbyFallback = discovery?.mode === 'nearby' && (people || []).length > 0 && filteredPeople.length === 0
   const swipePeople = nearbyFallback ? (people || []) : filteredPeople
+  // Stable for a calendar day in the user's local timezone; refreshes on return to the app.
+  const [pickDay, setPickDay] = useState(() => new Date().toLocaleDateString('en-CA'))
+  useEffect(() => {
+    const refreshDay = () => setPickDay(new Date().toLocaleDateString('en-CA'))
+    document.addEventListener('visibilitychange', refreshDay)
+    window.addEventListener('focus', refreshDay)
+    return () => { document.removeEventListener('visibilitychange', refreshDay); window.removeEventListener('focus', refreshDay) }
+  }, [])
+  const dailyPicks = [...swipePeople].sort((a,b) => dailyPickRank(b,profile,pickDay) - dailyPickRank(a,profile,pickDay)).slice(0,3)
+
   
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
@@ -1976,6 +2008,13 @@ const loadMatches = useCallback(async () => {
           {view === 'home' && <>
             <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
+            {people !== null && dailyPicks.length > 0 && <section className="v66-daily" aria-label="Daily Picks วันนี้">
+              <div className="v66-daily-head"><div><span className="v66-daily-kicker"><Sparkles size={14}/> DAILY PICKS</span><h2>คนที่น่าสนใจวันนี้</h2><p>เลือกจากความสนใจและสเปกของคุณ · เปลี่ยนทุกวัน</p></div><span className="v66-daily-count">{dailyPicks.length} PICKS</span></div>
+              <div className="v66-daily-list">{dailyPicks.map((p,i) => <button type="button" className="v66-daily-card" key={p.id} onClick={() => openDetail(p)} aria-label={`ดูโปรไฟล์ ${p.display_name}`}>
+                <div className="v66-daily-image"><Av u={p}/><span className="v66-daily-number">0{i+1}</span></div>
+                <div className="v66-daily-info"><strong>{p.display_name}{p.age ? `, ${p.age}` : ''}</strong><small>{uniName(p.university_id)}</small><span>{dailyPickReason(p,profile)}</span></div><ArrowRight size={16} className="v66-daily-arrow"/>
+              </button>)}</div>
+            </section>}
             {nearbyFallback && <p className="nearby-fallback-note">ยังไม่พบคนในรัศมีที่ตั้งไว้ จึงแสดงโปรไฟล์อื่นให้ปัดได้ก่อน · ปรับระยะทางได้ในตั้งค่าสเปก</p>}
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
