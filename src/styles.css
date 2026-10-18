@@ -932,3 +932,44 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 /* V31 — relationship intentions */
 .nm-intent-editor{padding:18px;border:1px solid var(--border,rgba(120,130,160,.25));border-radius:18px;margin:14px 0;background:rgba(125,140,180,.055)}
 .nm-intent-editor strong{display:block;font-size:1rem;margin-bottom:4px}.nm-intent-editor p{font-size:.85rem;opacity:.75;margin:0 0 12px}.nm-intent-options{display:flex;gap:8px;flex-wrap:wrap}.nm-intent-options button{border:1px solid rgba(130,140,165,.35);border-radius:100px;padding:9px 13px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:.86rem}.nm-intent-options button.selected{background:#1846b8;color:white;border-color:#1846b8}.nm-intent-tag{display:inline-flex;align-items:center;width:fit-content;margin:6px 0 8px;padding:6px 11px;border-radius:999px;font-size:.8rem;font-weight:600;color:#2254b5;background:rgba(78,135,255,.12)}
+
+/* v33: one consistent, smoothly animated music control in edit profile, own profile and other profiles. */
+.itunes-song-card.itunes-premium .music-smooth-toggle{
+  position:relative;display:grid;place-items:center;overflow:hidden;
+  flex:0 0 36px;width:36px;height:36px;min-width:36px;min-height:36px;
+  border-radius:12px;transform:translateZ(0);-webkit-tap-highlight-color:transparent;
+  transition:transform .26s cubic-bezier(.2,.8,.2,1),box-shadow .3s ease,background .3s ease,border-color .3s ease!important;
+  animation:none!important;
+}
+.itunes-song-card.itunes-premium .music-smooth-toggle:hover:not(:disabled){transform:scale(1.055)}
+.itunes-song-card.itunes-premium .music-smooth-toggle:active:not(:disabled){transform:scale(.93)}
+.itunes-song-card.itunes-premium .music-smooth-toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.itunes-song-card.itunes-premium .music-smooth-icon{
+  position:absolute;inset:0;display:grid;place-items:center;
+  transition:opacity .24s ease,transform .32s cubic-bezier(.2,.8,.2,1);
+}
+.itunes-song-card.itunes-premium .music-smooth-icon--play{opacity:1;transform:scale(1) rotate(0)}
+.itunes-song-card.itunes-premium .music-smooth-icon--pause{opacity:0;transform:scale(.6) rotate(-22deg)}
+.itunes-song-card.itunes-premium .music-smooth-toggle--playing .music-smooth-icon--play{opacity:0;transform:scale(.6) rotate(22deg)}
+.itunes-song-card.itunes-premium .music-smooth-toggle--playing .music-smooth-icon--pause{opacity:1;transform:scale(1) rotate(0)}
+/* Keep the profile-detail player identical to the profile editor, not a smaller square. */
+.detail-modal .match-profile-song .music-smooth-toggle,
+.itunes-picker .music-smooth-toggle,
+.itunes-song-card.itunes-premium.compact .music-smooth-toggle{flex-basis:36px;width:36px;height:36px;min-width:36px;min-height:36px;border-radius:12px}
+@media(prefers-reduced-motion:reduce){
+ .itunes-song-card.itunes-premium .music-smooth-toggle,
+ .itunes-song-card.itunes-premium .music-smooth-icon{transition:none!important}
+}
+
+/* v34: keep the chat composer clear of the mobile navigation and software keyboard */
+.chat-layout.chat-fullscreen{z-index:10001!important;box-sizing:border-box!important}
+.chat-fullscreen .chat-window{min-height:0!important}
+.chat-fullscreen .chat-compose{position:relative!important;z-index:2!important;min-height:70px;box-sizing:border-box!important;flex-shrink:0!important}
+.chat-fullscreen .chat-compose input:not([type=file]){min-width:0!important;flex:1 1 auto!important;font-size:16px!important;touch-action:manipulation}
+.chat-fullscreen .chat-compose button{flex-shrink:0!important;touch-action:manipulation}
+.chat-fullscreen .chat-header .chat-profile-trigger{min-width:0;flex:1 1 auto;overflow:hidden}
+.chat-fullscreen .chat-header .chat-profile-trigger span{min-width:0;overflow:hidden}
+.chat-presence{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-presence.online{color:#65deb0!important}
+.chat-presence.typing{color:#ff9cca!important}
+@media(max-width:800px){.chat-fullscreen .chat-compose{padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px))!important;gap:6px!important}.chat-fullscreen .chat-compose input:not([type=file]){padding:12px 10px!important}}

@@ -287,13 +287,23 @@ function LiveMicWave({ stream }) {
 }
 
 function Messages({ me, matches, notify, reload, onOpenProfile }) {
-  const [selectedId, setSelectedId] = useState(null)
+  const [selectedId, setSelectedId] = useState(() => {
+    try { return sessionStorage.getItem(`nisit-active-chat:${me}`) || null } catch { return null }
+  })
+  useEffect(() => {
+    try {
+      if (selectedId) sessionStorage.setItem(`nisit-active-chat:${me}`, selectedId)
+      else sessionStorage.removeItem(`nisit-active-chat:${me}`)
+    } catch {}
+  }, [selectedId, me])
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
   const [msgs, setMsgs] = useState([])
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
   const [partnerTyping, setPartnerTyping] = useState(false)
+  const [partnerOnline, setPartnerOnline] = useState(false)
+  const [chatViewport, setChatViewport] = useState(null)
   const typingChannel = useRef(null)
   const typingTimer = useRef(null)
   const lastTypingSent = useRef(0)
@@ -417,7 +427,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         .eq('match_id', roomId).neq('sender_id', me).is('read_at', null)
     }
     load()
-    const channel = supabase.channel('chat-' + roomId)
+    const channel = supabase.channel('chat-' + roomId, { config: { presence: { key: me } } })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `match_id=eq.${roomId}` }, (payload) => {
         if (!active) return
         if (payload.eventType === 'INSERT' && payload.new?.id) {
@@ -439,9 +449,15 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         setPartnerTyping(!!payload?.typing)
         clearTimeout(typingTimer.current)
         if (payload?.typing) typingTimer.current = setTimeout(() => setPartnerTyping(false), 2500)
-      }).subscribe()
+      }).on('presence', { event: 'sync' }, () => {
+        if (!active) return
+        const state = channel.presenceState()
+        setPartnerOnline(Object.keys(state).some(id => id !== me && state[id]?.length > 0))
+      }).subscribe(status => {
+        if (status === 'SUBSCRIBED') channel.track({ user_id: me, joined_at: new Date().toISOString() }).catch(() => {})
+      })
     typingChannel.current = channel
-    return () => { active = false; typingChannel.current = null; clearTimeout(typingTimer.current); setPartnerTyping(false); supabase.removeChannel(channel) }
+    return () => { active = false; typingChannel.current = null; clearTimeout(typingTimer.current); setPartnerTyping(false); setPartnerOnline(false); supabase.removeChannel(channel) }
   }, [roomId, me, notify])
 
   useEffect(() => {
@@ -455,6 +471,21 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     return () => { active = false }
   }, [msgs, mediaUrls])
 
+  // Mobile keyboards can resize the visual viewport without resizing fixed-position elements.
+  // Keep the composer inside the visible area while Safari/Chrome keyboard is open.
+  useEffect(() => {
+    if (!roomId || typeof window === 'undefined') { setChatViewport(null); return }
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const sync = () => setChatViewport({ height: viewport.height, top: viewport.offsetTop })
+    sync()
+    viewport.addEventListener('resize', sync)
+    viewport.addEventListener('scroll', sync)
+    return () => {
+      viewport.removeEventListener('resize', sync)
+      viewport.removeEventListener('scroll', sync)
+    }
+  }, [roomId])
   const onCompose = (value) => {
     setText(value)
     const now = Date.now()
@@ -533,13 +564,13 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const report = async () => { if (!sel) return; const reason = prompt('เหตุผลในการรายงาน'); if (!reason) return; const { error } = await supabase.from('reports').insert({ reporter: me, reported: sel.p.id, reason: reason.slice(0,500) }); notify(error ? error.message : 'ส่งรายงานแล้ว') }
   return (<>
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
-    <div className={"chat-layout " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open")}>
+    <div className={"chat-layout " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open")} style={sel && chatViewport ? { height: `${chatViewport.height}px`, top: `${chatViewport.top}px`, bottom: "auto" } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
         {matches.map(m => <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '')} onClick={() => setSelectedId(m.id)}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small>💗 Match กันแล้ว</small></span></button>)}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
       <div className="chat-window">{sel ? <>
-        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small>แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
+        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
         <div className="chat-messages" ref={scrollBox} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
           {partnerTyping && <div className="typing-status" role="status">กำลังพิมพ์<span className="typing-dots"><i/><i/><i/></span></div>}
@@ -557,7 +588,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
-          {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')}</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading} onClick={toggleRecord}><Mic size={20}/></button><input value={text} onChange={e => onCompose(e.target.value)} placeholder="ส่งข้อความถึงคนพิเศษ..." maxLength={2000}/><button className="send-btn" disabled={!text.trim() || uploading}><Send size={18}/></button></>}
+          {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')}</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading} onClick={toggleRecord}><Mic size={20}/></button><input value={text} onChange={e => onCompose(e.target.value)} placeholder="ส่งข้อความถึงคนพิเศษ..." aria-label="พิมพ์ข้อความ" maxLength={2000}/><button className="send-btn" disabled={!text.trim() || uploading}><Send size={18}/></button></>}
         </form>
         {uploading && <div className="chat-upload-status">กำลังอัปโหลดไฟล์...</div>}
       </> : <div className="chat-placeholder"><MessageCircle/><h3>บทสนทนาของคุณ</h3><p>เลือก Match เพื่อเริ่มพูดคุย</p></div>}</div>
@@ -702,7 +733,7 @@ function ITunesSongCard({ track, compact = false }) {
         <span title={track.artist}>{track.artist}</span>
         <div className="itunes-premium-eq" ref={barsRef} aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
       </div>
-      <button className="itunes-premium-play" type="button" onClick={toggle} disabled={!preview} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={preview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}>{playing ? <Pause size={15} strokeWidth={2.6} fill="currentColor" /> : <Play size={15} strokeWidth={2.6} fill="currentColor" />}</button>
+      <button className={'itunes-premium-play music-smooth-toggle' + (playing ? ' music-smooth-toggle--playing' : '')} type="button" onClick={toggle} disabled={!preview} aria-pressed={playing} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={preview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}><span className="music-smooth-icon music-smooth-icon--play" aria-hidden="true"><Play size={15} strokeWidth={2.6} fill="currentColor" /></span><span className="music-smooth-icon music-smooth-icon--pause" aria-hidden="true"><Pause size={15} strokeWidth={2.6} fill="currentColor" /></span></button>
     </div>
     {preview && <div className="itunes-premium-timeline">
       <span>{formatTime(position)}</span>
@@ -1227,13 +1258,34 @@ export default function App() {
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
   const user = session?.user
   const userId = user?.id
-  // Every new login starts in Discovery, regardless of the previous tab.
-  useEffect(() => { if (!userId) { setView('home'); setDetail(null); setVisibleDetail(null) } }, [userId])
+  // Restore the last tab only for the same account; do not reset it on token refresh.
+  const lastAccountRef = useRef(null)
+  useEffect(() => {
+    if (session === undefined) return
+    if (!userId) {
+      lastAccountRef.current = null
+      setView('home')
+      setDetail(null)
+      setVisibleDetail(null)
+      return
+    }
+    if (lastAccountRef.current !== userId) {
+      lastAccountRef.current = userId
+      try {
+        const saved = sessionStorage.getItem(`nisit-last-view:${userId}`)
+        setView(['home', 'messages', 'notifs', 'profile', 'settings'].includes(saved) ? saved : 'home')
+      } catch { setView('home') }
+    }
+  }, [userId, session === undefined])
+  useEffect(() => {
+    if (!userId) return
+    try { sessionStorage.setItem(`nisit-last-view:${userId}`, view) } catch {}
+  }, [view, userId])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (event === 'SIGNED_IN') setView('home')
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      // SIGNED_IN also fires when an existing session is revalidated after app resume.
       setSession(nextSession)
     })
     return () => data.subscription.unsubscribe()
