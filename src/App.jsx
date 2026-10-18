@@ -26,6 +26,21 @@ const Av = ({ u, cls = 'avatar' }) => {
   useEffect(() => setAttempt(0), [signature])
   return <img className={cls} src={candidates[attempt] || ph(u?.display_name)} alt={u?.display_name || 'โปรไฟล์'} loading="lazy" onError={() => setAttempt(n => n < candidates.length ? n + 1 : n)} />
 }
+// v58: scroll lock shared by full-screen overlays; restore the exact previous scroll position.
+function useViewportScrollLock(active) {
+  useLayoutEffect(() => {
+    if (!active) return
+    const body = document.body, html = document.documentElement
+    const y = window.scrollY
+    const old = { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, width: body.style.width, overflow: body.style.overflow, htmlOverflow: html.style.overflow }
+    body.style.position = 'fixed'; body.style.top = `-${y}px`; body.style.left = '0'; body.style.right = '0'; body.style.width = '100%'; body.style.overflow = 'hidden'; html.style.overflow = 'hidden'
+    return () => {
+      body.style.position = old.position; body.style.top = old.top; body.style.left = old.left; body.style.right = old.right; body.style.width = old.width; body.style.overflow = old.overflow; html.style.overflow = old.htmlOverflow
+      window.scrollTo(0, y)
+    }
+  }, [active])
+}
+
 const Brand = ({ onClick }) => <button className="brand" onClick={onClick}><span className="brand-icon"><Heart fill="currentColor" /></span><span>nisit <b>match</b></span></button>
 
 function Landing({ onLogin, onRegister }) {
@@ -1182,13 +1197,18 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const selfPreviewPhotos = [...photos.map(path => ({ key: path, url: pub(path) })), ...newPhotos.map(item => ({ key: item.key, url: item.url }))]
   const orderedSelfPhotos = [...selfPreviewPhotos.filter(item => item.key === mainPhoto), ...selfPreviewPhotos.filter(item => item.key !== mainPhoto)]
   const selfPreviewImage = orderedSelfPhotos[selfPreviewIndex]?.url || ph(f.display_name)
+  useViewportScrollLock(selfPreviewOpen)
+  const selfTouchStart = useRef(null)
+  useEffect(() => {
+    if (!selfPreviewOpen || orderedSelfPhotos.length < 2) return
+    const next = orderedSelfPhotos[(selfPreviewIndex + 1) % orderedSelfPhotos.length]?.url
+    if (next) { const image = new Image(); image.src = next }
+  }, [selfPreviewOpen, selfPreviewIndex, orderedSelfPhotos.length])
   useEffect(() => {
     if (!selfPreviewOpen) return
-    const oldOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const onKey = e => { if (e.key === 'Escape') setSelfPreviewOpen(false) }
     window.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = oldOverflow; window.removeEventListener('keydown', onKey) }
+    return () => { window.removeEventListener('keydown', onKey) }
   }, [selfPreviewOpen])
   return (<>
     <Heading kicker={onboarding ? 'WELCOME' : 'THIS IS YOU'} title={onboarding ? 'สร้างโปรไฟล์ของคุณ' : 'โปรไฟล์ของฉัน'} sub="เล่าเรื่องของคุณในแบบที่เป็นตัวเอง" />
@@ -1231,11 +1251,11 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
         {editTab === 'music' && <ITunesSongPicker value={song} onChange={setSong} />}
         <button className="btn btn-pink btn-lg save-btn" disabled={busy}>{busy ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'} <Check size={17} /></button>
       </form></div></div>
-    {selfPreviewOpen && <div className="modal-backdrop detail-backdrop nm-self-preview-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setSelfPreviewOpen(false) }}>
+    {selfPreviewOpen && createPortal(<div className="modal-backdrop detail-backdrop nm-self-preview-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setSelfPreviewOpen(false) }}>
       <div className="detail-modal nm-self-preview-modal" role="dialog" aria-modal="true" aria-label="ตัวอย่างโปรไฟล์ของฉัน">
         <button type="button" className="modal-close detail-close-btn" onClick={() => setSelfPreviewOpen(false)} aria-label="ปิดตัวอย่างโปรไฟล์"><X size={21}/></button>
         <div className="nm-self-preview-label"><Eye size={15}/> ตัวอย่างโปรไฟล์ของคุณ</div>
-        <div className="detail-gallery"><img className="detail-cover" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>
+        <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { selfTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (selfTouchStart.current === null || orderedSelfPhotos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? selfTouchStart.current) - selfTouchStart.current; selfTouchStart.current = null; if (Math.abs(diff) > 45) setSelfPreviewIndex(i => (i + (diff < 0 ? 1 : orderedSelfPhotos.length - 1)) % orderedSelfPhotos.length) }}><img className="detail-cover" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>
           {orderedSelfPhotos.length > 1 && <><button type="button" className="gallery-prev" onClick={() => setSelfPreviewIndex(i => (i - 1 + orderedSelfPhotos.length) % orderedSelfPhotos.length)} aria-label="รูปก่อนหน้า">‹</button><button type="button" className="gallery-next" onClick={() => setSelfPreviewIndex(i => (i + 1) % orderedSelfPhotos.length)} aria-label="รูปถัดไป">›</button><div className="gallery-count">{selfPreviewIndex + 1} / {orderedSelfPhotos.length}</div><div className="gallery-thumbnails">{orderedSelfPhotos.map((item,i) => <button type="button" key={item.key} className={i === selfPreviewIndex ? 'active' : ''} onClick={() => setSelfPreviewIndex(i)} aria-label={`ดูรูปที่ ${i+1}`}><img src={item.url} alt=""/></button>)}</div></>}
         </div>
         <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>
@@ -1249,7 +1269,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
           <p className="nm-self-preview-note">นี่คือตัวอย่างจากข้อมูลที่กำลังแก้ไข คนอื่นจะเห็นข้อมูลใหม่หลังจากคุณกดบันทึกเท่านั้น</p>
         </div>
       </div>
-    </div>}
+    </div>, document.body)}
   </>)
 }
 
@@ -1418,12 +1438,20 @@ function SettingsPage({ user, notify }) {
     </div></>)
 }
 
+function LockedProfileDetail({ children, onClose, className = '' }) {
+  useViewportScrollLock(true)
+  useEffect(() => { const onKey = e => { if (e.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose])
+  return createPortal(<div className={'modal-backdrop detail-backdrop ' + className} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>{children}</div>, document.body)
+}
+
 function ProfileGallery({ person }) {
   const photos = [...new Set([person?.avatar_path, ...(Array.isArray(person?.photo_paths) ? person.photo_paths : [])].filter(Boolean))]
   const [index, setIndex] = useState(0)
   useEffect(() => setIndex(0), [person?.id])
   const current = photos[index] || photos[0]
-  return <div className="detail-gallery">
+  const touchStart = useRef(null)
+  useEffect(() => { if (photos.length > 1) { const image = new Image(); image.src = pub(photos[(index + 1) % photos.length]) } }, [index, person?.id])
+  return <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { touchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (touchStart.current === null || photos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current; touchStart.current = null; if (Math.abs(diff) > 45) setIndex(i => (i + (diff < 0 ? 1 : photos.length - 1)) % photos.length) }}>
     <img className="detail-cover" src={pub(current) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />
     {photos.length > 1 && <>
       <button type="button" className="gallery-prev" onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)} aria-label="รูปก่อนหน้า">‹</button>

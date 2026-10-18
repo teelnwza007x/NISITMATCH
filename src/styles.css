@@ -1454,3 +1454,33 @@ html,body,#root{width:100%;max-width:100%;min-width:0}
  .chat-compose input,.chat-text-input{min-width:0;flex:1}
 }
 @media(max-width:390px){.chat-header .icon-btn{padding:3px!important}.chat-header .icon-btn svg{width:16px;height:16px}.chat-profile-trigger .avatar{width:28px!important;height:28px!important}}
+
+/* v58: fixed, viewport-sized preview. The page underneath is frozen via useViewportScrollLock. */
+body > .nm-self-preview-backdrop{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;overscroll-behavior:none!important;padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))!important;box-sizing:border-box!important;z-index:12000!important}
+body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!important;flex:0 1 440px!important;width:100%!important;max-width:440px!important;min-height:0!important;max-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;scrollbar-width:thin}
+.v58-swipe-gallery{touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.v58-swipe-gallery .detail-cover{object-fit:cover!important;object-position:center;aspect-ratio:4/5;max-height:min(55dvh,510px);width:100%;transition:opacity .2s ease}
+.v58-swipe-gallery .gallery-thumbnails{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+.v58-swipe-gallery .gallery-thumbnails img{object-fit:cover}
+/* Chat 2.0: larger touch targets and unclipped message actions. */
+.chat-message-actions{min-width:30px;min-height:30px;display:grid;place-items:center}
+.chat-message-menu button{min-height:40px;text-align:left;touch-action:manipulation}
+.chat-messages{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.chat-compose{box-sizing:border-box;max-width:100%;min-width:0}
+.chat-compose input,.chat-compose textarea{min-width:0;max-width:100%}
+.chat-message-menu{max-width:min(220px,calc(100vw - 40px))}
+.chat-last-preview{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Low-cost GPU compositing for small interactions; no infinite layout animations. */
+.nm-edit-tabs button,.chat-person,.chat-compose button,.gallery-prev,.gallery-next,.nm-self-preview-open{transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s cubic-bezier(.2,.8,.2,1)!important}
+.nm-edit-tabs button:active,.chat-person:active,.chat-compose button:active,.gallery-prev:active,.gallery-next:active{transform:scale(.97)}
+@media(max-width:700px){
+ .page-content{width:100%;max-width:100%;overflow-x:clip;padding-inline:12px}
+ .chat-layout.chat-inbox-open{min-height:0!important;max-width:100%!important}
+ .chat-person{min-width:0;max-width:100%}
+ .chat-person-info{min-width:0;flex:1}
+ .chat-header{min-width:0;max-width:100vw}
+ .chat-header button{touch-action:manipulation}
+ .chat-compose{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ .detail-gallery .gallery-prev,.detail-gallery .gallery-next{min-width:38px;min-height:38px}
+}
+@media(prefers-reduced-motion:reduce){.nm-edit-tabs button,.chat-person,.chat-compose button,.gallery-prev,.gallery-next,.nm-self-preview-open,.v58-swipe-gallery .detail-cover{transition:none!important}}
