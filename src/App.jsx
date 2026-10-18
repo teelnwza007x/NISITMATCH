@@ -377,6 +377,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   const [msgs, setMsgs] = useState([])
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
+  const [starterOpen, setStarterOpen] = useState(false)
+  const conversationStarters = ['ช่วงนี้ติดเพลงอะไรอยู่?', 'ถ้ามีวันหยุดหนึ่งวัน อยากไปเที่ยวไหน?', 'มีคาเฟ่แถวมหาวิทยาลัยที่แนะนำไหม?', 'ช่วงนี้ดูหนังหรือซีรีส์เรื่องอะไรอยู่?', 'วันหยุดชอบทำอะไรที่สุด?']
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [partnerOnline, setPartnerOnline] = useState(false)
   const [chatViewport, setChatViewport] = useState(null)
@@ -726,7 +728,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
             {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
             <div className="message-bubble">
               {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <button type="button" className="chat-image-open" onClick={() => setOpenChatImage(mediaUrls[m.attachment_path])} aria-label="ดูรูปภาพขนาดใหญ่ในแชต"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" loading="lazy" /></button> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
-              <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me && m.read_at ? ' · อ่านแล้ว' : ''}</small>{m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
+              <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me ? (m.read_at ? ' · อ่านแล้ว' : ' · ส่งแล้ว') : ''}</small>{m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
             </div>
           </div>)}
           {partnerTyping && <div className="message-row typing-message-row" role="status" aria-label={`${partnerName(sel.p)} กำลังพิมพ์`}>
@@ -737,6 +739,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
           <div ref={end}/>
         </div>
         {showLatestButton && <button type="button" className="chat-jump-latest" onClick={() => scrollToLatest(true)} aria-label="กลับไปข้อความล่าสุด"><ArrowRight size={16} style={{transform:"rotate(90deg)"}} /> กลับไปข้อความล่าสุด</button>}
+        {!recording && <div className="chat-starter-wrap">
+          <button type="button" className="chat-starter-toggle" aria-expanded={starterOpen} onClick={() => setStarterOpen(v => !v)}><Sparkles size={14}/> {starterOpen ? 'ซ่อนคำถามชวนคุย' : 'หาเรื่องชวนคุย'}</button>
+          {starterOpen && <div className="chat-starter-options" aria-label="เลือกคำถามชวนคุย">{conversationStarters.map(q => <button key={q} type="button" onClick={() => { onCompose(q); setStarterOpen(false) }}>{q}</button>)}</div>}
+        </div>}
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>

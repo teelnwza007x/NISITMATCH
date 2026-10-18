@@ -1353,3 +1353,19 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .nm-edit-workspace .v27-verification{max-width:720px;margin:0 auto 20px;width:100%;box-sizing:border-box}
 .nm-edit-workspace .v27-verify-form{max-width:100%}
 .nm-edit-workspace .v27-verify-form input,.nm-edit-workspace .v27-verify-form select{max-width:100%;box-sizing:border-box}
+
+/* v53: unified premium interactions, discover card, and chat starters */
+.chat-starter-wrap{position:relative;flex:0 0 auto;padding:5px 13px 0;background:var(--chat-bg,#101523);z-index:4}
+.chat-starter-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:#b78cff17;border:1px solid #b78cff42;color:#d9c9ff;font-size:11px;font-weight:600;cursor:pointer;transition:background .2s,transform .2s}
+.chat-starter-toggle:active{transform:scale(.97)}
+.chat-starter-options{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:9px 0 5px;animation:nm-enter .24s ease both}
+.chat-starter-options::-webkit-scrollbar{display:none}
+.chat-starter-options button{flex:0 0 auto;max-width:min(80vw,285px);padding:10px 13px;border-radius:14px;background:#1e2740;border:1px solid #52618365;color:#f4efff;font-size:12px;text-align:left;white-space:normal;cursor:pointer;transition:background .2s,transform .2s}
+.chat-starter-options button:active{transform:scale(.97);background:#333252}
+@keyframes nm-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.swipe-stage{animation:nm-enter .42s cubic-bezier(.2,.8,.2,1) both}
+.swipe-card{border:1px solid #ffffff30;box-shadow:0 24px 65px #100c2b6b,0 0 0 1px #ffffff10}
+.swipe-info{background:linear-gradient(0deg,#0e1025fa 0%,#13162cde 48%,transparent 100%)}
+.swipe-controls .swipe-control{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.chat-person,.chat-theme-choice,.profile-tab,.edit-profile-tab{transition:background-color .23s ease,border-color .23s ease,transform .23s ease}
+@media (prefers-reduced-motion:reduce){.swipe-stage,.chat-starter-options{animation:none!important}.chat-starter-toggle,.chat-starter-options button,.chat-person,.chat-theme-choice,.profile-tab,.edit-profile-tab{transition:none!important}}
