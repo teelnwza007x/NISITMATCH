@@ -1484,3 +1484,33 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
  .detail-gallery .gallery-prev,.detail-gallery .gallery-next{min-width:38px;min-height:38px}
 }
 @media(prefers-reduced-motion:reduce){.nm-edit-tabs button,.chat-person,.chat-compose button,.gallery-prev,.gallery-next,.nm-self-preview-open,.v58-swipe-gallery .detail-cover{transition:none!important}}
+
+/* v59: Desktop swipe deck should remain a portrait card, never stretch with the viewport. */
+.swipe-stage{
+  box-sizing:border-box;
+  width:min(100%,450px);
+  max-width:450px;
+  min-width:0;
+  margin-inline:auto;
+}
+.swipe-stage .swipe-stack{
+  width:100%;
+  max-width:100%;
+  height:clamp(390px, min(65dvh, 590px), 590px);
+  position:relative;
+}
+.swipe-stage .swipe-card{box-sizing:border-box;width:100%;max-width:100%;}
+.swipe-stage .swipe-card>img{
+  display:block;
+  width:100%;height:100%;
+  object-fit:cover;object-position:center;
+}
+@media(min-width:769px){
+  .swipe-stage{width:min(100%,420px);max-width:420px;margin-top:12px;}
+  .swipe-stage .swipe-stack{height:clamp(430px, min(66dvh, 590px), 590px);}
+  .swipe-stage .swipe-controls{max-width:100%;}
+}
+@media(max-width:600px){
+  .swipe-stage{width:min(100%,450px);margin-inline:auto;}
+  .swipe-stage .swipe-stack{height:clamp(360px, 60dvh, 560px);}
+}
