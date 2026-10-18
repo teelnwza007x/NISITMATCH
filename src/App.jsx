@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
@@ -369,6 +369,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
     }
   }, [roomId])
   const [msgs, setMsgs] = useState([])
+  const [replyTo, setReplyTo] = useState(null)
+  const [messageMenu, setMessageMenu] = useState(null)
+  const longPress = useRef(null)
+  const chatExtrasSupported = useRef(true)
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
   const [partnerTyping, setPartnerTyping] = useState(false)
@@ -387,7 +391,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   const discardRecord = useRef(false)
   const [mediaUrls, setMediaUrls] = useState({})
   const [openChatImage, setOpenChatImage] = useState(null)
-  useEffect(() => { setOpenChatImage(null) }, [selectedId])
+  useEffect(() => { setOpenChatImage(null); setReplyTo(null); setMessageMenu(null) }, [selectedId])
   useEffect(() => {
     if (!openChatImage) return
     const onKey = (event) => { if (event.key === 'Escape') setOpenChatImage(null) }
@@ -627,16 +631,23 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
     if (!body || !targetRoom) return
     const tempId = 'pending-' + crypto.randomUUID()
     const optimistic = {
-      id: tempId, match_id: targetRoom, sender_id: me, body,
+      id: tempId, match_id: targetRoom, sender_id: me, body, reply_to: replyTo?.id || null,
       created_at: new Date().toISOString(), pending: true
     }
     pendingSends.current.set(tempId, { roomId: targetRoom, body })
     setText('')
+    setReplyTo(null)
     forceNextScroll.current = true
     setMsgs(prev => [...prev, optimistic])
     try {
-      const { data, error } = await supabase.from('messages')
-        .insert({ match_id: targetRoom, sender_id: me, body }).select('*').single()
+      let payload = { match_id: targetRoom, sender_id: me, body }
+      if (replyTo?.id && chatExtrasSupported.current) payload.reply_to = replyTo.id
+      let { data, error } = await supabase.from('messages').insert(payload).select('*').single()
+      if (error && payload.reply_to && /reply_to|schema cache|column/i.test(error.message || '')) {
+        chatExtrasSupported.current = false
+        ;({ data, error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body }).select('*').single())
+        notify('ต้องรัน SQL v56 เพื่อเปิดใช้การตอบกลับข้อความ')
+      }
       if (error) throw error
       if (data) setMsgs(prev => {
         if (roomId !== targetRoom) return prev
@@ -650,6 +661,17 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
       pendingSends.current.delete(tempId)
     }
   }
+  const toggleHeart = async (message) => {
+    setMessageMenu(null)
+    if (!chatExtrasSupported.current || message.pending) return notify('กรุณาติดตั้ง SQL v56 ก่อนใช้รีแอ็กชัน')
+    const reaction = message.reaction === 'heart' ? null : 'heart'
+    const { error } = await supabase.from('messages').update({ reaction }).eq('id', message.id).eq('match_id', roomId)
+    if (error) { if (/reaction|schema cache|column/i.test(error.message || '')) chatExtrasSupported.current = false; notify('ใส่รีแอ็กชันไม่สำเร็จ: ' + error.message); return }
+    setMsgs(prev => prev.map(m => m.id === message.id ? { ...m, reaction } : m))
+  }
+  const openMessageMenu = (message) => { if (!message.pending) setMessageMenu(message.id) }
+  const quoteFor = (message) => message.attachment_type === 'image' ? 'รูปภาพ' : message.attachment_type === 'audio' ? 'ข้อความเสียง' : (message.body || 'ข้อความ')
+  const dateLabel = (date) => { const d = new Date(date); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' }) }
   const sendMedia = async (file, type) => {
     if (!roomId || !file) return
     if (file.size > 10 * 1024 * 1024) return notify('ไฟล์ต้องมีขนาดไม่เกิน 10 MB')
@@ -716,13 +738,21 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
         </div>, document.body)}
         <div className="chat-messages" ref={scrollBox} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
-          {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
-            {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
-            <div className="message-bubble">
-              {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <button type="button" className="chat-image-open" onClick={() => setOpenChatImage(mediaUrls[m.attachment_path])} aria-label="ดูรูปภาพขนาดใหญ่ในแชต"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" loading="lazy" /></button> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
-              <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me ? (m.read_at ? ' · อ่านแล้ว' : ' · ส่งแล้ว') : ''}</small>{m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
+          {msgs.map((m, i) => <React.Fragment key={m.id}>
+            {(i === 0 || dateLabel(msgs[i-1].created_at) !== dateLabel(m.created_at)) && <div className="chat-date-divider"><span>{dateLabel(m.created_at)}</span></div>}
+            <div className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
+              {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
+              <div className="message-bubble" onContextMenu={e => { e.preventDefault(); openMessageMenu(m) }} onTouchStart={() => { clearTimeout(longPress.current); longPress.current = setTimeout(() => openMessageMenu(m), 550) }} onTouchEnd={() => clearTimeout(longPress.current)} onTouchMove={() => clearTimeout(longPress.current)}>
+                {m.reply_to && <div className="chat-reply-quote"><Reply size={13}/>{quoteFor(msgs.find(x => x.id === m.reply_to) || {body:'ข้อความก่อนหน้า'})}</div>}
+                {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <button type="button" className="chat-image-open" onClick={() => setOpenChatImage(mediaUrls[m.attachment_path])} aria-label="ดูรูปภาพขนาดใหญ่ในแชต"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" loading="lazy" /></button> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
+                <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me ? (m.read_at ? ' · อ่านแล้ว' : ' · ส่งแล้ว') : ''}</small>
+                {m.reaction === 'heart' && <span className="chat-reaction-heart" aria-label="หัวใจ"><Heart size={13} fill="currentColor"/></span>}
+                {m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
+                <button type="button" className="chat-message-actions" aria-label="ตัวเลือกข้อความ" onClick={() => setMessageMenu(messageMenu === m.id ? null : m.id)}><SmilePlus size={15}/></button>
+                {messageMenu === m.id && <div className="chat-message-menu"><button type="button" onClick={() => { setReplyTo(m); setMessageMenu(null) }}><Reply size={15}/> ตอบกลับ</button><button type="button" onClick={() => toggleHeart(m)}><Heart size={15}/> {m.reaction === 'heart' ? 'เอาหัวใจออก' : 'ส่งหัวใจ'}</button></div>}
+              </div>
             </div>
-          </div>)}
+          </React.Fragment>)}
           {partnerTyping && <div className="message-row typing-message-row" role="status" aria-label={`${partnerName(sel.p)} กำลังพิมพ์`}>
             <Av u={sel.p} cls="avatar sm" />
             <div className="messenger-typing-bubble" aria-hidden="true"><span/><span/><span/></div>
@@ -731,6 +761,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
           <div ref={end}/>
         </div>
         {showLatestButton && <button type="button" className="chat-jump-latest" onClick={() => scrollToLatest(true)} aria-label="กลับไปข้อความล่าสุด"><ArrowRight size={16} style={{transform:"rotate(90deg)"}} /> กลับไปข้อความล่าสุด</button>}
+        {replyTo && <div className="chat-reply-composer"><Reply size={16}/><span><b>กำลังตอบกลับ</b><small>{quoteFor(replyTo)}</small></span><button type="button" onClick={() => setReplyTo(null)} aria-label="ยกเลิกตอบกลับ"><X size={17}/></button></div>}
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
@@ -1820,7 +1851,7 @@ const loadMatches = useCallback(async () => {
           <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
       {reportTarget && <div className="modal-backdrop nm-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>}
       {guideOpen && <div className="modal-backdrop nm-dialog-backdrop" role="presentation"><div className="nm-dialog nm-guide" role="dialog" aria-modal="true" aria-labelledby="nm-guide-title"><button className="nm-dialog-close" type="button" onClick={closeGuide} aria-label="ปิดคู่มือ"><X size={20}/></button><div className="nm-dialog-eyebrow"><Sparkles size={16}/> WELCOME TO NISIT MATCH</div><div className="nm-guide-counter">{guideStep + 1} / 5</div><div className="nm-guide-illustration">{guideStep === 0 ? <Heart size={46}/> : guideStep === 1 ? <MessageCircle size={46}/> : guideStep === 2 ? <GraduationCap size={46}/> : guideStep === 3 ? <ShieldCheck size={46}/> : <GraduationCap size={46}/>}</div><h2 id="nm-guide-title">{['เริ่มค้นหาคนที่ใช่','แมตช์แล้วเริ่มคุยกัน','ยืนยันสถานะนักศึกษา','พื้นที่ปลอดภัยสำหรับทุกคน','เพิ่ม NISIT MATCH ลงหน้าจอโฮม'][guideStep]}</h2><p>{['ปัดขวาเมื่อถูกใจ ปัดซ้ายเพื่อข้าม หรือแตะโปรไฟล์เพื่อทำความรู้จักเพิ่มเติม','เมื่อคุณและอีกฝ่ายกดถูกใจตรงกัน จะเกิด Match และสามารถเริ่มแชตได้','ยืนยันอีเมลมหาวิทยาลัยเพื่อแสดงเครื่องหมายยืนยันบนโปรไฟล์ โดยไม่เปิดเผยอีเมลของคุณ','หากพบโปรไฟล์ปลอม การคุกคาม หรือข้อความไม่เหมาะสม สามารถรายงานหรือบล็อกผู้ใช้ได้','iPhone: เปิดเว็บใน Safari > แชร์ > เพิ่มไปยังหน้าจอโฮม > เพิ่ม  |  Android: เปิดใน Chrome > เมนู ⋮ > ติดตั้งแอป หรือ เพิ่มลงในหน้าจอหลัก'][guideStep]}</p><div className="nm-guide-dots">{[0,1,2,3,4].map(i => <span key={i} className={i === guideStep ? 'active' : ''}/>)}</div><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={guideStep === 0 ? closeGuide : () => setGuideStep(x => x - 1)}>{guideStep === 0 ? 'ข้าม' : 'ย้อนกลับ'}</button><button type="button" className="btn btn-pink" onClick={guideStep === 4 ? closeGuide : () => setGuideStep(x => x + 1)}>{guideStep === 3 ? 'เริ่มใช้งาน' : 'ถัดไป'} <ArrowRight size={16}/></button></div></div></div>}
-      {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog"><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
+      {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog"><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
       {Toast}
     </div>
   )
