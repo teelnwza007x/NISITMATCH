@@ -1740,3 +1740,10 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 @media(prefers-reduced-motion:reduce){
   .swipe-stage .swipe-front{will-change:auto}
 }
+
+/* v71 Instant Swipe Engine: keep the hot path on the compositor. */
+.swipe-stage .swipe-front{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;contain:layout paint style;}
+.swipe-stage .swipe-main-photo{opacity:1;animation:nisit-photo-enter .18s ease-out both;transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.swipe-stage .swipe-card img{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;}
+@keyframes nisit-photo-enter{from{opacity:.45}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.swipe-stage .swipe-main-photo{animation:none!important}.swipe-stage .swipe-front{will-change:auto}}
