@@ -419,6 +419,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   const [replyTo, setReplyTo] = useState(null)
   const [messageMenu, setMessageMenu] = useState(null)
   const longPress = useRef(null)
+  const pressOrigin = useRef(null)
+  const suppressNextClick = useRef(false)
+  useEffect(() => () => clearTimeout(longPress.current), [])
   const chatExtrasSupported = useRef(true)
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
@@ -716,7 +719,24 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
     if (error) { if (/reaction|schema cache|column/i.test(error.message || '')) chatExtrasSupported.current = false; notify('ใส่รีแอ็กชันไม่สำเร็จ: ' + error.message); return }
     setMsgs(prev => prev.map(m => m.id === message.id ? { ...m, reaction } : m))
   }
-  const openMessageMenu = (message) => { if (!message.pending) setMessageMenu(message.id) }
+  const openMessageMenu = (message) => {
+    if (message.pending) return
+    suppressNextClick.current = true
+    setMessageMenu(message.id)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12)
+  }
+  const beginMessagePress = (event, message) => {
+    if (event.target.closest('button, audio, input')) return
+    clearTimeout(longPress.current)
+    const point = event.touches?.[0]
+    pressOrigin.current = point ? { x: point.clientX, y: point.clientY } : null
+    longPress.current = setTimeout(() => openMessageMenu(message), 420)
+  }
+  const moveMessagePress = (event) => {
+    const point = event.touches?.[0]
+    if (point && pressOrigin.current && (Math.abs(point.clientX - pressOrigin.current.x) > 9 || Math.abs(point.clientY - pressOrigin.current.y) > 9)) clearTimeout(longPress.current)
+  }
+  const endMessagePress = () => { clearTimeout(longPress.current); pressOrigin.current = null }
   const quoteFor = (message) => message.attachment_type === 'image' ? 'รูปภาพ' : message.attachment_type === 'audio' ? 'ข้อความเสียง' : (message.body || 'ข้อความ')
   const dateLabel = (date) => { const d = new Date(date); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' }) }
   const sendMedia = async (file, type) => {
@@ -783,13 +803,14 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
             <small>ธีมนี้แสดงเฉพาะบนอุปกรณ์ของคุณ</small>
           </div>
         </div>, document.body)}
+        {messageMenu && <button type="button" className="chat-message-focus-dismiss" aria-label="ปิดเมนูข้อความ" onClick={() => setMessageMenu(null)} />}
         <div className="chat-messages" ref={scrollBox} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
           {msgs.map((m, i) => <React.Fragment key={m.id}>
             {(i === 0 || dateLabel(msgs[i-1].created_at) !== dateLabel(m.created_at)) && <div className="chat-date-divider"><span>{dateLabel(m.created_at)}</span></div>}
             <div className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
               {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
-              <div className="message-bubble" onContextMenu={e => { e.preventDefault(); openMessageMenu(m) }} onTouchStart={() => { clearTimeout(longPress.current); longPress.current = setTimeout(() => openMessageMenu(m), 550) }} onTouchEnd={() => clearTimeout(longPress.current)} onTouchMove={() => clearTimeout(longPress.current)}>
+              <div className={'message-bubble' + (messageMenu === m.id ? ' chat-message-focused' : '')} onContextMenu={e => { e.preventDefault(); openMessageMenu(m) }} onTouchStart={e => beginMessagePress(e, m)} onTouchEnd={endMessagePress} onTouchCancel={endMessagePress} onTouchMove={moveMessagePress}>
                 {m.reply_to && <div className="chat-reply-quote"><Reply size={13}/>{quoteFor(msgs.find(x => x.id === m.reply_to) || {body:'ข้อความก่อนหน้า'})}</div>}
                 {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <button type="button" className="chat-image-open" onClick={() => setOpenChatImage(mediaUrls[m.attachment_path])} aria-label="ดูรูปภาพขนาดใหญ่ในแชต"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" loading="lazy" /></button> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
                 <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me ? (m.read_at ? ' · อ่านแล้ว' : ' · ส่งแล้ว') : ''}</small>

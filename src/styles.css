@@ -1533,3 +1533,29 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .v60-crop-dialog p{font-size:12px;color:#c2bed0;margin:12px 0 18px;}
 @media(max-width:420px){.swipe-controls{gap:6px}.swipe-control.undo,.swipe-control.super{width:38px;height:38px}.swipe-controls .swipe-control.accept,.swipe-controls .swipe-control.reject{width:51px;height:51px}}
 @media(prefers-reduced-motion:reduce){.swipe-control.undo,.swipe-control.super,.v60-crop-preview img{transition:none!important}}
+
+/* v61: iOS long-press focus, native selection prevention and animated message menu */
+.chat-messages .message-bubble {
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  touch-action:pan-y; -webkit-tap-highlight-color:transparent;
+}
+.chat-messages .message-bubble .chat-attachment-image { -webkit-user-drag:none; }
+.chat-message-focus-dismiss {
+  position:fixed;inset:0;z-index:1050;border:0;padding:0;
+  background:rgba(5,8,18,.43);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  animation:nisitFocusShade .16s ease-out both;
+}
+.chat-messages .message-row:has(.chat-message-focused) { z-index:1052;position:relative;isolation:isolate; }
+.chat-messages .message-bubble.chat-message-focused {
+  position:relative;z-index:1053;
+  transform-origin:center bottom;
+  animation:nisitBubbleFocus .34s cubic-bezier(.18,1.35,.3,1) both!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.38),0 0 0 2px rgba(235,179,255,.7)!important;
+}
+.chat-messages .chat-message-focused .chat-message-menu {
+  z-index:1054;animation:nisitMenuPop .22s cubic-bezier(.2,1.25,.3,1) both;
+}
+@keyframes nisitFocusShade {from{opacity:0}to{opacity:1}}
+@keyframes nisitBubbleFocus {0%{transform:scale(1)}45%{transform:scale(1.065) translateY(-5px)}75%{transform:scale(1.025) translateY(-3px)}100%{transform:scale(1.035) translateY(-3px)}}
+@keyframes nisitMenuPop {from{opacity:0;transform:translateY(-8px) scale(.93)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.chat-message-focus-dismiss,.chat-messages .message-bubble.chat-message-focused,.chat-messages .chat-message-focused .chat-message-menu{animation:none!important}.chat-messages .message-bubble.chat-message-focused{transform:none!important}}
