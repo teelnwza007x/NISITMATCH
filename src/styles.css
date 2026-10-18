@@ -1382,3 +1382,22 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .nm-self-preview-modal .detail-body p{color:#c9bed4!important}
 .nm-self-preview-note{font-size:12px;text-align:center;margin-top:14px;line-height:1.6}
 @media(max-width:600px){.nm-self-preview-modal{width:min(100%,430px)!important;max-height:calc(100dvh - 24px)!important}.nm-self-preview-actions>span{flex-basis:100%}}
+
+/* v55: portal-mounted chat is anchored to the visual viewport, not the page scroll. */
+@media (max-width:800px) {
+  body > .chat-layout.chat-fullscreen {
+    position:fixed!important;
+    inset:auto 0 auto 0!important;
+    top:var(--chat-viewport-top,0px)!important;
+    height:var(--chat-viewport-height,100dvh)!important;
+    max-height:var(--chat-viewport-height,100dvh)!important;
+    width:100%!important;
+    margin:0!important;
+    transform:none!important;
+    z-index:9999!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+  }
+  body > .chat-layout.chat-fullscreen .chat-window {min-height:0!important;overflow:hidden!important}
+  body > .chat-layout.chat-fullscreen .chat-messages {min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+}

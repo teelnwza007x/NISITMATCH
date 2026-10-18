@@ -348,37 +348,29 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   }, [me, refreshInbox])
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
-  // v48: Freeze the underlying page at its exact scroll position while a chat room is open.
-  // Only the message list scrolls; releasing the lock restores the previous page position.
+  // Lock document scrolling without shifting the fixed chat viewport.
+  // The chat is portaled to document.body below, so it never inherits a scrolled
+  // or transformed page container's coordinate system.
   useEffect(() => {
-    if (!roomId || typeof window === 'undefined' || !window.matchMedia('(max-width: 800px)').matches) return
-    const body = document.body
+    if (!roomId || typeof window === 'undefined') return
     const root = document.documentElement
-    const y = window.scrollY
-    const old = { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, width: body.style.width, overflow: body.style.overflow, rootOverflow: root.style.overflow }
-    body.style.position = 'fixed'
-    body.style.top = `-${y}px`
-    body.style.left = '0'
-    body.style.right = '0'
-    body.style.width = '100%'
-    body.style.overflow = 'hidden'
+    const body = document.body
+    const previous = { htmlOverflow: root.style.overflow, bodyOverflow: body.style.overflow,
+      htmlOverscroll: root.style.overscrollBehavior, bodyOverscroll: body.style.overscrollBehavior }
     root.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    root.style.overscrollBehavior = 'none'
+    body.style.overscrollBehavior = 'none'
     return () => {
-      body.style.position = old.position
-      body.style.top = old.top
-      body.style.left = old.left
-      body.style.right = old.right
-      body.style.width = old.width
-      body.style.overflow = old.overflow
-      root.style.overflow = old.rootOverflow
-      window.scrollTo(0, y)
+      root.style.overflow = previous.htmlOverflow
+      body.style.overflow = previous.bodyOverflow
+      root.style.overscrollBehavior = previous.htmlOverscroll
+      body.style.overscrollBehavior = previous.bodyOverscroll
     }
   }, [roomId])
   const [msgs, setMsgs] = useState([])
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
-  const [starterOpen, setStarterOpen] = useState(false)
-  const conversationStarters = ['ช่วงนี้ติดเพลงอะไรอยู่?', 'ถ้ามีวันหยุดหนึ่งวัน อยากไปเที่ยวไหน?', 'มีคาเฟ่แถวมหาวิทยาลัยที่แนะนำไหม?', 'ช่วงนี้ดูหนังหรือซีรีส์เรื่องอะไรอยู่?', 'วันหยุดชอบทำอะไรที่สุด?']
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [partnerOnline, setPartnerOnline] = useState(false)
   const [chatViewport, setChatViewport] = useState(null)
@@ -698,7 +690,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   const report = async () => { if (!sel) return; const reason = prompt('เหตุผลในการรายงาน'); if (!reason) return; const { error } = await supabase.from('reports').insert({ reporter: me, reported: sel.p.id, reason: reason.slice(0,500) }); notify(error ? error.message : 'ส่งรายงานแล้ว') }
   return (<>
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
-    <div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
+    {sel ? createPortal(<div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
@@ -739,10 +731,6 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
           <div ref={end}/>
         </div>
         {showLatestButton && <button type="button" className="chat-jump-latest" onClick={() => scrollToLatest(true)} aria-label="กลับไปข้อความล่าสุด"><ArrowRight size={16} style={{transform:"rotate(90deg)"}} /> กลับไปข้อความล่าสุด</button>}
-        {!recording && <div className="chat-starter-wrap">
-          <button type="button" className="chat-starter-toggle" aria-expanded={starterOpen} onClick={() => setStarterOpen(v => !v)}><Sparkles size={14}/> {starterOpen ? 'ซ่อนคำถามชวนคุย' : 'หาเรื่องชวนคุย'}</button>
-          {starterOpen && <div className="chat-starter-options" aria-label="เลือกคำถามชวนคุย">{conversationStarters.map(q => <button key={q} type="button" onClick={() => { onCompose(q); setStarterOpen(false) }}>{q}</button>)}</div>}
-        </div>}
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
@@ -750,7 +738,16 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
         </form>
         {uploading && <div className="chat-upload-status">กำลังอัปโหลดไฟล์...</div>}
       </> : <div className="chat-placeholder"><MessageCircle/><h3>บทสนทนาของคุณ</h3><p>เลือก Match เพื่อเริ่มพูดคุย</p></div>}</div>
-    </div>
+    </div>, document.body) : <div className={"chat-layout chat-theme-" + chatTheme + " chat-inbox-open"}>
+      <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
+        {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
+          const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
+          const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
+          return <button key={m.id} className={'chat-person ' + (unreadCount ? 'chat-person-unread' : '')} onClick={() => { setSelectedId(m.id); setInbox(prev => ({ ...prev, [m.id]: { ...prev[m.id], unread: 0 } })) }}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small className="chat-last-preview">{preview}</small></span>{unreadCount > 0 && <span className="chat-room-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
+        })}
+        {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
+      </div>
+    </div>}
   </>)
 }
 
