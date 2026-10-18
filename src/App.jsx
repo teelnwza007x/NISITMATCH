@@ -1016,13 +1016,14 @@ const loadMatches = useCallback(async () => {
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => notify('หากพบการละเมิด โปรดรายงานผ่านโปรไฟล์ผู้ใช้')}>ช่วยเหลือและความปลอดภัย</button></footer>
         </div>
       </main>
-      {detail && <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button className="modal-close icon-btn" onClick={() => setDetail(null)}><X /></button>
+      {detail && <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
         <ProfileGallery person={detail} />
         <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{detail.display_name}, {detail.age}</h2>
           <p><GraduationCap size={15} />{uniName(detail.university_id)} · {detail.faculty}</p><p>{detail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags">{(detail.interests || []).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
           <div className="match-profile-song"><ITunesSongCard track={itunesTrack(detail)} compact /></div>
           {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(detail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
+          <button type="button" className="detail-bottom-close" onClick={() => setDetail(null)}>← กลับไปหน้าปัด</button>
           <div className="detail-secondary"><button onClick={() => report(detail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(detail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
       {newMatch && <div className="match-overlay"><div className="match-dialog"><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X/></button><div className="match-confetti" aria-hidden="true">{Array.from({length: 22}, (_,i) => <span key={i} style={{'--i':i,'--delay':`${(i%8)*.11}s`}}>{i%3===0?'♥':'✦'}</span>)}</div><div className="match-hearts">💗 ✨ 💗</div><div className="match-eyebrow">A NEW CONNECTION</div><h1>It's a Match!</h1><p>คุณและ {newMatch.p.display_name} ถูกใจกันและกัน</p><div className="match-avatars"><Av u={profile}/><Heart fill="currentColor"/><Av u={newMatch.p}/></div><button className="btn btn-pink btn-full" onClick={() => { setNewMatch(null); go('messages') }}>เริ่มพูดคุยเลย <MessageCircle size={18}/></button><button className="match-later" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
       {Toast}

@@ -509,3 +509,96 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .swipe-hint{margin:10px 0 0;font-size:11px}
 @media(max-width:600px){.swipe-stack{height:min(62dvh,560px);min-height:360px}.swipe-controls{gap:10px;margin-top:12px}.swipe-control,.swipe-control.info,.swipe-control.reject,.swipe-control.report{width:44px;height:44px;flex-basis:44px}.swipe-control.accept{width:56px;height:56px;flex-basis:56px}.swipe-info{padding:65px 15px 12px}.swipe-info h2{font-size:23px}.swipe-song{width:min(100%,230px)}}
 @media(prefers-reduced-motion:reduce){.swipe-control{transition:none!important}}
+
+/* v6: visible and touch-friendly profile close controls */
+.detail-modal .detail-close-btn {
+  position: sticky !important;
+  top: 10px !important;
+  left: calc(100% - 54px) !important;
+  right: auto !important;
+  z-index: 60 !important;
+  display: flex !important;
+  align-items: center; justify-content: center;
+  width: 44px !important; height: 44px !important;
+  min-width: 44px; min-height: 44px;
+  margin: 10px 10px -54px auto;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 50% !important;
+  background: rgba(13,18,30,.88) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 20px rgba(0,0,0,.4);
+  backdrop-filter: blur(12px);
+  cursor: pointer; touch-action: manipulation;
+}
+.detail-modal .detail-close-btn:active {transform:scale(.94)}
+.detail-modal .detail-bottom-close {
+  width:100%; min-height:44px; margin-top:12px;
+  background:rgba(255,255,255,.07); color:#f9dbe9;
+  border:1px solid rgba(255,255,255,.14); border-radius:12px;
+  font-size:13px; font-weight:600; cursor:pointer;
+}
+@media (max-width:600px) {
+  .detail-modal .detail-close-btn {top: 8px !important;}
+}
+
+/* Nisit Match v7 — motion-only enhancement. No changes to app behavior. */
+@keyframes nm-enter { from { opacity:0; translate:0 12px; } to { opacity:1; translate:0 0; } }
+@keyframes nm-modal-backdrop { from { opacity:0; } to { opacity:1; } }
+@keyframes nm-modal-panel { from { opacity:0; translate:0 18px; scale:.975; } to { opacity:1; translate:0 0; scale:1; } }
+@keyframes nm-message { from { opacity:0; translate:0 9px; scale:.985; } to { opacity:1; translate:0 0; scale:1; } }
+@keyframes nm-heart { 0%,100% { filter:drop-shadow(0 0 0 rgba(255,102,170,0)); } 50% { filter:drop-shadow(0 0 8px rgba(255,102,170,.45)); } }
+
+/* Avoid animating swipe-card transforms: swipe gesture owns them. */
+.page-content > .welcome-row,
+.page-content > .section-heading,
+.page-content > .searchbar,
+.page-content > .filter-panel,
+.page-content > .profile-edit-layout,
+.page-content > .chat-layout,
+.page-content > .settings-card,
+.page-content > .person-grid,
+.page-content > .matches-grid,
+.page-content > .swipe-stage {
+  animation:nm-enter .38s cubic-bezier(.2,.75,.25,1) both;
+}
+.person-card,.profile-preview,.form-panel,.settings-card {
+  transition:border-color .22s ease,box-shadow .22s ease,filter .22s ease;
+}
+.person-card:hover,.settings-card:hover {
+  border-color:rgba(246,118,187,.38);
+  box-shadow:0 16px 36px rgba(11,7,28,.18);
+}
+.nav-item,.bottom-nav button,.profile-chip,.chat-profile-trigger,.chat-person {
+  transition:background-color .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.btn,.icon-btn,.swipe-control,.send-btn,.chat-media-btn,.detail-bottom-close,.detail-close-btn {
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:not(:disabled):active,.icon-btn:not(:disabled):active,
+.send-btn:not(:disabled):active,.chat-media-btn:not(:disabled):active,
+.detail-bottom-close:active { scale:.96; }
+.modal-backdrop { animation:nm-modal-backdrop .2s ease-out both; }
+.modal-backdrop .detail-modal,.modal-backdrop .auth-modal {
+  animation:nm-modal-panel .3s cubic-bezier(.18,.78,.3,1) both;
+}
+.detail-gallery img,.detail-cover { transition:filter .2s ease; }
+.chat-person { animation:nm-enter .25s ease-out both; }
+.message-row.latest-message { animation:nm-message .26s cubic-bezier(.18,.8,.25,1) both; }
+.chat-profile-trigger:active { opacity:.78; }
+.match-hearts { animation:nm-heart 1.8s ease-in-out infinite; }
+/* Preserve natural scrolling and drag/swipe behavior. */
+.chat-messages,.swipe-front,.swipe-card { scroll-behavior:auto; }
+@media (prefers-reduced-motion:reduce) {
+  .page-content > .welcome-row,.page-content > .section-heading,
+  .page-content > .searchbar,.page-content > .filter-panel,
+  .page-content > .profile-edit-layout,.page-content > .chat-layout,
+  .page-content > .settings-card,.page-content > .person-grid,
+  .page-content > .matches-grid,.page-content > .swipe-stage,
+  .modal-backdrop,.modal-backdrop .detail-modal,.modal-backdrop .auth-modal,
+  .chat-person,.message-row.latest-message,.match-hearts {
+    animation:none!important;
+  }
+  .person-card,.profile-preview,.form-panel,.settings-card,
+  .nav-item,.bottom-nav button,.profile-chip,.chat-profile-trigger,
+  .chat-person,.detail-gallery img,.detail-cover { transition:none!important; }
+}
