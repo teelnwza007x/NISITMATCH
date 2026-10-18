@@ -1213,3 +1213,13 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
   .itunes-song-card .itunes-premium-timeline input[type=range]::-webkit-slider-thumb,
   .itunes-song-card .itunes-premium-timeline input[type=range]::-moz-range-thumb{transition:none!important}
 }
+
+/* v44: open chat photos in a lightbox without leaving the conversation */
+.chat-image-open{display:block;max-width:100%;padding:0;margin:0;border:0;background:transparent;border-radius:12px;overflow:hidden;cursor:zoom-in;line-height:0}
+.chat-image-open:focus-visible{outline:3px solid #9b87ff;outline-offset:3px}
+.chat-image-lightbox{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:calc(18px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px));background:rgba(5,9,20,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:nm44ImageIn .18s ease-out}
+.chat-image-lightbox-content{position:relative;display:flex;align-items:center;justify-content:center;max-width:100%;max-height:100%;min-width:0;min-height:0}
+.chat-image-lightbox-content img{display:block;max-width:min(94vw,1100px);max-height:calc(100dvh - 96px);width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.4)}
+.chat-image-close{position:absolute;top:-18px;right:-8px;z-index:2;display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.22);border-radius:50%;background:rgba(20,25,40,.85);color:#fff;cursor:pointer;transform:translateY(-100%)}
+@keyframes nm44ImageIn{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.chat-image-lightbox{animation:none}}

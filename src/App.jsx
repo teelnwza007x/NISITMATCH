@@ -339,6 +339,14 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
   const [recordSeconds, setRecordSeconds] = useState(0)
   const discardRecord = useRef(false)
   const [mediaUrls, setMediaUrls] = useState({})
+  const [openChatImage, setOpenChatImage] = useState(null)
+  useEffect(() => { setOpenChatImage(null) }, [selectedId])
+  useEffect(() => {
+    if (!openChatImage) return
+    const onKey = (event) => { if (event.key === 'Escape') setOpenChatImage(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [openChatImage])
   const recorder = useRef(null)
   const recordParts = useRef([])
   const end = useRef(null)
@@ -642,6 +650,12 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
       </div>
       <div className="chat-window">{sel ? <>
         <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><div className="chat-theme-control"><button type="button" className="icon-btn chat-theme-toggle" onClick={() => setThemePickerOpen(v => !v)} title="เปลี่ยนธีมแชต" aria-label="เปลี่ยนธีมแชต" aria-expanded={themePickerOpen}><Palette size={18}/></button></div><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
+        {openChatImage && <div className="chat-image-lightbox" role="presentation" onClick={() => setOpenChatImage(null)}>
+          <div className="chat-image-lightbox-content" role="dialog" aria-modal="true" aria-label="ดูรูปภาพในแชต" onClick={e => e.stopPropagation()}>
+            <button type="button" className="chat-image-close" onClick={() => setOpenChatImage(null)} aria-label="ปิดรูปภาพ"><X size={22}/></button>
+            <img src={openChatImage} alt="รูปภาพในแชตขนาดใหญ่" />
+          </div>
+        </div>}
         {themePickerOpen && <div className="chat-theme-overlay" onClick={() => setThemePickerOpen(false)}>
           <div className="chat-theme-dialog" role="dialog" aria-modal="true" aria-label="เลือกธีมแชต" onClick={e => e.stopPropagation()}>
             <div className="chat-theme-heading">ธีมบทสนทนา <button type="button" onClick={() => setThemePickerOpen(false)} aria-label="ปิด"><X size={18}/></button></div>
@@ -654,7 +668,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
           {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
             {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
             <div className="message-bubble">
-              {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <a href={mediaUrls[m.attachment_path]} target="_blank" rel="noopener noreferrer"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" /></a> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
+              {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <button type="button" className="chat-image-open" onClick={() => setOpenChatImage(mediaUrls[m.attachment_path])} aria-label="ดูรูปภาพขนาดใหญ่ในแชต"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" loading="lazy" /></button> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
               <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me && m.read_at ? ' · อ่านแล้ว' : ''}</small>{m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
             </div>
           </div>)}
