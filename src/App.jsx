@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
@@ -296,6 +296,29 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
       else sessionStorage.removeItem(`nisit-active-chat:${me}`)
     } catch {}
   }, [selectedId, me])
+  // Chat themes are personal to this browser/account and saved per conversation.
+  const CHAT_THEMES = [
+    { id: 'midnight', name: 'Midnight', swatch: '#8c76ef' },
+    { id: 'rose', name: 'Rose', swatch: '#f26b9e' },
+    { id: 'ocean', name: 'Ocean', swatch: '#3d9eea' },
+    { id: 'sage', name: 'Sage', swatch: '#59ae91' },
+    { id: 'lavender', name: 'Lavender', swatch: '#b28bf3' },
+    { id: 'sunset', name: 'Sunset', swatch: '#f19b66' },
+  ]
+  const [themePickerOpen, setThemePickerOpen] = useState(false)
+  const [chatTheme, setChatTheme] = useState('midnight')
+  useEffect(() => {
+    setThemePickerOpen(false)
+    try {
+      const stored = localStorage.getItem(`nisit-chat-theme:${me}:${selectedId}`)
+      setChatTheme(CHAT_THEMES.some(t => t.id === stored) ? stored : 'midnight')
+    } catch { setChatTheme('midnight') }
+  }, [selectedId, me])
+  const chooseChatTheme = (id) => {
+    setChatTheme(id)
+    setThemePickerOpen(false)
+    try { localStorage.setItem(`nisit-chat-theme:${me}:${selectedId}`, id) } catch {}
+  }
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
   const [msgs, setMsgs] = useState([])
@@ -606,13 +629,13 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const report = async () => { if (!sel) return; const reason = prompt('เหตุผลในการรายงาน'); if (!reason) return; const { error } = await supabase.from('reports').insert({ reporter: me, reported: sel.p.id, reason: reason.slice(0,500) }); notify(error ? error.message : 'ส่งรายงานแล้ว') }
   return (<>
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
-    <div className={"chat-layout " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
+    <div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
         {matches.map(m => <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '')} onClick={() => setSelectedId(m.id)}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small>💗 Match กันแล้ว</small></span></button>)}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
       <div className="chat-window">{sel ? <>
-        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
+        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><div className="chat-theme-control"><button type="button" className="icon-btn chat-theme-toggle" onClick={() => setThemePickerOpen(v => !v)} title="เปลี่ยนธีมแชต" aria-label="เปลี่ยนธีมแชต" aria-expanded={themePickerOpen}><Palette size={18}/></button>{themePickerOpen && <div className="chat-theme-popover" role="group" aria-label="เลือกธีมแชต"><div className="chat-theme-heading">ธีมบทสนทนา <button type="button" onClick={() => setThemePickerOpen(false)} aria-label="ปิด"><X size={15}/></button></div><div className="chat-theme-grid">{CHAT_THEMES.map(t => <button type="button" key={t.id} className={'chat-theme-choice' + (chatTheme === t.id ? ' active' : '')} onClick={() => chooseChatTheme(t.id)} aria-pressed={chatTheme === t.id}><span className="chat-theme-dot" style={{background:t.swatch}} />{t.name}{chatTheme === t.id && <Check size={13}/>}</button>)}</div><small>ธีมนี้แสดงเฉพาะบนอุปกรณ์ของคุณ</small></div>}</div><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
         <div className="chat-messages" ref={scrollBox} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
           {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
