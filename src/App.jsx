@@ -196,10 +196,12 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
       paint(like ? 560 : -560, -14, true)
       window.setTimeout(() => {
+        // Release the outgoing identity only. Do NOT reset the old DOM card here:
+        // React is about to replace it with the next profile, and resetting its transform
+        // to (0,0) for one frame causes the visible 'gulp/snap-back' at the end of a swipe.
         setExitHold(current => current?.id === outgoingId ? null : current)
         busyRef.current = false
         setBusy(false)
-        paint(0, 0)
       }, reduceMotion ? 0 : 660)
       burstTimer.current = window.setTimeout(() => setSwipeBurst(null), reduceMotion ? 180 : 1260)
     } catch (error) {
@@ -261,7 +263,8 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge />}{person.relationship_intent && <span className="nm-intent-tag">{intentLabel(person.relationship_intent)}</span>}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
-      {swipeBurst && <div className={'v64-swipe-burst ' + swipeBurst} aria-hidden="true"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={64}/> : <X size={70}/>}</div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span>{Array.from({length:10},(_,i)=><i key={i} style={{'--i':i}}/>)}</div>}
+      {/* Like/Pass feedback is rendered once in the fixed viewport portal below.
+          Duplicating it inside the moving card makes the effect get cut off when the card unmounts. */}
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
         <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />

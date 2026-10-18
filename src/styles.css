@@ -1837,3 +1837,36 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 @keyframes nmSwipeCaption{0%,32%{opacity:0;transform:translateY(8px)}48%,76%{opacity:.92;transform:translateY(0)}100%{opacity:0;transform:translateY(-4px)}}
 @keyframes nmSwipeParticle{0%,12%{opacity:0;transform:rotate(var(--angle)) translateY(0) scale(.3)}30%{opacity:1}100%{opacity:0;transform:rotate(var(--angle)) translateY(-min(25vh,180px)) scale(.25)}}
 @media(prefers-reduced-motion:reduce){.nm-swipe-center,.nm-swipe-center *{animation:none!important;transition:none!important}.nm-swipe-center{opacity:1;background:rgba(20,12,32,.76);backdrop-filter:none}.nm-swipe-center .nm-swipe-aura,.nm-swipe-center .nm-swipe-ring,.nm-swipe-center i{display:none}.nm-swipe-center .nm-swipe-icon-wrap{opacity:1}}
+
+
+/* v75 — seamless swipe finish: never snap the outgoing card back under the next profile. */
+.swipe-stage .swipe-front.swipe-entering{
+  animation:nisit-swipe-arrive-v75 420ms cubic-bezier(.2,.72,.22,1) both;
+}
+@keyframes nisit-swipe-arrive-v75{
+  0%{opacity:.82;filter:blur(1px)}
+  62%{opacity:1;filter:blur(0)}
+  100%{opacity:1;filter:blur(0)}
+}
+/* End on the same neutral scale/position as the resting state, so removing the overlay
+   cannot produce a last-frame 'gulp'. Keep the center effect on screen through a gentle hold. */
+.nm-swipe-center{animation:nmSwipeVeilV75 1.48s cubic-bezier(.22,.62,.24,1) both;}
+.nm-swipe-aura{animation:nmSwipeAuraV75 1.38s cubic-bezier(.18,.68,.22,1) both;}
+.nm-swipe-ring{animation:nmSwipeRingV75 1.34s cubic-bezier(.18,.68,.22,1) both;}
+.nm-swipe-icon-wrap{animation:nmSwipeMedallionV75 1.42s cubic-bezier(.2,.72,.22,1) both;}
+.nm-swipe-center .v64-swipe-burst-icon{animation:nmSwipeIconV75 1.42s cubic-bezier(.2,.72,.22,1) both;}
+.nm-swipe-center>span{animation:nmSwipeTitleV75 1.38s cubic-bezier(.2,.72,.22,1) both;}
+.nm-swipe-center>small{animation:nmSwipeCaptionV75 1.34s cubic-bezier(.2,.72,.22,1) both;}
+.nm-swipe-center i{animation:nmSwipeParticleV75 1.28s cubic-bezier(.18,.62,.22,1) both;}
+@keyframes nmSwipeVeilV75{0%{opacity:0}12%{opacity:1}66%{opacity:1}88%{opacity:.58}100%{opacity:0}}
+@keyframes nmSwipeAuraV75{0%{opacity:0;transform:scale(.58)}22%{opacity:.9}70%{opacity:.48;transform:scale(1.28)}100%{opacity:0;transform:scale(1.42)}}
+@keyframes nmSwipeRingV75{0%{opacity:0;transform:translate(-50%,-50%) scale(.34)}20%{opacity:.85}72%{opacity:.25;transform:translate(-50%,-50%) scale(1.28)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.38)}}
+@keyframes nmSwipeMedallionV75{0%{opacity:0;transform:scale(.82) translateY(7px);filter:blur(2px)}22%{opacity:1;transform:scale(1.025) translateY(0);filter:blur(0)}38%{transform:scale(1)}72%{opacity:1;transform:scale(1)}92%{opacity:.45;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes nmSwipeIconV75{0%{opacity:0;transform:scale(.72) rotate(-8deg)}24%{opacity:1;transform:scale(1.04) rotate(2deg)}38%{transform:scale(1) rotate(0)}72%{opacity:1;transform:scale(1)}92%{opacity:.35;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes nmSwipeTitleV75{0%,18%{opacity:0;transform:translateY(8px);filter:blur(2px)}36%,72%{opacity:1;transform:translateY(0);filter:blur(0)}92%{opacity:.35;transform:translateY(0);filter:blur(0)}100%{opacity:0;transform:translateY(0);filter:blur(0)}}
+@keyframes nmSwipeCaptionV75{0%,25%{opacity:0;transform:translateY(5px)}42%,70%{opacity:.92;transform:translateY(0)}92%{opacity:.28;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+@keyframes nmSwipeParticleV75{0%,10%{opacity:0;transform:rotate(var(--angle)) translateY(0) scale(.3)}28%{opacity:1}74%{opacity:.3}100%{opacity:0;transform:rotate(var(--angle)) translateY(-min(22vh,155px)) scale(.25)}}
+@media(prefers-reduced-motion:reduce){
+  .swipe-stage .swipe-front.swipe-entering{animation:none!important}
+  .nm-swipe-center,.nm-swipe-aura,.nm-swipe-ring,.nm-swipe-icon-wrap,.nm-swipe-center .v64-swipe-burst-icon,.nm-swipe-center>span,.nm-swipe-center>small,.nm-swipe-center i{animation:none!important;transition:none!important}
+}
