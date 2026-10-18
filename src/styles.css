@@ -1055,3 +1055,69 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
   }
   .chat-fullscreen.chat-keyboard-open .chat-compose { padding-bottom: 10px !important; }
 }
+
+/* v39 — refined messenger composer, stable on iPhone 14 Pro */
+.chat-fullscreen .chat-compose {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  padding: 11px 13px max(12px, env(safe-area-inset-bottom, 0px)) !important;
+  background: var(--v7-bg, #101827) !important;
+  border-top: 1px solid rgba(170, 184, 210, .16) !important;
+  box-shadow: 0 -12px 30px rgba(0,0,0,.12) !important;
+  z-index: 5 !important;
+}
+.chat-fullscreen .chat-compose .chat-text-input {
+  flex: 1 1 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  padding: 0 16px !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.075) !important;
+  border: 1px solid rgba(177,192,220,.2) !important;
+  color: #f7f8fc !important;
+  font-size: 16px !important; /* iOS: avoid focus zoom */
+  line-height: normal !important;
+  outline: none !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.09) !important;
+  transition: border-color .22s ease, box-shadow .22s ease, background .22s ease !important;
+}
+.chat-fullscreen .chat-compose .chat-text-input::placeholder { color: #aab4c6 !important; opacity: 1; }
+.chat-fullscreen .chat-compose .chat-text-input:focus {
+  background: rgba(255,255,255,.105) !important;
+  border-color: #a18af2 !important;
+  box-shadow: 0 0 0 3px rgba(161,138,242,.16) !important;
+}
+.chat-fullscreen .chat-compose .chat-media-btn {
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  height: 42px !important;
+  border-radius: 14px !important;
+  transition: transform .18s ease, background .18s ease !important;
+}
+.chat-fullscreen .chat-compose .chat-media-btn:active { transform: scale(.92); }
+.chat-fullscreen .chat-compose .send-btn {
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg,#b07bf6,#7161e9) !important;
+  box-shadow: 0 5px 16px rgba(113,97,233,.28) !important;
+  transition: transform .2s ease, opacity .2s ease, box-shadow .2s ease !important;
+}
+.chat-fullscreen .chat-compose .send-btn:active:not(:disabled) { transform: scale(.9); }
+.chat-fullscreen .chat-compose .send-btn:disabled { opacity: .4 !important; box-shadow: none !important; }
+.chat-fullscreen .chat-messages { scroll-padding-bottom: 18px !important; }
+@media (max-width: 420px) {
+  .chat-fullscreen .chat-compose { gap: 5px !important; padding-left: 8px !important; padding-right: 8px !important; }
+  .chat-fullscreen .chat-compose .chat-media-btn { flex-basis: 34px !important; width: 34px !important; }
+  .chat-fullscreen .chat-compose .send-btn { flex-basis: 42px !important; width: 42px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-fullscreen .chat-compose .chat-text-input,
+  .chat-fullscreen .chat-compose .send-btn,
+  .chat-fullscreen .chat-compose .chat-media-btn { transition: none !important; }
+}

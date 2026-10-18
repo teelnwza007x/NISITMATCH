@@ -326,8 +326,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const lastMessageId = useRef(null)
   const initialChatScroll = useRef(false)
   const initialChatRoom = useRef(null)
+  const userReadingHistory = useRef(false)
   const scrollToLatest = useCallback((smooth = true) => {
     stickToBottom.current = true
+    userReadingHistory.current = false
     setShowLatestButton(false)
     const box = scrollBox.current
     if (!box) return
@@ -340,7 +342,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     if (last.id === lastMessageId.current) return
     const initial = lastMessageId.current === null
     lastMessageId.current = last.id
-    if (initial || forceNextScroll.current || last.sender_id === me || stickToBottom.current) {
+    if (initial || forceNextScroll.current || (last.sender_id === me && !userReadingHistory.current) || stickToBottom.current) {
       if (initial) scrollToLatest(false)
       else requestAnimationFrame(() => scrollToLatest(true))
     }
@@ -349,6 +351,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   useEffect(() => {
     lastMessageId.current = null
     stickToBottom.current = true
+    userReadingHistory.current = false
     forceNextScroll.current = false
     setShowLatestButton(false)
     initialChatScroll.current = false
@@ -390,12 +393,31 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     }
   }, [roomId, msgs.length, mediaUrls])
 
+  // Keep the newest bubble visible as typing indicators, images and the
+  // visual viewport change size. Never pull someone away from older messages.
+  useEffect(() => {
+    const box = scrollBox.current
+    if (!box || !roomId) return
+    let frame = 0
+    const keepBottom = () => {
+      if (!stickToBottom.current || userReadingHistory.current) return
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => { if (stickToBottom.current && !userReadingHistory.current) box.scrollTop = box.scrollHeight })
+    }
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(keepBottom) : null
+    observer?.observe(box)
+    const contents = box.firstElementChild
+    if (contents) observer?.observe(contents)
+    keepBottom()
+    return () => { observer?.disconnect(); cancelAnimationFrame(frame) }
+  }, [roomId, partnerTyping, chatViewport?.height, msgs.length])
+
   useEffect(() => { if (!recording) return; const id = setInterval(() => setRecordSeconds(s => s + 1),1000); return () => clearInterval(id) }, [recording])
   const partnerName = p => p?.display_name?.trim() || 'คู่ Match'
 
   const fetchMessages = useCallback(async (older = false) => {
     if (!roomId) return
-    if (older) { initialChatScroll.current = true; setLoadingOlder(true) }
+    if (older) { initialChatScroll.current = true; userReadingHistory.current = true; stickToBottom.current = false; setLoadingOlder(true) }
     const anchor = older ? msgs[0]?.created_at : null
     let query = supabase.from('messages').select('*').eq('match_id', roomId)
       .order('created_at', { ascending: false }).limit(40)
@@ -591,7 +613,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
       </div>
       <div className="chat-window">{sel ? <>
         <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
-        <div className="chat-messages" ref={scrollBox} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; setShowLatestButton(distance > 75) }}>
+        <div className="chat-messages" ref={scrollBox} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
           {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
             {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
@@ -611,7 +633,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
-          {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')}</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading} onClick={toggleRecord}><Mic size={20}/></button><input value={text} onChange={e => onCompose(e.target.value)} placeholder="ส่งข้อความถึงคนพิเศษ..." aria-label="พิมพ์ข้อความ" maxLength={2000}/><button className="send-btn" disabled={!text.trim() || uploading}><Send size={18}/></button></>}
+          {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')}</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading} onClick={toggleRecord}><Mic size={20}/></button><input className="chat-text-input" value={text} onChange={e => onCompose(e.target.value)} onFocus={() => { if (stickToBottom.current) requestAnimationFrame(() => scrollToLatest(false)) }} placeholder="พิมพ์ข้อความ..." aria-label="พิมพ์ข้อความ" maxLength={2000} autoComplete="off"/><button className="send-btn" type="submit" title="ส่งข้อความ" aria-label="ส่งข้อความ" disabled={!text.trim() || uploading}><Send size={19}/></button></>}
         </form>
         {uploading && <div className="chat-upload-status">กำลังอัปโหลดไฟล์...</div>}
       </> : <div className="chat-placeholder"><MessageCircle/><h3>บทสนทนาของคุณ</h3><p>เลือก Match เพื่อเริ่มพูดคุย</p></div>}</div>
