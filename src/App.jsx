@@ -125,7 +125,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
 }
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
-  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false)
+  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null)
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
   const dragFrame = useRef(0)
@@ -150,6 +150,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   useLayoutEffect(() => {
     setPhoto(0)
     setSuperBurst(false)
+    setSwipeBurst(null)
     start.current = null
     dragNow.current = { x: 0, y: 0 }
     busyRef.current = false
@@ -161,10 +162,10 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     if (!person || busyRef.current) return
     busyRef.current = true
     setBusy(true)
+    setSwipeBurst(like ? 'like' : 'pass')
     paint(like ? 550 : -550, -30, true)
-    await new Promise(resolve => setTimeout(resolve, 220))
     try { await (like ? onLike(person) : onSkip(person)) }
-    finally { busyRef.current = false; setBusy(false); paint(0, 0) }
+    finally { setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0) }
   }
   const doSuperLike = async () => {
     if (!person || busyRef.current) return
@@ -220,6 +221,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge />}{person.relationship_intent && <span className="nm-intent-tag">{intentLabel(person.relationship_intent)}</span>}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
+      {swipeBurst && <div className={'v64-swipe-burst ' + swipeBurst} aria-hidden="true"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={64}/> : <X size={70}/>}</div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span>{Array.from({length:10},(_,i)=><i key={i} style={{'--i':i}}/>)}</div>}
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
         <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />
@@ -736,10 +738,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
       pendingSends.current.delete(tempId)
     }
   }
-  const toggleHeart = async (message) => {
+  const setReaction = async (message, choice) => {
     setMessageMenu(null)
     if (!chatExtrasSupported.current || message.pending) return notify('กรุณาติดตั้ง SQL v56 ก่อนใช้รีแอ็กชัน')
-    const reaction = message.reaction === 'heart' ? null : 'heart'
+    const reaction = message.reaction === choice ? null : choice
     const { error } = await supabase.from('messages').update({ reaction }).eq('id', message.id).eq('match_id', roomId)
     if (error) { if (/reaction|schema cache|column/i.test(error.message || '')) chatExtrasSupported.current = false; notify('ใส่รีแอ็กชันไม่สำเร็จ: ' + error.message); return }
     setMsgs(prev => prev.map(m => m.id === message.id ? { ...m, reaction } : m))
@@ -846,10 +848,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
                 {m.reply_to && <div className="chat-reply-quote"><Reply size={13}/>{quoteFor(msgs.find(x => x.id === m.reply_to) || {body:'ข้อความก่อนหน้า'})}</div>}
                 {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <button type="button" className="chat-image-open" onClick={() => setOpenChatImage(mediaUrls[m.attachment_path])} aria-label="ดูรูปภาพขนาดใหญ่ในแชต"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" loading="lazy" /></button> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
                 <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me ? (m.read_at ? ' · อ่านแล้ว' : ' · ส่งแล้ว') : ''}</small>
-                {m.reaction === 'heart' && <span className="chat-reaction-heart" aria-label="หัวใจ"><Heart size={13} fill="currentColor"/></span>}
+                {m.reaction && <span className="chat-reaction-heart v64-reaction-pill" aria-label={'รีแอ็กชัน '+m.reaction}>{({heart:'♥',laugh:'ฮ่า',wow:'!',fire:'ไฟ'})[m.reaction] || '♥'}</span>}
                 {m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
                 <button type="button" className="chat-message-actions" aria-label="ตัวเลือกข้อความ" onClick={() => setMessageMenu(messageMenu === m.id ? null : m.id)}><SmilePlus size={15}/></button>
-                {messageMenu === m.id && <div className="chat-message-menu"><button type="button" onClick={() => { setReplyTo(m); setMessageMenu(null) }}><Reply size={15}/> ตอบกลับ</button><button type="button" onClick={() => toggleHeart(m)}><Heart size={15}/> {m.reaction === 'heart' ? 'เอาหัวใจออก' : 'ส่งหัวใจ'}</button></div>}
+                {messageMenu === m.id && <div className="chat-message-menu"><button type="button" onClick={() => { setReplyTo(m); setMessageMenu(null) }}><Reply size={15}/> ตอบกลับ</button><div className="v64-reaction-options" aria-label="เลือกรีแอ็กชัน">{[{id:'heart',label:'หัวใจ',icon:'♥'},{id:'laugh',label:'หัวเราะ',icon:'ฮ่า'},{id:'wow',label:'ตกใจ',icon:'!'},{id:'fire',label:'ไฟ',icon:'ไฟ'}].map(r => <button type="button" key={r.id} className={m.reaction === r.id ? 'selected' : ''} aria-label={r.label} title={r.label} onClick={() => setReaction(m,r.id)}>{r.icon}</button>)}</div></div>}
               </div>
             </div>
           </React.Fragment>)}
@@ -1001,8 +1003,7 @@ function ITunesSongCard({ track, compact = false }) {
       if (bins && analyserRef.current) analyserRef.current.getByteFrequencyData(bins)
       bars?.forEach((bar, i) => {
         const energy = bins ? bins[Math.min(bins.length - 1, 2 + i * 3)] / 255 : 0
-        const beat = 0.28 + 0.38 * Math.abs(Math.sin(time / (165 + i * 17) + i * 1.9))
-        bar.style.height = `${Math.round(3 + 13 * Math.max(energy, beat * (energy < 0.04 ? 1 : 0.23)))}px`
+        bar.style.height = `${Math.round(3 + 14 * energy)}px` // real analyser samples only; quiet if cross-origin audio disallows analysis
       })
       animationRef.current = requestAnimationFrame(animate)
     }
@@ -1350,7 +1351,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       <div className="detail-modal nm-self-preview-modal" role="dialog" aria-modal="true" aria-label="ตัวอย่างโปรไฟล์ของฉัน">
         <button type="button" className="modal-close detail-close-btn" onClick={() => setSelfPreviewOpen(false)} aria-label="ปิดตัวอย่างโปรไฟล์"><X size={21}/></button>
         <div className="nm-self-preview-label"><Eye size={15}/> ตัวอย่างโปรไฟล์ของคุณ</div>
-        <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { selfTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (selfTouchStart.current === null || orderedSelfPhotos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? selfTouchStart.current) - selfTouchStart.current; selfTouchStart.current = null; if (Math.abs(diff) > 45) setSelfPreviewIndex(i => (i + (diff < 0 ? 1 : orderedSelfPhotos.length - 1)) % orderedSelfPhotos.length) }}><img className="detail-cover" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>
+        <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { selfTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (selfTouchStart.current === null || orderedSelfPhotos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? selfTouchStart.current) - selfTouchStart.current; selfTouchStart.current = null; if (Math.abs(diff) > 45) setSelfPreviewIndex(i => (i + (diff < 0 ? 1 : orderedSelfPhotos.length - 1)) % orderedSelfPhotos.length) }}><img key={selfPreviewImage} className="detail-cover v64-photo-fade" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>
           {orderedSelfPhotos.length > 1 && <><button type="button" className="gallery-prev" onClick={() => setSelfPreviewIndex(i => (i - 1 + orderedSelfPhotos.length) % orderedSelfPhotos.length)} aria-label="รูปก่อนหน้า">‹</button><button type="button" className="gallery-next" onClick={() => setSelfPreviewIndex(i => (i + 1) % orderedSelfPhotos.length)} aria-label="รูปถัดไป">›</button><div className="gallery-count">{selfPreviewIndex + 1} / {orderedSelfPhotos.length}</div><div className="gallery-thumbnails">{orderedSelfPhotos.map((item,i) => <button type="button" key={item.key} className={i === selfPreviewIndex ? 'active' : ''} onClick={() => setSelfPreviewIndex(i)} aria-label={`ดูรูปที่ ${i+1}`}><img src={item.url} alt=""/></button>)}</div></>}
         </div>
         <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>
@@ -1547,7 +1548,7 @@ function ProfileGallery({ person }) {
   const touchStart = useRef(null)
   useEffect(() => { if (photos.length > 1) { const image = new Image(); image.src = pub(photos[(index + 1) % photos.length]) } }, [index, person?.id])
   return <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { touchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (touchStart.current === null || photos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current; touchStart.current = null; if (Math.abs(diff) > 45) setIndex(i => (i + (diff < 0 ? 1 : photos.length - 1)) % photos.length) }}>
-    <img className="detail-cover" src={pub(current) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />
+    <img className="detail-cover v64-photo-fade" src={pub(current) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />
     {photos.length > 1 && <>
       <button type="button" className="gallery-prev" onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)} aria-label="รูปก่อนหน้า">‹</button>
       <button type="button" className="gallery-next" onClick={() => setIndex(i => (i + 1) % photos.length)} aria-label="รูปถัดไป">›</button>
@@ -1998,7 +1999,7 @@ const loadMatches = useCallback(async () => {
           <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
       {reportTarget && <div className="modal-backdrop nm-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>}
       {guideOpen && <div className="modal-backdrop nm-dialog-backdrop" role="presentation"><div className="nm-dialog nm-guide" role="dialog" aria-modal="true" aria-labelledby="nm-guide-title"><button className="nm-dialog-close" type="button" onClick={closeGuide} aria-label="ปิดคู่มือ"><X size={20}/></button><div className="nm-dialog-eyebrow"><Sparkles size={16}/> WELCOME TO NISIT MATCH</div><div className="nm-guide-counter">{guideStep + 1} / 5</div><div className="nm-guide-illustration">{guideStep === 0 ? <Heart size={46}/> : guideStep === 1 ? <MessageCircle size={46}/> : guideStep === 2 ? <GraduationCap size={46}/> : guideStep === 3 ? <ShieldCheck size={46}/> : <GraduationCap size={46}/>}</div><h2 id="nm-guide-title">{['เริ่มค้นหาคนที่ใช่','แมตช์แล้วเริ่มคุยกัน','ยืนยันสถานะนักศึกษา','พื้นที่ปลอดภัยสำหรับทุกคน','เพิ่ม NISIT MATCH ลงหน้าจอโฮม'][guideStep]}</h2><p>{['ปัดขวาเมื่อถูกใจ ปัดซ้ายเพื่อข้าม หรือแตะโปรไฟล์เพื่อทำความรู้จักเพิ่มเติม','เมื่อคุณและอีกฝ่ายกดถูกใจตรงกัน จะเกิด Match และสามารถเริ่มแชตได้','ยืนยันอีเมลมหาวิทยาลัยเพื่อแสดงเครื่องหมายยืนยันบนโปรไฟล์ โดยไม่เปิดเผยอีเมลของคุณ','หากพบโปรไฟล์ปลอม การคุกคาม หรือข้อความไม่เหมาะสม สามารถรายงานหรือบล็อกผู้ใช้ได้','iPhone: เปิดเว็บใน Safari > แชร์ > เพิ่มไปยังหน้าจอโฮม > เพิ่ม  |  Android: เปิดใน Chrome > เมนู ⋮ > ติดตั้งแอป หรือ เพิ่มลงในหน้าจอหลัก'][guideStep]}</p><div className="nm-guide-dots">{[0,1,2,3,4].map(i => <span key={i} className={i === guideStep ? 'active' : ''}/>)}</div><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={guideStep === 0 ? closeGuide : () => setGuideStep(x => x - 1)}>{guideStep === 0 ? 'ข้าม' : 'ย้อนกลับ'}</button><button type="button" className="btn btn-pink" onClick={guideStep === 4 ? closeGuide : () => setGuideStep(x => x + 1)}>{guideStep === 3 ? 'เริ่มใช้งาน' : 'ถัดไป'} <ArrowRight size={16}/></button></div></div></div>}
-      {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog"><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
+      {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog"><div className="v64-match-glow" aria-hidden="true"/><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
       {Toast}
     </div>
   )
