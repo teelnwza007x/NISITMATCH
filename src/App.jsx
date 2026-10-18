@@ -125,7 +125,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
 }
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
-  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [exitHold, setExitHold] = useState(null)
+  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null)
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
   const dragFrame = useRef(0)
@@ -133,13 +133,12 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   const yesRef = useRef(null)
   const noRef = useRef(null)
   const busyRef = useRef(false)
-  // Hold the outgoing card for the short compositor animation while the data deck advances immediately.
-  const person = exitHold || people[0]
+  const person = people[0]
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
     card.style.transition = animate ? 'transform 360ms cubic-bezier(.2,.85,.25,1)' : 'none'
-    card.style.transform = `translate3d(${x}px,${y}px,0) rotate(${x / 18}deg)`
+    card.style.transform = `translate3d(${x}px,${y}px,0) rotate(${Math.max(-18, Math.min(18, x / 20))}deg) scale(${x === 0 && y === 0 ? 1 : 1 - Math.min(Math.abs(x) / 5000, .035)})`
     const strength = Math.min(Math.abs(x) / 125, 1)
     for (const [el, visible] of [[yesRef.current, x > 12], [noRef.current, x < -12]]) {
       if (!el) continue
@@ -159,42 +158,21 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     paint(0, 0)
   }, [person?.id, paint])
   const photos = person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : []
-  useEffect(() => {
-    if (typeof Image === 'undefined') return
-    const nextPerson = exitHold ? people[0] : people[1]
-    const urls = [
-      ...photos.slice(0, 4).map(path => pub(path)),
-      nextPerson?.avatar_path ? pub(nextPerson.avatar_path) : null,
-      ...(nextPerson?.photo_paths || []).slice(0, 2).map(path => pub(path))
-    ].filter(Boolean)
-    const warmed = urls.map(src => { const img = new Image(); img.decoding = 'async'; img.src = src; return img })
-    return () => { warmed.forEach(img => { img.onload = null; img.onerror = null }) }
-  }, [person?.id, people[0]?.id, people[1]?.id, !!exitHold])
-  const act = (like) => {
+  const act = async (like) => {
     if (!person || busyRef.current) return
-    // Lock synchronously: a double tap cannot enqueue the same card twice.
     busyRef.current = true
     setBusy(true)
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(like ? 12 : 7)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(like ? 18 : 9)
     setSwipeBurst(like ? 'like' : 'pass')
-    // Start persistence immediately, but never wait for the network before animating.
-    // App optimistically advances the deck and rolls back if persistence fails.
+    // Start the exit immediately. The save callback is optimistic and runs in parallel,
+    // so network latency never holds the card on screen.
     try {
-      const outgoingId = person.id
-      setExitHold(person)
-      const result = like ? onLike(person) : onSkip(person)
-      Promise.resolve(result).catch(() => {})
-      paint(like ? 520 : -520, -20, true)
-      window.setTimeout(() => {
-        setExitHold(current => current?.id === outgoingId ? null : current)
-        setSwipeBurst(null)
-        busyRef.current = false
-        setBusy(false)
-        paint(0, 0)
-      }, window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 70 : 255)
-    } catch (error) {
-      setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0)
-    }
+      paint(like ? window.innerWidth * 1.15 : -window.innerWidth * 1.15, -24, true)
+      await Promise.all([
+        Promise.resolve().then(() => like ? onLike(person) : onSkip(person)),
+        new Promise(resolve => setTimeout(resolve, 330))
+      ])
+    } finally { setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0) }
   }
   const doSuperLike = async () => {
     if (!person || busyRef.current) return
@@ -239,7 +217,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
-      <img key={`${person.id}-${photo}`} className="swipe-main-photo" draggable="false" decoding="async" fetchPriority="high" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
+      <img draggable="false" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
       <div className="swipe-photo-bars">{(photos.length ? photos : [null]).map((_, i) => <span key={i} className={i === photo ? 'active' : ''}/>)}</div>
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photos.length - 1, v + 1))}/>
       <div className="swipe-feedback yes" ref={yesRef} aria-hidden="true">
@@ -1663,8 +1641,6 @@ export default function App() {
   const [newMatch, setNewMatch] = useState(null)
   const [lastSwipe, setLastSwipe] = useState(null)
   const swipeInFlight = useRef(new Set())
-  const swipeSequence = useRef(0)
-  const lastSwipeSequence = useRef(0)
   const [superBusy, setSuperBusy] = useState(false)
   const [reportTarget, setReportTarget] = useState(null)
   const [reportReason, setReportReason] = useState('fake_profile')
@@ -1902,62 +1878,48 @@ const loadMatches = useCallback(async () => {
   }, [user, notify, loadUnread, loadMatches])
 
   const swipe = async (p, is_like) => {
-    if (!user || !p?.id) { notify('กรุณาเข้าสู่ระบบก่อน'); return false }
-    if (swipeInFlight.current.has(p.id)) return false
+    if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
+    // Guard at the data layer too: rapid taps or multiple input paths cannot duplicate a write.
+    if (swipeInFlight.current.has(p.id)) return
     swipeInFlight.current.add(p.id)
-    const sequence = ++swipeSequence.current
-    // Optimistic UI: remove the card before awaiting Supabase. Save a stable snapshot
-    // so a failed write can restore the profile without duplicating it.
-    const previousPeople = people || []
-    setPeople(current => (current || []).filter(x => x.id !== p.id))
-    setDetail(current => current?.id === p.id ? null : current)
-    try {
-      const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
-      if (error) {
-        setPeople(current => {
-          const list = current || []
-          if (list.some(x => x.id === p.id)) return list
-          const oldIndex = Math.max(0, previousPeople.findIndex(x => x.id === p.id))
-          const restored = [...list]
-          restored.splice(Math.min(oldIndex, restored.length), 0, p)
-          return restored
-        })
-        notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว โปรไฟล์ถูกนำออกจากหน้าปัด' : `บันทึกไม่สำเร็จ จึงคืนโปรไฟล์ให้แล้ว: ${error.message}`)
-        return false
+    let removed = false
+    const removeTimer = window.setTimeout(() => {
+      removed = true
+      setPeople(list => (list || []).filter(item => item.id !== p.id))
+      setDetail(current => current?.id === p.id ? null : current)
+    }, 330)
+    // The network request begins immediately, but is intentionally not awaited by the card UI.
+    ;(async () => {
+      try {
+        const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
+        if (error) {
+          window.clearTimeout(removeTimer)
+          if (removed) setPeople(list => [p, ...(list || []).filter(item => item.id !== p.id)])
+          notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
+          return
+        }
+        setLastSwipe({ person: p, at: Date.now(), matched: false })
+        if (is_like) {
+          const [a, b] = [user.id, p.id].sort()
+          const { data, error: matchError } = await supabase.from('matches').select('id').eq('user_a', a).eq('user_b', b).maybeSingle()
+          if (matchError) notify('บันทึก Like แล้ว แต่ตรวจสอบ Match ไม่สำเร็จ กรุณารีเฟรชหน้า')
+          else if (data) { setLastSwipe(null); setNewMatch({ id: data.id, p }); await loadMatches() }
+          else notify(`ส่งหัวใจให้ ${p.display_name} แล้ว 💙`)
+        } else notify('ข้ามโปรไฟล์แล้ว')
+      } catch (err) {
+        window.clearTimeout(removeTimer)
+        if (removed) setPeople(list => [p, ...(list || []).filter(item => item.id !== p.id)])
+        notify('เชื่อมต่อไม่สำเร็จ จึงคืนโปรไฟล์กลับมาให้แล้ว')
+      } finally {
+        swipeInFlight.current.delete(p.id)
       }
-      if (sequence >= lastSwipeSequence.current) {
-        lastSwipeSequence.current = sequence
-        setLastSwipe({ person: p, at: Date.now(), matched: false, sequence })
-      }
-      if (is_like) {
-        const [a, b] = [user.id, p.id].sort()
-        // Existing database trigger remains authoritative for match creation.
-        const { data, error: matchError } = await supabase.from('matches').select('id').eq('user_a', a).eq('user_b', b).maybeSingle()
-        if (matchError) notify('บันทึก Like แล้ว แต่ตรวจสอบ Match ไม่สำเร็จ กรุณาเปิดข้อความอีกครั้งเพื่อตรวจสอบ')
-        else if (data) {
-          setLastSwipe(current => current?.person?.id === p.id ? null : current)
-          setNewMatch({ id: data.id, p })
-          await loadMatches()
-        } else notify(`ส่งหัวใจให้ ${p.display_name} แล้ว`)
-      } else notify('ข้ามโปรไฟล์แล้ว')
-      return true
-    } catch (error) {
-      setPeople(current => {
-        const list = current || []
-        if (list.some(x => x.id === p.id)) return list
-        const oldIndex = Math.max(0, previousPeople.findIndex(x => x.id === p.id))
-        const restored = [...list]; restored.splice(Math.min(oldIndex, restored.length), 0, p); return restored
-      })
-      notify(`เชื่อมต่อไม่สำเร็จ จึงคืนโปรไฟล์ให้แล้ว: ${error?.message || 'ลองอีกครั้ง'}`)
-      return false
-    } finally { swipeInFlight.current.delete(p.id) }
+    })()
   }
   const undoSwipe = async () => {
     if (!lastSwipe || Date.now()-lastSwipe.at > 120000) { setLastSwipe(null); return notify('ย้อนกลับได้ภายใน 2 นาทีหลังปัด') }
     const { data, error } = await supabase.rpc('v60_undo_swipe', { p_target: lastSwipe.person.id })
     if (error || !data) return notify(error?.message || 'ไม่สามารถย้อนกลับได้ หากเกิด Match แล้วจะย้อนกลับไม่ได้')
     setPeople(old => [lastSwipe.person, ...(old || []).filter(p=>p.id!==lastSwipe.person.id)])
-    lastSwipeSequence.current = 0
     setLastSwipe(null); notify('ย้อนกลับการปัดล่าสุดแล้ว')
   }
   const superLike = async (p) => {
