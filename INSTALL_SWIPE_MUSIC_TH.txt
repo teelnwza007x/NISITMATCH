@@ -1,0 +1,10 @@
+Nisit Match — เพลงในหน้าปัด + รูปหลายรูปในหน้าดูโปรไฟล์
+
+1. สำรองโปรเจกต์เดิมก่อน
+2. คัดลอก src/App.jsx และ src/styles.css จากแพ็กนี้ไปทับไฟล์เดิม (แพ็กนี้อิงชุด Nisit iTunes ที่มีอยู่ในงานก่อนหน้า)
+3. ใน Supabase SQL Editor ตรวจว่า profiles มีคอลัมน์ itunes_track_* แล้ว จากนั้นรัน supabase/DISCOVER_WITH_ITUNES.sql
+4. npm install แล้ว npm run build จากนั้น Deploy
+5. ทดสอบโปรไฟล์ที่มีหลายรูปและมีเพลงในหน้าค้นหา
+
+สำคัญ: SQL จะสร้างฟังก์ชัน discover ใหม่ โดยคงเงื่อนไข Like/Skip/Block/อายุ และ LIMIT 30 ตามต้นฉบับ
+ถ้าคุณแก้ discover หลังจากส่งโค้ดมาแล้ว ให้ตรวจเปรียบเทียบก่อนรัน SQL

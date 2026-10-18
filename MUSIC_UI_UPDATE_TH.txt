@@ -1,0 +1,8 @@
+Nisit Match Premium Music UI
+
+ปรับเครื่องเล่นเพลงให้มีปกเพลง เอฟเฟกต์แสง ปุ่ม Play/Pause แถบเวลา และ Equalizer Animation
+แก้ warning CSS comment เก่าแล้ว
+ไม่ต้องรัน SQL ใหม่ และไม่แก้ข้อมูลใน Supabase
+ติดตั้ง: ใช้ src/App.jsx และ src/styles.css แทนของเดิม (สำรองไฟล์ก่อน)
+ทดสอบ: npm install แล้ว npm run build
+หมายเหตุ: เพลงต้องมี iTunes preview URL จึงจะเล่นได้

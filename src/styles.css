@@ -340,35 +340,128 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 
 .itunes-song-card audio{display:block;width:100%;height:38px;accent-color:#ff86bd}.itunes-attribution{font-size:10px;color:#a7b3c8;line-height:1.6}.itunes-attribution a{color:#ffacd2;text-decoration:underline;text-underline-offset:2px}
 
-/* Match profile entry points — accessible from inbox and chat room */
-.chat-profile-shortcut{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #ffffff2a;border-radius:50%;color:#ffadd6;background:#ff82bb16;cursor:pointer}
-.chat-profile-shortcut:hover,.chat-profile-shortcut:focus-visible{background:#ff82bb36;border-color:#ff82bb88}
-.chat-profile-trigger{display:flex;align-items:center;gap:11px;flex:1;min-width:0;padding:3px 0;background:transparent;border:0;color:inherit;text-align:left;cursor:pointer}
-.chat-profile-trigger:hover .chat-profile-title b{text-decoration:underline;text-decoration-color:#ff82bb}
-.chat-profile-title{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-.chat-profile-title b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chat-profile-title small{color:#f4a1ce!important}
-@media(max-width:800px){.chat-profile-shortcut{flex-basis:30px;width:30px;height:30px}.chat-profile-trigger{gap:8px;min-width:0}.chat-profile-trigger .avatar{flex-shrink:0}}
+/* Swipe music + profile gallery */
+.swipe-song { position:relative; z-index:5; max-width:100%; pointer-events:auto; }
+.swipe-song .itunes-song-card { margin:8px 0 0; padding:8px; background:rgba(12,20,35,.92); }
+.swipe-song .itunes-song-info>img,.swipe-song .itunes-song-art { width:38px; height:38px; }
+.swipe-song .itunes-song-copy b { font-size:12px; }
+.swipe-song .itunes-attribution { display:none; }
+.swipe-song .itunes-player-controls { gap:7px; }
+.detail-gallery { position:relative; width:100%; }
+.detail-gallery>.detail-cover { display:block; width:100%; height:320px; object-fit:cover; }
+.gallery-prev,.gallery-next { position:absolute; top:125px; width:38px; height:38px; border:0; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:27px; cursor:pointer; z-index:2; }
+.gallery-prev { left:12px; }.gallery-next { right:12px; }
+.gallery-count { position:absolute; right:12px; top:280px; border-radius:20px; padding:4px 9px; color:white; background:rgba(0,0,0,.55); font-size:12px; }
+.gallery-thumbnails { display:flex; gap:7px; overflow-x:auto; padding:9px 12px; background:#101827; }
+.gallery-thumbnails button { flex:0 0 48px; width:48px; height:48px; border:2px solid transparent; border-radius:9px; padding:0; overflow:hidden; background:transparent; }
+.gallery-thumbnails button.active { border-color:#ff86bd; }
+.gallery-thumbnails img { width:100%; height:100%; object-fit:cover; }
+
+.swipe-info { max-height:85%; overflow-y:auto; overscroll-behavior:contain; }
+.swipe-song .itunes-song-card { color:#fff; }
+
+/* Nisit Match premium animated music player */
+.itunes-song-card.itunes-premium{--pink:#ff77ba;--violet:#a78bfa;position:relative;isolation:isolate;overflow:hidden;display:block;width:100%;padding:15px;margin:12px 0;border:1px solid rgba(255,255,255,.19);border-radius:22px;background:linear-gradient(117deg,rgba(38,25,62,.94),rgba(16,24,43,.96) 63%,rgba(27,22,55,.94));box-shadow:0 14px 35px rgba(4,8,25,.27),inset 0 1px rgba(255,255,255,.13);color:#fff;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+.itunes-premium:hover{transform:translateY(-2px);border-color:rgba(255,140,202,.5);box-shadow:0 20px 45px rgba(10,8,35,.36),0 0 30px rgba(255,105,180,.09)}
+.itunes-premium-glow{position:absolute;z-index:-1;width:190px;height:190px;left:-60px;top:-90px;border-radius:50%;background:radial-gradient(circle,rgba(251,89,176,.27),transparent 70%);pointer-events:none;animation:itunes-glow 5s ease-in-out infinite alternate}
+.itunes-premium-main{display:flex;align-items:center;gap:12px;min-width:0}
+.itunes-premium-artwrap{position:relative;flex:0 0 64px;width:64px;height:64px;border-radius:15px;overflow:hidden;box-shadow:0 7px 22px rgba(0,0,0,.32)}
+.itunes-premium-cover{width:100%;height:100%;display:block;object-fit:cover;transition:transform .5s ease}
+.itunes-premium.is-playing .itunes-premium-cover{animation:itunes-cover-breathe 3.4s ease-in-out infinite}
+.itunes-premium-cover-empty{display:grid;place-items:center;background:linear-gradient(135deg,#ee5ca4,#7462ce)}
+.itunes-premium-art-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.2) 48%,transparent 72%);transform:translateX(-130%);pointer-events:none}
+.itunes-premium:hover .itunes-premium-art-shine{animation:itunes-shine 1s ease}
+.itunes-premium-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left}
+.itunes-premium-eyebrow{font-size:9px;letter-spacing:1.35px;font-weight:800;color:#ffc0e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.itunes-premium-heart{color:#ff6eaf;font-size:13px;vertical-align:-1px}.itunes-premium-dot{opacity:.55;padding:0 2px}
+.itunes-premium-copy strong{font-size:14px;font-weight:750;letter-spacing:-.2px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.itunes-premium-copy>span{font-size:11px;color:#b9bad2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.itunes-premium-eq{height:12px;display:flex;align-items:end;gap:3px;margin-top:3px}
+.itunes-premium-eq i{width:3px;height:4px;border-radius:3px;background:linear-gradient(#ffc0e3,#a78bfa);opacity:.7;transform-origin:bottom}
+.itunes-premium.is-playing .itunes-premium-eq i{animation:itunes-eq .8s ease-in-out infinite alternate;animation-delay:calc(var(--bar) * -0.11s);opacity:1}
+.itunes-premium-play{flex:0 0 46px;width:46px;height:46px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:linear-gradient(135deg,#ff8cc7,#f35eae 55%,#ae73ed);box-shadow:0 5px 18px rgba(242,90,169,.3),inset 0 1px rgba(255,255,255,.5);color:white;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.itunes-premium-play:hover:not(:disabled){transform:scale(1.08);box-shadow:0 7px 24px rgba(242,90,169,.52)}
+.itunes-premium-play:active:not(:disabled){transform:scale(.94)}.itunes-premium-play:disabled{opacity:.45;cursor:not-allowed}
+.itunes-premium-triangle{font-size:18px;margin-left:3px}.itunes-premium-pause{font-size:23px;font-weight:700;line-height:1}
+.itunes-premium.is-playing .itunes-premium-play{animation:itunes-play-pulse 2s ease-in-out infinite}
+.itunes-premium-timeline{display:flex;align-items:center;gap:9px;margin-top:12px}
+.itunes-premium-timeline>span{flex:0 0 27px;color:#b9b6cc;font-size:10px;font-variant-numeric:tabular-nums}
+.itunes-premium-timeline>span:last-child{text-align:right}
+.itunes-premium-timeline input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:4px;margin:0;border:0;border-radius:999px;outline-offset:6px;background:linear-gradient(to right,#ff8cc7 0%,#d09dfb var(--progress),rgba(255,255,255,.2) var(--progress),rgba(255,255,255,.2) 100%);cursor:pointer}
+.itunes-premium-timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border:2px solid white;border-radius:50%;background:#ff8cc7;box-shadow:0 0 10px #ff8cc788}
+.itunes-premium-timeline input[type=range]::-moz-range-thumb{width:9px;height:9px;border:2px solid white;border-radius:50%;background:#ff8cc7}
+.itunes-premium-footer{display:flex;justify-content:space-between;gap:10px;margin-top:11px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1);font-size:10px;color:#c9bdd3}
+.itunes-premium-footer a{color:#ffc1e2;text-decoration:none}
+.itunes-song-card.itunes-premium.compact{padding:10px 12px;border-radius:17px;margin:8px 0 0}
+.itunes-premium.compact .itunes-premium-artwrap{flex-basis:46px;width:46px;height:46px;border-radius:11px}
+.itunes-premium.compact .itunes-premium-main{gap:9px}
+.itunes-premium.compact .itunes-premium-play{flex-basis:38px;width:38px;height:38px}
+.itunes-premium.compact .itunes-premium-copy strong{font-size:12px}
+.itunes-premium.compact .itunes-premium-eyebrow{font-size:8px;letter-spacing:1px}
+.itunes-premium.compact .itunes-premium-timeline{margin-top:9px}
+.swipe-song .itunes-song-card.itunes-premium{background:linear-gradient(120deg,rgba(39,24,59,.94),rgba(13,22,39,.96));padding:10px 12px}
+.swipe-song .itunes-premium-artwrap{width:46px;height:46px;flex-basis:46px}
+.swipe-song .itunes-premium-copy strong{font-size:12px}
+@keyframes itunes-eq{0%{height:3px}100%{height:12px}}
+@keyframes itunes-glow{to{transform:translate(80px,55px);opacity:.7}}
+@keyframes itunes-shine{to{transform:translateX(130%)}}
+@keyframes itunes-cover-breathe{50%{transform:scale(1.09)}}
+@keyframes itunes-play-pulse{50%{box-shadow:0 5px 24px rgba(242,90,169,.55),0 0 0 7px rgba(242,90,169,.1)}}
+@media(prefers-reduced-motion:reduce){.itunes-premium *,.itunes-premium *::before,.itunes-premium *::after{animation:none!important;transition:none!important}}
 
 
-/* Match profile overlay must sit above the fixed full-screen chat (z-index: 10000). */
-.app-shell > .modal-backdrop { z-index: 11000 !important; }
-.app-shell > .modal-backdrop .detail-modal { position: relative; z-index: 1; }
+/* Nisit Match — profile music studio + chat motion */
+.itunes-picker{position:relative;overflow:hidden;border:1px solid rgba(255,139,197,.32);border-radius:25px;background:radial-gradient(ellipse at 100% 0%,rgba(227,87,163,.16),transparent 55%),linear-gradient(145deg,#211c39,#111b2b 75%);padding:23px;box-shadow:0 18px 48px rgba(0,0,0,.17),inset 0 1px rgba(255,255,255,.1)}
+.itunes-picker:before{content:'♫';position:absolute;right:-8px;top:-31px;font-size:145px;color:rgba(255,141,206,.045);pointer-events:none;transform:rotate(-18deg)}
+.itunes-picker-title{position:relative;gap:14px;margin-bottom:5px}
+.itunes-picker-icon{width:47px;height:47px;flex:0 0 47px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#ff83c1,#a774f3);box-shadow:0 8px 26px #ef68b044;color:white;animation:nisitMusicFloat 4s ease-in-out infinite}
+.itunes-picker-title b{font-size:13px;letter-spacing:1px;color:#fff}.itunes-picker-title b span{color:#ff93c5}.itunes-picker-title small{font-size:12px;line-height:1.6;color:#c4bcd8}
+.itunes-picker-preview-label{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.3px;color:#f9bad9;font-weight:650}
+.itunes-picker-live-dot{width:7px;height:7px;background:#ff7eb8;border-radius:50%;box-shadow:0 0 0 4px #ff7eb823;animation:nisitDotPulse 1.8s ease-in-out infinite}
+.itunes-picker .itunes-song-card.itunes-premium{margin:3px 0 8px;border-color:#ff9bcc45}
+.itunes-picker .itunes-search-box{border-radius:14px;transition:box-shadow .2s,border-color .2s}
+.itunes-picker .itunes-search-box:focus-within{border-color:#f68cbe;box-shadow:0 0 0 3px #ff79b31d}
+.itunes-picker .itunes-result{transition:background .2s,transform .2s,border-color .2s}
+.itunes-picker .itunes-result:hover{transform:translateX(3px)}
+@keyframes nisitMusicFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes nisitDotPulse{0%,100%{opacity:1;box-shadow:0 0 0 4px #ff7eb823}50%{opacity:.65;box-shadow:0 0 0 8px #ff7eb30a}}
+.chat-messages{scroll-padding-bottom:16px;overflow-anchor:none}
+.chat-messages .message-row.latest-message.mine .message-bubble{animation:nisitMessageSend .42s cubic-bezier(.18,.85,.26,1.16) both}
+.chat-messages .message-row.latest-message:not(.mine) .message-bubble{animation:nisitMessageReceive .32s ease-out both}
+@keyframes nisitMessageSend{from{opacity:0;transform:translate3d(20px,13px,0) scale(.88);filter:blur(2px)}65%{opacity:1;filter:blur(0)}to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
+@keyframes nisitMessageReceive{from{opacity:0;transform:translate3d(-12px,9px,0) scale(.96)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+.chat-compose .send-btn{transition:transform .17s,box-shadow .2s}
+.chat-compose .send-btn:active{transform:scale(.87)}
+@media(max-width:600px){.itunes-picker{padding:16px;border-radius:19px}.itunes-picker-title b{font-size:11px}.itunes-picker-title small{font-size:10px}.itunes-picker-icon{width:41px;height:41px;flex-basis:41px}}
+@media(prefers-reduced-motion:reduce){.itunes-picker-icon,.itunes-picker-live-dot,.chat-messages .message-row.latest-message .message-bubble{animation:none!important}.chat-compose .send-btn{transition:none!important}}
 
-/* Midnight mini-player for iTunes preview. */
-.itunes-player-card { background:linear-gradient(145deg,#19213a,#0e1728 70%) !important; border:1px solid #ec8abb40 !important; box-shadow:0 12px 34px #0003; }
-.itunes-player-controls { display:flex; align-items:center; gap:13px; padding:10px 4px 4px; }
-.itunes-play-button { width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border:0;border-radius:50%;color:#24152b;background:linear-gradient(135deg,#ffa5d2,#df83ff);box-shadow:0 5px 22px #eb83d94a;cursor:pointer;transition:transform .18s,box-shadow .18s; }
-.itunes-play-button:hover { transform:scale(1.06);box-shadow:0 7px 26px #eb83d980; }
-.itunes-play-button:active { transform:scale(.96); }
-.itunes-play-button:focus-visible { outline:3px solid #fff;outline-offset:3px; }
-.itunes-play-button svg { margin-left:2px; }
-.itunes-play-button.is-playing svg { margin-left:0; }
-.itunes-player-progress { flex:1;min-width:0; }
-.itunes-player-caption { display:flex;justify-content:space-between;gap:8px;color:#eacfe4;font-size:11px;margin-bottom:9px; }
-.itunes-player-caption span:last-child { color:#9aa9c4;font-variant-numeric:tabular-nums;white-space:nowrap; }
-.itunes-player-progress input[type=range] { display:block;width:100%;height:6px;margin:0;cursor:pointer;appearance:none;-webkit-appearance:none;border-radius:99px;background:linear-gradient(to right,#ff91c5 var(--progress),#38425a var(--progress)); }
-.itunes-player-progress input[type=range]::-webkit-slider-thumb { appearance:none;-webkit-appearance:none;width:14px;height:14px;border:3px solid #fff;border-radius:50%;background:#ff82be;box-shadow:0 1px 8px #0006; }
-.itunes-player-progress input[type=range]::-moz-range-thumb { width:10px;height:10px;border:3px solid #fff;border-radius:50%;background:#ff82be; }
-.itunes-player-error { color:#ffb0bc;font-size:11px; }
-@media(max-width:420px) { .itunes-play-button{width:43px;height:43px;flex-basis:43px}.itunes-player-controls{gap:10px}.itunes-player-caption{font-size:10px} }
+/* Compact music controls — shared by swipe, profile details and settings */
+.itunes-song-card.itunes-premium{padding:11px 12px;border-radius:17px;margin:8px 0;box-shadow:0 9px 24px rgba(4,8,25,.18)}
+.itunes-premium-main{gap:10px}
+.itunes-premium-artwrap{flex:0 0 48px;width:48px;height:48px;border-radius:12px}
+.itunes-premium-play,.itunes-premium.compact .itunes-premium-play{flex:0 0 32px;width:32px;height:32px;padding:0;border-radius:11px;border:1px solid rgba(255,255,255,.24);box-shadow:0 3px 11px rgba(242,90,169,.22);animation:none!important}
+.itunes-premium-play svg{width:15px;height:15px;display:block}
+.itunes-premium-play:hover:not(:disabled){transform:translateY(-1px) scale(1.03)}
+.itunes-premium-eq{height:17px;gap:2px;align-items:center}
+.itunes-premium-eq i{height:4px;min-height:3px;width:2px;transition:height .09s linear;animation:none!important}
+.itunes-premium.compact .itunes-premium-artwrap,.swipe-song .itunes-premium-artwrap{flex-basis:42px;width:42px;height:42px}
+.itunes-premium.compact .itunes-premium-main{gap:9px}
+.itunes-premium.compact .itunes-premium-eq{height:14px}
+@media(prefers-reduced-motion:reduce){.itunes-premium-eq i{transition:none!important}}
+
+/* Matched partner profile and latest-message jump */
+.chat-window { position: relative; }
+.chat-profile-trigger { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; padding: 4px 6px; background: transparent; color: inherit; border: 0; border-radius: 14px; cursor: pointer; transition: background .2s ease, transform .2s ease; }
+.chat-profile-trigger:hover, .chat-profile-trigger:focus-visible { background: rgba(255, 147, 196, .12); outline: none; }
+.chat-profile-trigger:active { transform: scale(.985); }
+.chat-profile-trigger > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.chat-profile-trigger b, .chat-profile-trigger small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-profile-trigger small { font-size: 11px; color: #e2a6c8; }
+.chat-profile-trigger .avatar { flex-shrink: 0; }
+.chat-jump-latest { position: absolute; z-index: 20; bottom: 86px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 17px; max-width: calc(100% - 24px); white-space: nowrap; border: 1px solid #ffffff35; border-radius: 999px; color: #fff; background: linear-gradient(115deg, #db508e, #994bc3); box-shadow: 0 8px 30px #0008, 0 0 18px #e45fa34a; font-weight: 700; font-size: 12px; cursor: pointer; animation: chatJumpAppear .22s ease-out both; }
+.chat-jump-latest:hover { filter: brightness(1.1); }
+.chat-jump-latest:active { transform: translateX(-50%) scale(.96); }
+@keyframes chatJumpAppear { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .chat-jump-latest { animation: none; } }
+/* The fullscreen chat is z-index:10000; partner detail must appear above it. */
+.modal-backdrop:has(.detail-modal) { z-index: 11000 !important; }

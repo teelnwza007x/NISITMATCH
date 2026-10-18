@@ -114,7 +114,7 @@ function SwipeDeck({ people, onLike, onSkip, onOpen, onReport }) {
       <div className="swipe-photo-bars">{(photos.length ? photos : [null]).map((_, i) => <span key={i} className={i === photo ? 'active' : ''}/>)}</div>
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photos.length - 1, v + 1))}/>
       {drag.x > 25 && <div className="swipe-stamp yes">LIKE</div>}{drag.x < -25 && <div className="swipe-stamp no">NOPE</div>}
-      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p><p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div></div>
+      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p><p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
     </article></div><div className="swipe-controls"><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม"><X size={28}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูรายละเอียด"><UserRound size={23}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ"><Heart size={29} fill="currentColor"/></button><button className="swipe-control info" onClick={() => onReport(person)} aria-label="รายงาน"><Flag size={20}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
 
@@ -244,10 +244,13 @@ function LiveMicWave({ stream }) {
 
 function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const [selectedId, setSelectedId] = useState(null)
+  const sel = matches.find(m => m.id === selectedId) || null
+  const roomId = sel?.id
   const [msgs, setMsgs] = useState([])
   const [text, setText] = useState('')
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
+  const [showLatestButton, setShowLatestButton] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [recording, setRecording] = useState(false)
   const [micStream, setMicStream] = useState(null)
@@ -259,9 +262,35 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const end = useRef(null)
   const scrollBox = useRef(null)
   const fileInput = useRef(null)
+  const stickToBottom = useRef(true)
+  const forceNextScroll = useRef(false)
+  const lastMessageId = useRef(null)
+  const scrollToLatest = useCallback((smooth = true) => {
+    stickToBottom.current = true
+    setShowLatestButton(false)
+    const box = scrollBox.current
+    if (!box) return
+    box.scrollTo({ top: box.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }, [])
+  // Scroll only when a new message arrives. Don't jump while reading older messages.
+  useEffect(() => {
+    const last = msgs[msgs.length - 1]
+    if (!last) { lastMessageId.current = null; return }
+    if (last.id === lastMessageId.current) return
+    const initial = lastMessageId.current === null
+    lastMessageId.current = last.id
+    if (initial || forceNextScroll.current || last.sender_id === me || stickToBottom.current) {
+      requestAnimationFrame(() => scrollToLatest(!initial))
+    }
+    forceNextScroll.current = false
+  }, [msgs, me, scrollToLatest])
+  useEffect(() => {
+    lastMessageId.current = null
+    stickToBottom.current = true
+    forceNextScroll.current = false
+    setShowLatestButton(false)
+  }, [roomId])
   useEffect(() => { if (!recording) return; const id = setInterval(() => setRecordSeconds(s => s + 1),1000); return () => clearInterval(id) }, [recording])
-  const sel = matches.find(m => m.id === selectedId) || null
-  const roomId = sel?.id
   const partnerName = p => p?.display_name?.trim() || 'คู่ Match'
 
   const fetchMessages = useCallback(async (older = false) => {
@@ -293,7 +322,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         .order('created_at', { ascending: false }).limit(40)
       if (!active) return
       if (error) notify(error.message)
-      else { setMsgs((data || []).reverse()); setHasMore((data || []).length === 40); requestAnimationFrame(() => end.current?.scrollIntoView({ behavior: 'instant' })) }
+      else { setMsgs((data || []).reverse()); setHasMore((data || []).length === 40); requestAnimationFrame(() => scrollToLatest(false)) }
       await supabase.from('messages').update({ read_at: new Date().toISOString() })
         .eq('match_id', roomId).neq('sender_id', me).is('read_at', null)
     }
@@ -327,9 +356,12 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     const body = text.trim()
     if (!body || !roomId) return
     setText('')
-    const { error } = await supabase.from('messages').insert({ match_id: roomId, sender_id: me, body })
-    if (error) { setText(body); notify(error.message) }
-    else end.current?.scrollIntoView({ behavior: 'smooth' })
+    forceNextScroll.current = true
+    // Insert and render immediately, without waiting for the realtime event.
+    const { data, error } = await supabase.from('messages')
+      .insert({ match_id: roomId, sender_id: me, body }).select('*').single()
+    if (error) { forceNextScroll.current = false; setText(body); notify(error.message) }
+    else if (data) setMsgs(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
   }
   const sendMedia = async (file, type) => {
     if (!roomId || !file) return
@@ -344,7 +376,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     const { error } = await supabase.from('messages').insert({ match_id: roomId, sender_id: me, body: type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง', attachment_type: type, attachment_path: path })
     setUploading(false)
     if (error) notify('ส่งไฟล์ไม่สำเร็จ: ' + error.message)
-    else end.current?.scrollIntoView({ behavior: 'smooth' })
+    else { forceNextScroll.current = true; scrollToLatest(true) }
   }
   const toggleRecord = async () => {
     if (recording) { recorder.current?.stop(); setRecording(false); setMicStream(null); return }
@@ -373,14 +405,14 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
     <div className={"chat-layout " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open")}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
-        {matches.map(m => <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '')} onClick={() => setSelectedId(m.id)}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small>💗 Match กันแล้ว</small></span><span role="button" tabIndex={0} className="chat-profile-shortcut" title="ดูโปรไฟล์" aria-label={`ดูโปรไฟล์ ${partnerName(m.p)}`} onClick={e => { e.stopPropagation(); onOpenProfile(m.p) }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onOpenProfile(m.p) } }}><UserRound size={17}/></span></button>)}
+        {matches.map(m => <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '')} onClick={() => setSelectedId(m.id)}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small>💗 Match กันแล้ว</small></span></button>)}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
       <div className="chat-window">{sel ? <>
-        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile(sel.p)} title="ดูโปรไฟล์คู่ Match"><Av u={sel.p} cls="avatar md" /><span className="chat-profile-title"><b>{partnerName(sel.p)}</b><small>แตะเพื่อดูโปรไฟล์ 💗</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
-        <div className="chat-messages" ref={scrollBox}>
+        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small>แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง</small></span></button><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
+        <div className="chat-messages" ref={scrollBox} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; setShowLatestButton(distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
-          {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '')}>
+          {msgs.map(m => <div key={m.id} className={'message-row ' + (m.sender_id === me ? 'mine' : '') + (m.id === msgs[msgs.length - 1]?.id ? ' latest-message' : '')}>
             {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
             <div className="message-bubble">
               {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <a href={mediaUrls[m.attachment_path]} target="_blank" rel="noopener noreferrer"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" /></a> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
@@ -390,6 +422,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
           {!msgs.length && <div className="chat-empty">ทักทาย {partnerName(sel.p)} เป็นคนแรกสิ</div>}
           <div ref={end}/>
         </div>
+        {showLatestButton && <button type="button" className="chat-jump-latest" onClick={() => scrollToLatest(true)} aria-label="กลับไปข้อความล่าสุด"><ArrowRight size={16} style={{transform:"rotate(90deg)"}} /> กลับไปข้อความล่าสุด</button>}
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
@@ -429,55 +462,107 @@ function ITunesSongCard({ track, compact = false }) {
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(30)
-  const [playError, setPlayError] = useState(false)
-  const safeUrl = (url) => /^https:\/\//i.test(url || '') ? url : ''
+  const barsRef = useRef(null)
+  const animationRef = useRef(null)
+  const audioContextRef = useRef(null)
+  const analyserRef = useRef(null)
+  const sourceRef = useRef(null)
+  const safeUrl = url => /^https:\/\//i.test(url || '') ? url : ''
   const preview = safeUrl(track?.preview)
   useEffect(() => {
-    setPlaying(false)
-    setPosition(0)
-    setDuration(30)
-    setPlayError(false)
-    return () => { if (audioRef.current) audioRef.current.pause() }
-  }, [preview])
+    const audio = audioRef.current
+    if (audio) { audio.pause(); audio.currentTime = 0 }
+    setPlaying(false); setPosition(0); setDuration(30)
+  }, [track?.id, preview])
+  useEffect(() => () => {
+    if (audioRef.current) audioRef.current.pause()
+    if (animationRef.current != null) cancelAnimationFrame(animationRef.current)
+    if (audioContextRef.current) audioContextRef.current.close().catch(() => {})
+  }, [])
+  useEffect(() => {
+    if (!playing) {
+      if (animationRef.current != null) cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
+      barsRef.current?.querySelectorAll('i').forEach(bar => { bar.style.height = '4px' })
+      return
+    }
+    const audio = audioRef.current
+    // Web Audio provides frequency-driven bars when the preview server permits CORS.
+    // A soft beat animation is used when analysis is unavailable.
+    if (audio && !audioContextRef.current) {
+      try {
+        const Context = window.AudioContext || window.webkitAudioContext
+        if (Context) {
+          const context = new Context()
+          const analyser = context.createAnalyser()
+          analyser.fftSize = 256
+          const source = context.createMediaElementSource(audio)
+          source.connect(analyser)
+          analyser.connect(context.destination)
+          audioContextRef.current = context
+          analyserRef.current = analyser
+          sourceRef.current = source
+        }
+      } catch { /* preview remains playable without audio analysis */ }
+    }
+    audioContextRef.current?.resume().catch(() => {})
+    const bins = analyserRef.current ? new Uint8Array(analyserRef.current.frequencyBinCount) : null
+    const animate = (time) => {
+      const bars = barsRef.current?.querySelectorAll('i')
+      if (bins && analyserRef.current) analyserRef.current.getByteFrequencyData(bins)
+      bars?.forEach((bar, i) => {
+        const energy = bins ? bins[Math.min(bins.length - 1, 2 + i * 3)] / 255 : 0
+        const beat = 0.28 + 0.38 * Math.abs(Math.sin(time / (165 + i * 17) + i * 1.9))
+        bar.style.height = `${Math.round(3 + 13 * Math.max(energy, beat * (energy < 0.04 ? 1 : 0.23)))}px`
+      })
+      animationRef.current = requestAnimationFrame(animate)
+    }
+    animationRef.current = requestAnimationFrame(animate)
+    return () => {
+      if (animationRef.current != null) cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
+    }
+  }, [playing])
   if (!track?.id) return null
-  const togglePlay = async () => {
+  const formatTime = n => { const v = Math.floor(Number.isFinite(n) ? n : 0); return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` }
+  const toggle = async () => {
     const audio = audioRef.current
-    if (!audio) return
-    if (!audio.paused) { audio.pause(); return }
-    setPlayError(false)
-    try { await audio.play() } catch { setPlaying(false); setPlayError(true) }
+    if (!audio || !preview) return
+    if (audio.paused) {
+      // Stop another song preview if the user starts a different card.
+      document.querySelectorAll('.itunes-song-card audio').forEach(other => { if (other !== audio) other.pause() })
+      try { await audio.play() } catch { setPlaying(false) }
+    } else audio.pause()
   }
-  const seek = (e) => {
+  const seek = e => {
     const audio = audioRef.current
-    if (!audio || !Number.isFinite(audio.duration)) return
-    audio.currentTime = Number(e.target.value)
+    if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return
+    audio.currentTime = (Number(e.target.value) / 100) * audio.duration
     setPosition(audio.currentTime)
   }
-  const fmt = (sec) => `0:${String(Math.floor(Number.isFinite(sec) ? sec : 0)).padStart(2, '0')}`
-  return <section className={'itunes-song-card itunes-player-card ' + (compact ? 'compact' : '')} aria-label="เพลงประจำโปรไฟล์">
-    <div className="itunes-song-info">
-      {safeUrl(track.image) ? <img src={safeUrl(track.image)} alt="ปกอัลบั้ม" loading="lazy" /> : <span className="itunes-song-art"><Music2 size={24}/></span>}
-      <div className="itunes-song-copy"><small><Music2 size={13}/> เพลงประจำโปรไฟล์ · Apple Music / iTunes</small><b>{track.name}</b><span>{track.artist}</span></div>
-      {safeUrl(track.url) && <a href={safeUrl(track.url)} target="_blank" rel="noopener noreferrer" aria-label="เปิดเพลงใน Apple Music / iTunes" title="เปิดเพลง"><ExternalLink size={17}/></a>}
-    </div>
-    {preview && <div className="itunes-player-controls">
-      <audio ref={audioRef} preload="none" playsInline src={preview}
-        onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
-        onTimeUpdate={e => setPosition(e.currentTarget.currentTime)}
-        onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 30)}
-        onEnded={() => { setPlaying(false); setPosition(0) }}
-        onError={() => { setPlaying(false); setPlayError(true) }} />
-      <button type="button" className={'itunes-play-button ' + (playing ? 'is-playing' : '')} onClick={togglePlay} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={playing ? 'หยุดชั่วคราว' : 'เล่นเพลง'}>
-        {playing ? <Pause size={21} fill="currentColor"/> : <Play size={21} fill="currentColor"/>}
-      </button>
-      <div className="itunes-player-progress">
-        <div className="itunes-player-caption"><span>{playing ? 'กำลังเล่นตัวอย่างเพลง' : 'ฟังตัวอย่างเพลง'}</span><span>{fmt(position)} / {fmt(duration)}</span></div>
-        <input type="range" min="0" max={duration || 30} step="0.1" value={Math.min(position, duration || 30)} onChange={seek} aria-label="เลื่อนตำแหน่งเพลง"
-          style={{ '--progress': `${Math.min(100, (position / (duration || 30)) * 100)}%` }} />
+  const progress = duration > 0 ? Math.min(100, Math.max(0, (position / duration) * 100)) : 0
+  return <section className={'itunes-song-card itunes-premium ' + (compact ? 'compact ' : '') + (playing ? 'is-playing' : '')} aria-label={'เพลงประจำโปรไฟล์ ' + track.name}>
+    <div className="itunes-premium-glow" aria-hidden="true" />
+    <div className="itunes-premium-main">
+      <div className="itunes-premium-artwrap">
+        {safeUrl(track.image) ? <img className="itunes-premium-cover" src={safeUrl(track.image).replace(/100x100bb/, '300x300bb')} alt={'ปกเพลง ' + track.name} loading="lazy" /> : <span className="itunes-premium-cover itunes-premium-cover-empty"><Music2 size={24}/></span>}
+        <div className="itunes-premium-art-shine" aria-hidden="true" />
       </div>
+      <div className="itunes-premium-copy">
+        <div className="itunes-premium-eyebrow"><span className="itunes-premium-heart">♥</span> MY ANTHEM <span className="itunes-premium-dot">·</span> 30s PREVIEW</div>
+        <strong title={track.name}>{track.name}</strong>
+        <span title={track.artist}>{track.artist}</span>
+        <div className="itunes-premium-eq" ref={barsRef} aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
+      </div>
+      <button className="itunes-premium-play" type="button" onClick={toggle} disabled={!preview} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={preview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}>{playing ? <Pause size={15} strokeWidth={2.6} fill="currentColor" /> : <Play size={15} strokeWidth={2.6} fill="currentColor" />}</button>
+    </div>
+    {preview && <div className="itunes-premium-timeline">
+      <span>{formatTime(position)}</span>
+      <input type="range" min="0" max="100" step="0.1" value={progress} onChange={seek} style={{'--progress': `${progress}%`}} aria-label="เลื่อนตำแหน่งเพลง" />
+      <span>{formatTime(duration)}</span>
     </div>}
-    {playError && <small className="itunes-player-error" role="status">เล่นตัวอย่างไม่ได้ ลองเปิดเพลงใน Apple Music</small>}
-    <small className="itunes-attribution">ตัวอย่างเพลงสำหรับแนะนำเพลงเท่านั้น · <a href={safeUrl(track.url) || 'https://music.apple.com/'} target="_blank" rel="noopener noreferrer">ฟังบน Apple Music / iTunes ↗</a></small>
+    {!compact && <div className="itunes-premium-footer"><span>♫ เพลงที่บอกความเป็นฉัน</span>{safeUrl(track.url) && <a href={safeUrl(track.url)} target="_blank" rel="noopener noreferrer">Apple Music ↗</a>}</div>}
+    {preview && <audio ref={audioRef} src={preview} crossOrigin="anonymous" preload="none" playsInline onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setPosition(0) }} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => { const d=e.currentTarget.duration; if(Number.isFinite(d) && d>0) setDuration(d) }} />}
   </section>
 }
 
@@ -511,8 +596,8 @@ function ITunesSongPicker({ value, onChange }) {
     return () => { clearTimeout(timer); controller.abort() }
   }, [query])
   return <section className="itunes-picker">
-    <div className="itunes-picker-title"><Music2 size={19}/><div><b>เพลงประจำโปรไฟล์</b><small>เลือกเพลงที่บอกความเป็นคุณได้ดีที่สุด</small></div></div>
-    {value && <><ITunesSongCard track={value} compact/><button type="button" className="itunes-remove" onClick={() => onChange(null)}><X size={14}/> เอาเพลงออก</button></>}
+    <div className="itunes-picker-title"><span className="itunes-picker-icon"><Music2 size={21}/></span><div><b>YOUR PROFILE ANTHEM <span>✦</span></b><small>เลือกเพลงที่เล่าเรื่องความเป็นคุณ ให้คนที่ Match ได้ฟัง</small></div></div>
+    {value && <><div className="itunes-picker-preview-label"><span className="itunes-picker-live-dot"/> ตัวอย่างเพลงบนโปรไฟล์ของคุณ</div><ITunesSongCard track={value}/><button type="button" className="itunes-remove" onClick={() => onChange(null)}><X size={14}/> เอาเพลงออก</button></>}
     <label htmlFor="itunes-search-input">ค้นหาชื่อเพลงหรือศิลปิน</label>
     <div className="itunes-search-box"><Search size={17}/><input id="itunes-search-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="เช่น เพลงรัก หรือชื่อศิลปิน" maxLength={100} autoComplete="off" /></div>
     {busy && <p className="itunes-feedback">กำลังค้นหาเพลง...</p>}
@@ -668,6 +753,22 @@ function SettingsPage({ user, notify }) {
     </div></>)
 }
 
+function ProfileGallery({ person }) {
+  const photos = [...new Set([person?.avatar_path, ...(Array.isArray(person?.photo_paths) ? person.photo_paths : [])].filter(Boolean))]
+  const [index, setIndex] = useState(0)
+  useEffect(() => setIndex(0), [person?.id])
+  const current = photos[index] || photos[0]
+  return <div className="detail-gallery">
+    <img className="detail-cover" src={pub(current) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />
+    {photos.length > 1 && <>
+      <button type="button" className="gallery-prev" onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)} aria-label="รูปก่อนหน้า">‹</button>
+      <button type="button" className="gallery-next" onClick={() => setIndex(i => (i + 1) % photos.length)} aria-label="รูปถัดไป">›</button>
+      <div className="gallery-count">{index + 1} / {photos.length}</div>
+      <div className="gallery-thumbnails">{photos.map((path, i) => <button type="button" key={path} className={i === index ? 'active' : ''} onClick={() => setIndex(i)} aria-label={`ดูรูปที่ ${i + 1}`}><img src={pub(path)} alt="" /></button>)}</div>
+    </>}
+  </div>
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('search'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [detail, setDetail] = useState(null)
@@ -711,7 +812,7 @@ const loadMatches = useCallback(async () => {
   if (otherIds.length > 0) {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, display_name, birth_date, university_id, faculty, major, bio, interests, avatar_path, photo_paths, itunes_track_id, itunes_track_name, itunes_track_artist, itunes_track_image, itunes_track_preview, itunes_track_url')
+      .select('id, display_name, birth_date, avatar_path, photo_paths, itunes_track_id, itunes_track_name, itunes_track_artist, itunes_track_image, itunes_track_preview, itunes_track_url')
       .in('id', otherIds)
 
     if (error) {
@@ -811,7 +912,7 @@ const loadMatches = useCallback(async () => {
     setDetail(person)
     if (!person?.id) return
     const { data, error } = await supabase.from('profiles')
-      .select('university_id, faculty, major, bio, interests, itunes_track_id, itunes_track_name, itunes_track_artist, itunes_track_image, itunes_track_preview, itunes_track_url')
+      .select('avatar_path, photo_paths, university_id, faculty, major, bio, interests, itunes_track_id, itunes_track_name, itunes_track_artist, itunes_track_image, itunes_track_preview, itunes_track_url')
       .eq('id', person.id).maybeSingle()
     if (!error && data) setDetail(current => current?.id === person.id ? { ...current, ...data } : current)
   }
@@ -865,7 +966,7 @@ const loadMatches = useCallback(async () => {
         </div>
       </main>
       {detail && <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button className="modal-close icon-btn" onClick={() => setDetail(null)}><X /></button>
-        <Av u={detail} cls="detail-cover" />
+        <ProfileGallery person={detail} />
         <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{detail.display_name}, {detail.age}</h2>
           <p><GraduationCap size={15} />{uniName(detail.university_id)} · {detail.faculty}</p><p>{detail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags">{(detail.interests || []).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
