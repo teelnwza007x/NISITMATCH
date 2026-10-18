@@ -1607,3 +1607,43 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .v64-match-pictures .yours{animation:v64-photo-left .75s cubic-bezier(.15,.85,.2,1) both}.v64-match-pictures .theirs{animation:v64-photo-right .75s cubic-bezier(.15,.85,.2,1) both}.v64-match-pictures .v26-match-heart{animation:v64-icon-pop .6s .4s both}
 @keyframes v64-photo-left{from{transform:translateX(-90px) rotate(-13deg);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes v64-photo-right{from{transform:translateX(90px) rotate(13deg);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes v64-glow{from{opacity:.4;transform:scale(.9)}to{opacity:1;transform:scale(1.12)}}
 @media(prefers-reduced-motion:reduce){.v64-swipe-burst,.v64-swipe-burst-icon,.v64-swipe-burst i,.v64-reaction-pill,.v64-photo-fade,.v64-match-glow,.v64-match-pictures .yours,.v64-match-pictures .theirs,.v64-match-pictures .v26-match-heart{animation:none!important}}
+
+/* v65: Undo must remain discoverable on iPhone even before first swipe. */
+.swipe-stage .swipe-controls .swipe-control.undo{
+  position:relative;isolation:isolate;overflow:visible;
+  width:48px;height:48px;flex:0 0 48px;
+  color:#6b39c9;background:linear-gradient(145deg,#ffffff,#eee6ff);
+  border:2px solid #a98bea;
+  box-shadow:0 4px 13px rgba(97,53,168,.24),inset 0 1px 0 #fff;
+  opacity:1;cursor:pointer;
+}
+.swipe-stage .swipe-controls .swipe-control.undo svg{width:23px;height:23px;stroke-width:2.8;transform:translateY(-4px)}
+.swipe-stage .swipe-controls .swipe-control.undo::after{
+  content:'UNDO';position:absolute;bottom:5px;left:0;right:0;
+  font-size:8px;line-height:1;font-weight:900;letter-spacing:.5px;
+  color:#693ab6;pointer-events:none;
+}
+.swipe-stage .swipe-controls .swipe-control.undo:disabled{
+  opacity:.78;cursor:not-allowed;filter:saturate(.65);
+}
+.swipe-stage .swipe-controls .swipe-control.undo:not(:disabled):active{transform:scale(.93)}
+@media(max-width:600px){
+  .swipe-stage .swipe-controls{gap:clamp(4px,1.3vw,8px);padding:6px 7px;width:max-content;max-width:100%;}
+  .swipe-stage .swipe-controls .swipe-control.undo{width:43px;height:43px;flex-basis:43px;}
+  .swipe-stage .swipe-controls .swipe-control.undo svg{width:21px;height:21px;}
+  .swipe-stage .swipe-controls .swipe-control.undo::after{font-size:7px;bottom:4px;}
+  .swipe-stage .swipe-controls .swipe-control.reject,
+  .swipe-stage .swipe-controls .swipe-control.info,
+  .swipe-stage .swipe-controls .swipe-control.super,
+  .swipe-stage .swipe-controls .swipe-control.report{width:39px;height:39px;flex-basis:39px;}
+  .swipe-stage .swipe-controls .swipe-control.accept{width:52px;height:52px;flex-basis:52px;}
+}
+@media(max-width:360px){
+  .swipe-stage .swipe-controls{gap:4px;padding:5px;}
+  .swipe-stage .swipe-controls .swipe-control.undo{width:40px;height:40px;flex-basis:40px;}
+  .swipe-stage .swipe-controls .swipe-control.reject,
+  .swipe-stage .swipe-controls .swipe-control.info,
+  .swipe-stage .swipe-controls .swipe-control.super,
+  .swipe-stage .swipe-controls .swipe-control.report{width:36px;height:36px;flex-basis:36px;}
+  .swipe-stage .swipe-controls .swipe-control.accept{width:48px;height:48px;flex-basis:48px;}
+}
