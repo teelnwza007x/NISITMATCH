@@ -1656,3 +1656,38 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 @media(max-width:350px){.v66-daily-list{grid-template-columns:repeat(2,minmax(0,1fr))}.v66-daily-card:nth-child(3){display:none}}
 @supports(height:100dvh){.app-shell,.app-layout{min-height:100dvh}}html{scroll-padding-bottom:env(safe-area-inset-bottom,0px)}button,input,textarea,select{font-family:inherit}button{-webkit-tap-highlight-color:transparent}input,textarea{scroll-margin-bottom:120px}@media(max-width:700px){input,textarea,select{font-size:max(16px,1em)}.swipe-controls{max-width:100%;box-sizing:border-box}.swipe-control{touch-action:manipulation}}
 @media(prefers-reduced-motion:reduce){.v66-daily-card{transition:none!important}.v66-daily-card:hover,.v66-daily-card:active{transform:none!important}}
+
+/* v67 — cinematic card transition and match celebration, mobile GPU-friendly */
+.swipe-stage .swipe-front{will-change:transform;backface-visibility:hidden}
+.swipe-stage .v64-swipe-burst{z-index:45;animation:v67-burst 1.15s ease both;background:radial-gradient(ellipse at center,rgba(23,12,46,.60),transparent 76%)}
+.swipe-stage .v64-swipe-burst.like{color:#ffb3d8}
+.swipe-stage .v64-swipe-burst.pass{color:#d5d9fa}
+.swipe-stage .v64-swipe-burst-icon{animation:v67-heart .85s cubic-bezier(.18,1.7,.22,1) both;filter:drop-shadow(0 0 35px currentColor)}
+.swipe-stage .v64-swipe-burst>span{font-size:clamp(25px,8vw,40px);letter-spacing:.26em;animation:v67-title .9s ease both}
+.swipe-stage .v64-swipe-burst i{width:8px;height:8px;animation:v67-particle .95s ease-out both}
+@keyframes v67-burst{0%{opacity:0}12%,74%{opacity:1}100%{opacity:0}}
+@keyframes v67-heart{0%{opacity:0;transform:scale(.25) rotate(-24deg)}36%{opacity:1;transform:scale(1.55) rotate(12deg)}55%{transform:scale(.98) rotate(-5deg)}78%{transform:scale(1.15)}100%{transform:scale(1.35);opacity:0}}
+@keyframes v67-title{0%,20%{opacity:0;transform:translateY(24px) scale(.7)}50%,85%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-18px)}}
+@keyframes v67-particle{0%,15%{opacity:0;transform:rotate(var(--angle)) translateY(0) scale(.2)}32%{opacity:1}100%{opacity:0;transform:rotate(var(--angle)) translateY(-160px) scale(.3)}}
+.v67-match-dialog{position:relative;isolation:isolate;overflow:hidden;animation:v67-dialog-enter .8s cubic-bezier(.2,1.1,.25,1) both}
+.v67-match-dialog .v26-match-kicker{animation:v67-title 1.1s .2s both}
+.v67-match-dialog h1{animation:v67-match-heading .9s .45s cubic-bezier(.16,1.5,.28,1) both;text-shadow:0 0 32px rgba(255,108,188,.42)}
+.v67-match-dialog .v64-match-pictures .yours{animation:v67-match-left 1.05s cubic-bezier(.16,1.25,.22,1) both}
+.v67-match-dialog .v64-match-pictures .theirs{animation:v67-match-right 1.05s cubic-bezier(.16,1.25,.22,1) both}
+.v67-match-dialog .v26-match-heart{animation:v67-match-heart .95s .55s cubic-bezier(.16,1.6,.24,1) both}
+.v67-match-shockwave{position:absolute;left:50%;top:41%;width:160px;height:160px;margin:-80px 0 0 -80px;border:3px solid rgba(255,174,227,.8);border-radius:50%;box-shadow:0 0 36px #ff85ce77;pointer-events:none;animation:v67-shock 1.45s .45s ease-out both}
+.v67-match-shockwave.second{animation-delay:.7s;border-color:rgba(174,188,255,.8)}
+.v67-match-crown{position:absolute;left:50%;top:33%;transform:translateX(-50%);color:#ff8ac5;filter:drop-shadow(0 0 30px #ff8ac5);pointer-events:none;animation:v67-crown 1.3s .55s ease-out both}
+.v67-match-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.v67-match-confetti i{position:absolute;left:50%;top:43%;width:7px;height:13px;border-radius:3px;background:hsl(calc(290 + var(--i)*9) 95% 75%);transform-origin:center;animation:v67-confetti 1.7s .55s cubic-bezier(.18,.75,.28,1) both}
+@keyframes v67-dialog-enter{from{opacity:0;transform:translateY(30px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes v67-match-left{from{transform:translateX(-160px) rotate(-24deg) scale(.6);opacity:0}70%{transform:translateX(10px) rotate(3deg) scale(1.07);opacity:1}to{transform:none;opacity:1}}
+@keyframes v67-match-right{from{transform:translateX(160px) rotate(24deg) scale(.6);opacity:0}70%{transform:translateX(-10px) rotate(-3deg) scale(1.07);opacity:1}to{transform:none;opacity:1}}
+@keyframes v67-match-heart{from{transform:scale(.1) rotate(-40deg);opacity:0}55%{transform:scale(1.8) rotate(12deg);opacity:1}to{transform:scale(1) rotate(0);opacity:1}}
+@keyframes v67-match-heading{from{opacity:0;transform:translateY(22px) scale(.7)}70%{opacity:1;transform:scale(1.12)}to{opacity:1;transform:none}}
+@keyframes v67-shock{0%{opacity:0;transform:scale(.15)}20%{opacity:1}100%{opacity:0;transform:scale(4)}}
+@keyframes v67-crown{0%{opacity:0;transform:translateX(-50%) scale(.1) rotate(-35deg)}40%{opacity:.95;transform:translateX(-50%) scale(1.3) rotate(10deg)}100%{opacity:0;transform:translateX(-50%) translateY(-70px) scale(1.7)}}
+@keyframes v67-confetti{0%{opacity:0;transform:rotate(var(--angle)) translateY(0) scale(.2)}18%{opacity:1}100%{opacity:0;transform:rotate(var(--angle)) translateY(-250px) rotate(450deg) scale(.5)}}
+.v64-reaction-options button{font-size:24px;min-width:45px;min-height:43px;line-height:1.1;font-family:Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif}
+.v64-reaction-pill{font-size:19px;line-height:1.2}
+@media(prefers-reduced-motion:reduce){.swipe-stage .v64-swipe-burst,.swipe-stage .v64-swipe-burst *, .v67-match-dialog,.v67-match-dialog *, .v67-match-confetti i,.v67-match-shockwave,.v67-match-crown{animation:none!important}.v67-match-shockwave,.v67-match-confetti,.v67-match-crown{display:none!important}}
