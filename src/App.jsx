@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
@@ -247,6 +247,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
   const [msgs, setMsgs] = useState([])
+  const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
@@ -265,6 +266,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const stickToBottom = useRef(true)
   const forceNextScroll = useRef(false)
   const lastMessageId = useRef(null)
+  const initialChatScroll = useRef(false)
+  const initialChatRoom = useRef(null)
   const scrollToLatest = useCallback((smooth = true) => {
     stickToBottom.current = true
     setShowLatestButton(false)
@@ -272,15 +275,16 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     if (!box) return
     box.scrollTo({ top: box.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
   }, [])
-  // Scroll only when a new message arrives. Don't jump while reading older messages.
-  useEffect(() => {
+  // Run after React commits the messages, before the browser paints.
+  useLayoutEffect(() => {
     const last = msgs[msgs.length - 1]
     if (!last) { lastMessageId.current = null; return }
     if (last.id === lastMessageId.current) return
     const initial = lastMessageId.current === null
     lastMessageId.current = last.id
     if (initial || forceNextScroll.current || last.sender_id === me || stickToBottom.current) {
-      requestAnimationFrame(() => scrollToLatest(!initial))
+      if (initial) scrollToLatest(false)
+      else requestAnimationFrame(() => scrollToLatest(true))
     }
     forceNextScroll.current = false
   }, [msgs, me, scrollToLatest])
@@ -289,13 +293,51 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
     stickToBottom.current = true
     forceNextScroll.current = false
     setShowLatestButton(false)
+    initialChatScroll.current = false
+    initialChatRoom.current = roomId
   }, [roomId])
+  // Images and voice controls can change message heights after the first paint.
+  // Keep the initial view at the newest message while the room settles.
+  // Stop doing so once the user scrolls manually or loads older messages.
+  useEffect(() => {
+    if (!roomId || !msgs.length || initialChatRoom.current !== roomId || initialChatScroll.current) return
+    const box = scrollBox.current
+    if (!box) return
+    let active = true
+    let frame = 0
+    const pin = () => {
+      if (!active) return
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        if (active) { box.scrollTop = box.scrollHeight; stickToBottom.current = true; setShowLatestButton(false) }
+      })
+    }
+    pin()
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(pin) : null
+    if (observer) {
+      observer.observe(box)
+      Array.from(box.children).forEach(child => observer.observe(child))
+    }
+    const stop = () => { active = false; initialChatScroll.current = true; observer?.disconnect(); cancelAnimationFrame(frame) }
+    box.addEventListener('wheel', stop, { once: true, passive: true })
+    box.addEventListener('touchstart', stop, { once: true, passive: true })
+    const timeout = setTimeout(stop, 1400)
+    return () => {
+      active = false
+      observer?.disconnect()
+      cancelAnimationFrame(frame)
+      clearTimeout(timeout)
+      box.removeEventListener('wheel', stop)
+      box.removeEventListener('touchstart', stop)
+    }
+  }, [roomId, msgs.length, mediaUrls])
+
   useEffect(() => { if (!recording) return; const id = setInterval(() => setRecordSeconds(s => s + 1),1000); return () => clearInterval(id) }, [recording])
   const partnerName = p => p?.display_name?.trim() || 'คู่ Match'
 
   const fetchMessages = useCallback(async (older = false) => {
     if (!roomId) return
-    if (older) setLoadingOlder(true)
+    if (older) { initialChatScroll.current = true; setLoadingOlder(true) }
     const anchor = older ? msgs[0]?.created_at : null
     let query = supabase.from('messages').select('*').eq('match_id', roomId)
       .order('created_at', { ascending: false }).limit(40)
@@ -322,20 +364,28 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
         .order('created_at', { ascending: false }).limit(40)
       if (!active) return
       if (error) notify(error.message)
-      else { setMsgs((data || []).reverse()); setHasMore((data || []).length === 40); requestAnimationFrame(() => scrollToLatest(false)) }
+      else { setMsgs((data || []).reverse()); setHasMore((data || []).length === 40) }
       await supabase.from('messages').update({ read_at: new Date().toISOString() })
         .eq('match_id', roomId).neq('sender_id', me).is('read_at', null)
     }
     load()
     const channel = supabase.channel('chat-' + roomId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `match_id=eq.${roomId}` }, async () => {
-        const { data } = await supabase.from('messages').select('*').eq('match_id', roomId)
-          .order('created_at', { ascending: false }).limit(40)
-        if (active && data) setMsgs(prev => {
-          const map = new Map(prev.map(m => [m.id, m]))
-          data.forEach(m => map.set(m.id, m))
-          return [...map.values()].sort((a,b) => new Date(a.created_at) - new Date(b.created_at))
-        })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `match_id=eq.${roomId}` }, (payload) => {
+        if (!active) return
+        if (payload.eventType === 'INSERT' && payload.new?.id) {
+          const incoming = payload.new
+          // The optimistic bubble already represents our outgoing message.
+          const alreadyPending = [...pendingSends.current.values()].some(p =>
+            p.roomId === roomId && p.body === incoming.body && incoming.sender_id === me
+          )
+          if (alreadyPending) return
+          setMsgs(prev => prev.some(m => m.id === incoming.id) ? prev :
+            [...prev, incoming].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
+        } else if (payload.eventType === 'UPDATE' && payload.new?.id) {
+          setMsgs(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m))
+        } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+          setMsgs(prev => prev.filter(m => m.id !== payload.old.id))
+        }
       }).subscribe()
     return () => { active = false; supabase.removeChannel(channel) }
   }, [roomId, me, notify])
@@ -354,14 +404,32 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
   const send = async e => {
     e.preventDefault()
     const body = text.trim()
-    if (!body || !roomId) return
+    const targetRoom = roomId
+    if (!body || !targetRoom) return
+    const tempId = 'pending-' + crypto.randomUUID()
+    const optimistic = {
+      id: tempId, match_id: targetRoom, sender_id: me, body,
+      created_at: new Date().toISOString(), pending: true
+    }
+    pendingSends.current.set(tempId, { roomId: targetRoom, body })
     setText('')
     forceNextScroll.current = true
-    // Insert and render immediately, without waiting for the realtime event.
-    const { data, error } = await supabase.from('messages')
-      .insert({ match_id: roomId, sender_id: me, body }).select('*').single()
-    if (error) { forceNextScroll.current = false; setText(body); notify(error.message) }
-    else if (data) setMsgs(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data])
+    setMsgs(prev => [...prev, optimistic])
+    try {
+      const { data, error } = await supabase.from('messages')
+        .insert({ match_id: targetRoom, sender_id: me, body }).select('*').single()
+      if (error) throw error
+      if (data) setMsgs(prev => {
+        if (roomId !== targetRoom) return prev
+        const withoutTemp = prev.filter(m => m.id !== tempId && m.id !== data.id)
+        return [...withoutTemp, data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      })
+    } catch (error) {
+      setMsgs(prev => prev.map(m => m.id === tempId ? { ...m, pending: false, failed: true } : m))
+      notify('ส่งข้อความไม่สำเร็จ: ' + (error?.message || 'กรุณาลองใหม่'))
+    } finally {
+      pendingSends.current.delete(tempId)
+    }
   }
   const sendMedia = async (file, type) => {
     if (!roomId || !file) return
@@ -416,7 +484,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile }) {
             {m.sender_id !== me && <Av u={sel.p} cls="avatar sm" />}
             <div className="message-bubble">
               {m.attachment_type === 'image' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <a href={mediaUrls[m.attachment_path]} target="_blank" rel="noopener noreferrer"><img className="chat-attachment-image" src={mediaUrls[m.attachment_path]} alt="รูปภาพในแชต" /></a> : <span>กำลังโหลดรูป...</span>) : m.attachment_type === 'audio' && m.attachment_path ? (mediaUrls[m.attachment_path] ? <VoiceBubble src={mediaUrls[m.attachment_path]} mine={m.sender_id === me} /> : <span>กำลังโหลดเสียง...</span>) : m.body}
-              <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.sender_id === me && m.read_at ? ' · อ่านแล้ว' : ''}</small>
+              <small>{new Date(m.created_at).toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' })}{m.pending ? ' · กำลังส่ง…' : m.failed ? ' · ส่งไม่สำเร็จ' : m.sender_id === me && m.read_at ? ' · อ่านแล้ว' : ''}</small>{m.failed && <button type="button" onClick={() => { setText(m.body); setMsgs(prev => prev.filter(x => x.id !== m.id)) }}>ลองส่งอีกครั้ง</button>}
             </div>
           </div>)}
           {!msgs.length && <div className="chat-empty">ทักทาย {partnerName(sel.p)} เป็นคนแรกสิ</div>}
@@ -663,14 +731,72 @@ function ITunesSongPicker({ value, onChange }) {
   </section>
 }
 
+
+// Local-only draft storage: IndexedDB can persist File objects across reloads.
+const draftDB = () => new Promise((resolve, reject) => {
+  const request = indexedDB.open('nisit-match-drafts', 1)
+  request.onupgradeneeded = () => request.result.createObjectStore('profiles')
+  request.onsuccess = () => resolve(request.result)
+  request.onerror = () => reject(request.error)
+})
+async function draftAction(userId, mode, value) {
+  if (!userId || !('indexedDB' in window)) return null
+  const db = await draftDB()
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('profiles', mode === 'read' ? 'readonly' : 'readwrite')
+      const store = tx.objectStore('profiles')
+      const req = mode === 'read' ? store.get(userId) : mode === 'delete' ? store.delete(userId) : store.put(value, userId)
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => reject(req.error)
+    })
+  } finally { db.close() }
+}
+const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [] })
+
 function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
-  const [f, setF] = useState({ display_name: profile?.display_name || '', birth_date: profile?.birth_date || '', gender: profile?.gender || 'other', uni: profile?.university_id || '', faculty: profile?.faculty || FACULTIES[0], major: profile?.major || '', bio: profile?.bio || '', interests: profile?.interests || [] })
-  const [file, setFile] = useState(null), [busy, setBusy] = useState(false)
+  const [f, setF] = useState(() => initialProfileForm(profile))
+  const [busy, setBusy] = useState(false)
+  const [draftReady, setDraftReady] = useState(false)
+  const draftRevision = useRef(0)
+  const skipDraftSave = useRef(false)
   const [song, setSong] = useState(() => itunesTrack(profile))
   const [photos, setPhotos] = useState(profile?.photo_paths?.length ? profile.photo_paths : (profile?.avatar_path ? [profile.avatar_path] : []))
   const [newPhotos, setNewPhotos] = useState([])
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
+  // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
+  useEffect(() => {
+    let alive = true
+    setDraftReady(false)
+    draftAction(user.id, 'read').then(d => {
+      if (!alive) return
+      if (d && d.version === 1) {
+        if (d.f) setF(d.f)
+        if (Array.isArray(d.photos)) setPhotos(d.photos)
+        if (d.song !== undefined) setSong(d.song)
+        if (Array.isArray(d.newPhotos)) setNewPhotos(d.newPhotos.filter(x => x.file instanceof Blob).map(x => ({ ...x, url: URL.createObjectURL(x.file) })))
+        if (typeof d.mainPhoto === 'string') setMainPhoto(d.mainPhoto)
+      }
+      setDraftReady(true)
+    }).catch(err => { console.warn('Draft restore unavailable:', err); if (alive) setDraftReady(true) })
+    return () => { alive = false }
+  }, [user.id])
+  useEffect(() => {
+    if (!draftReady) return
+    const revision = ++draftRevision.current
+    const timer = setTimeout(() => {
+      if (skipDraftSave.current || revision !== draftRevision.current) return
+      draftAction(user.id, 'write', { version: 1, f, photos, mainPhoto, song,
+        newPhotos: newPhotos.map(({ key, file }) => ({ key, file }))
+      }).catch(err => console.warn('Draft autosave unavailable:', err))
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [draftReady, user.id, f, photos, mainPhoto, song, newPhotos])
+  // Release preview URLs when the editor unmounts.
+  const photoUrls = useRef([])
+  useEffect(() => { photoUrls.current = newPhotos.map(p => p.url) }, [newPhotos])
+  useEffect(() => () => photoUrls.current.forEach(url => URL.revokeObjectURL(url)), [])
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
   const filteredUniversities = UNIVERSITIES.filter((u) => (uniType === 'ทั้งหมด' || u.type === uniType) && u.name.toLowerCase().includes(uniQuery.trim().toLowerCase()))
   const preview = newPhotos.find(x => x.key === mainPhoto)?.url || pub(mainPhoto) || ph(f.display_name)
@@ -710,6 +836,9 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
     setBusy(false)
     if (error) return notify(error.code === '23503' ? 'ไม่พบมหาวิทยาลัยในฐานข้อมูล กรุณารันไฟล์ supabase/sync_universities.sql ก่อน' : 'บันทึกไม่สำเร็จ: ' + error.message)
+    skipDraftSave.current = true
+    draftRevision.current++
+    await draftAction(user.id, 'delete').catch(err => console.warn('Draft cleanup unavailable:', err))
     setPhotos(photo_paths); setNewPhotos([]); setMainPhoto(avatar_path || '')
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
@@ -821,17 +950,19 @@ function ProfileGallery({ person }) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('search'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
+  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => { try { return sessionStorage.getItem('nisit-view') || 'search' } catch { return 'search' } }), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [detail, setDetail] = useState(null)
   const [newMatch, setNewMatch] = useState(null)
   const [fl, setFl] = useState({ q: '', uni: '', min: 18, max: 40, gender: '' }), [filterOpen, setFilterOpen] = useState(false)
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
   const user = session?.user
+  const userId = user?.id
+  useEffect(() => { try { sessionStorage.setItem('nisit-view', view) } catch {} }, [view])
 
   useEffect(() => { supabase.auth.getSession().then(({ data }) => setSession(data.session)); const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s)); return () => data.subscription.unsubscribe() }, [])
-  useEffect(() => { if (user) setModal('') }, [user])
-  const loadProfile = useCallback(async () => { if (!user) return setProfile(undefined); const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(); setProfile(data) }, [user])
-  const loadUnread = useCallback(async () => { if (!user) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false); setUnread(count || 0) }, [user])
+  useEffect(() => { if (userId) setModal('') }, [userId])
+  const loadProfile = useCallback(async () => { if (!userId) return; const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
+  const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false); setUnread(count || 0) }, [userId])
   
 const loadMatches = useCallback(async () => {
   if (!user?.id) return
@@ -934,7 +1065,7 @@ const loadMatches = useCallback(async () => {
     const { data, error } = await supabase.rpc('discover', { p_university: fl.uni || null, p_min_age: +fl.min, p_max_age: +fl.max, p_gender: fl.gender || null })
     if (error) notify(error.message); setPeople(data || [])
   }, [fl.uni, fl.min, fl.max, fl.gender, notify])
-  useEffect(() => { setProfile(undefined); loadProfile(); loadUnread() }, [loadProfile, loadUnread])
+  useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
   useEffect(() => { if (profile) { loadMatches(); loadPeople() } }, [profile, loadMatches, loadPeople])
   useEffect(() => { const refresh = () => { if (document.visibilityState === 'visible' && user?.id) loadMatches() }; document.addEventListener('visibilitychange', refresh); return () => document.removeEventListener('visibilitychange', refresh) }, [user?.id, loadMatches])
   useEffect(() => {
