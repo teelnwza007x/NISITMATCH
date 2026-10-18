@@ -1063,7 +1063,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
   const [editTab, setEditTab] = useState('photos')
-  const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music]]
+  const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
