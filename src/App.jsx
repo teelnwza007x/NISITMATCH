@@ -1,7 +1,8 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
+import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
 
 const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(b), c => c.charCodeAt(0)) }
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
@@ -949,11 +950,78 @@ function ProfileGallery({ person }) {
   </div>
 }
 
+const defaultDiscovery = { mode: 'nearby', radius: 25, gender: '', min: 18, max: 30, universities: [] }
+const discoveryKey = id => `nisit-discovery-v11-${id}`
+const readDiscovery = id => { try { const x = JSON.parse(localStorage.getItem(discoveryKey(id)) || 'null'); return x && typeof x === 'object' ? { ...defaultDiscovery, ...x } : null } catch { return null } }
+
+function DiscoverySetup({ initial, profile, onSave, onClose, isEditing = false }) {
+  const [step, setStep] = useState(0)
+  const [pref, setPref] = useState(() => ({ ...defaultDiscovery, ...initial }))
+  const [saving, setSaving] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const closeSmoothly = () => { if (closing) return; setClosing(true); window.setTimeout(onClose, 310) }
+  const homeHasCoords = hasCampusCoordinates(profile.university_id)
+  const toggleUni = id => setPref(p => ({ ...p, universities: p.universities.includes(id) ? p.universities.filter(x => x !== id) : [...p.universities, id] }))
+  const finish = async () => { setSaving(true); try { await onSave(pref) } finally { setSaving(false) } }
+  return <div className={"discovery-overlay" + (isEditing ? " discovery-editing" : "") + (closing ? " is-closing" : "")}><div className="discovery-aurora a"/><div className="discovery-aurora b"/><div className="discovery-card" key={step}>
+    <div className="discovery-head"><span className="discovery-logo"><Heart size={18} fill="currentColor"/> NISIT <b>MATCH</b></span>{isEditing && <button className="discovery-close" onClick={closeSmoothly} aria-label="ปิด"><X size={20}/></button>}</div>
+    <div className="discovery-progress"><span style={{ width: `${(step + 1) * 33.333}%` }}/></div>
+    <div className="discovery-step-label">DISCOVERY PREFERENCES <span>0{step + 1} / 03</span></div>
+    {step === 0 && <div className="discovery-body"><div className="discovery-symbol"><Heart size={27} strokeWidth={1.6}/></div><h1>หัวใจคุณกำลัง<br/><em>มองหาใครอยู่?</em></h1><p>เลือกคนที่คุณสนใจ แล้วเราจะช่วยพาไปเจอคนที่ใช่</p><div className="discovery-choice-grid">{[['',Users,'ทุกเพศ'],['male',UserRound,'ผู้ชาย'],['female',Heart,'ผู้หญิง'],['other',Sparkles,'เพศอื่น ๆ']].map(([id,Icon,label]) => <button key={id} className={'discovery-choice ' + (pref.gender === id ? 'chosen' : '')} onClick={() => setPref(p => ({...p, gender:id}))}><span className="choice-icon"><Icon size={19} strokeWidth={1.8}/></span><b>{label}</b>{pref.gender === id && <Check size={17}/>}</button>)}</div><div className="discovery-age"><div className="discovery-age-title"><b>ช่วงอายุที่สนใจ</b><span>{pref.min} – {pref.max} ปี</span></div><label>อายุต่ำสุด <input type="range" min="18" max="40" value={pref.min} onChange={e => setPref(p => ({...p,min: Math.min(+e.target.value,p.max)}))}/></label><label>อายุสูงสุด <input type="range" min="18" max="60" value={pref.max} onChange={e => setPref(p => ({...p,max: Math.max(+e.target.value,p.min)}))}/></label></div></div>}
+    {step === 1 && <div className="discovery-body"><div className="discovery-symbol"><MapPin size={27} strokeWidth={1.6}/></div><h1>คนที่ใช่<br/><em>อาจอยู่ใกล้กว่าที่คิด</em></h1><p>เลือกว่าจะค้นหาจากมหาวิทยาลัยไหน โดยไม่ต้องเปิด GPS</p><div className="discovery-mode-list">{[['nearby',LocateFixed,'มหาวิทยาลัยใกล้ฉัน','ค้นหาจากระยะห่างระหว่างวิทยาเขต'],['same',GraduationCap,'มหาวิทยาลัยเดียวกัน','คนที่เรียนมหาวิทยาลัยเดียวกับคุณ'],['selected',Compass,'เลือกมหาวิทยาลัยเอง','เลือกได้มากกว่าหนึ่งแห่ง'],['all',Globe2,'ทุกมหาวิทยาลัย','เปิดโอกาสเจอทุกคน']].map(([id,Icon,label,sub]) => <button key={id} className={'discovery-mode ' + (pref.mode === id ? 'chosen' : '')} onClick={() => setPref(p => ({...p,mode:id}))}><span className="mode-icon"><Icon size={19} strokeWidth={1.8}/></span><span><b>{label}</b><small>{sub}</small></span><span className="mode-radio">{pref.mode === id && <Check size={14}/>}</span></button>)}</div>{pref.mode === 'nearby' && <div className="discovery-distance"><div><b>รัศมีค้นหา</b><strong>{pref.radius} กม.</strong></div><input type="range" min="5" max="100" step="5" value={pref.radius} onChange={e => setPref(p => ({...p,radius:+e.target.value}))}/>{!homeHasCoords && <small>ยังไม่มีพิกัดมหาวิทยาลัยของคุณในระบบ กรุณาเลือกโหมดอื่นหรือเพิ่มพิกัดใน campusCoordinates.js</small>}</div>}</div>}
+    {step === 2 && <div className="discovery-body"><div className="discovery-symbol"><Check size={27} strokeWidth={1.6}/></div><h1>เกือบแล้ว!<br/><em>พร้อมเจอคนใหม่หรือยัง?</em></h1><p>คุณสามารถกลับมาแก้ไขสเปกได้ทุกเมื่อจากหน้าหลัก</p>{pref.mode === 'selected' ? <div className="discovery-uni-picker"><div className="discovery-uni-list">{UNIVERSITIES.map(u => <button key={u.id} className={pref.universities.includes(u.id) ? 'chosen' : ''} onClick={() => toggleUni(u.id)}><span>{u.name}</span>{pref.universities.includes(u.id) ? <Check size={16}/> : <span>+</span>}</button>)}</div><small>เลือกแล้ว {pref.universities.length} มหาวิทยาลัย</small></div> : <div className="discovery-summary"><div><Heart size={17}/> <span>เพศที่สนใจ</span><b>{GENDERS[pref.gender] || 'ทุกเพศ'}</b></div><div><Cake size={17}/> <span>ช่วงอายุ</span><b>{pref.min}–{pref.max} ปี</b></div><div><GraduationCap size={17}/> <span>มหาวิทยาลัย</span><b>{({nearby:`ใกล้เคียง ${pref.radius} กม.`,same:'มหาวิทยาลัยเดียวกัน',all:'ทุกมหาวิทยาลัย'})[pref.mode]}</b></div></div>}</div>}
+    <div className="discovery-actions">{step > 0 && <button className="discovery-back" onClick={() => setStep(x => x - 1)}>ย้อนกลับ</button>}<button className="discovery-next" disabled={saving || (step === 2 && pref.mode === 'selected' && !pref.universities.length) || (step === 2 && pref.mode === 'nearby' && !homeHasCoords)} onClick={() => step < 2 ? setStep(x => x + 1) : finish()}>{saving ? 'กำลังบันทึก...' : step === 2 ? 'เริ่มปัดเลย' : 'ไปต่อ'} <ArrowRight size={19}/></button></div>
+    <div className="discovery-privacy"><ShieldCheck size={14}/> ใช้พิกัดมหาวิทยาลัย ไม่ติดตามตำแหน่งของคุณ</div>
+  </div></div>
+}
+
+
+function PreferencesEditor({ initial, profile, onSave, onClose }) {
+  const [pref, setPref] = useState(() => ({ ...defaultDiscovery, ...initial }))
+  const [saving, setSaving] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const hasCoords = hasCampusCoordinates(profile?.university_id)
+  const close = () => { if (closing || saving) return; setClosing(true); window.setTimeout(onClose, 360) }
+  const update = patch => setPref(p => ({ ...p, ...patch }))
+  const toggleUni = id => setPref(p => ({ ...p, universities: p.universities.includes(id) ? p.universities.filter(x => x !== id) : [...p.universities, id] }))
+  const valid = !(pref.mode === 'selected' && !pref.universities.length) && !(pref.mode === 'nearby' && !hasCoords)
+  const save = async () => { if (!valid || saving) return; setSaving(true); try { await onSave(pref) } finally { setSaving(false) } }
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') close() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [closing, saving])
+  return <div className={'pref-overlay' + (closing ? ' pref-leaving' : '')} onMouseDown={e => { if (e.target === e.currentTarget) close() }}>
+    <section className="pref-sheet" role="dialog" aria-modal="true" aria-labelledby="pref-title">
+      <header className="pref-header"><div className="pref-header-copy"><span className="pref-eyebrow">YOUR DISCOVERY</span><h1 id="pref-title">คนแบบที่คุณอยากเจอ</h1><p>ปรับความชอบให้ตรงใจ แล้วกลับไปทำความรู้จักกัน</p></div><button className="pref-close" type="button" onClick={close} aria-label="ปิดการตั้งค่า"><X size={20}/></button></header>
+      <div className="pref-content">
+        <section className="pref-section"><div className="pref-section-heading"><span className="pref-index">01</span><div><h2>เพศที่สนใจ</h2><p>เลือกคนที่อยากให้ปรากฏบนหน้าปัด</p></div></div><div className="pref-gender-grid">{[['','ทุกเพศ'],['male','ผู้ชาย'],['female','ผู้หญิง'],['other','เพศอื่น ๆ']].map(([id,label]) => <button type="button" key={id} className={'pref-pill' + (pref.gender === id ? ' is-active' : '')} onClick={() => update({gender:id})} aria-pressed={pref.gender === id}><span>{label}</span>{pref.gender === id && <Check size={15}/>}</button>)}</div></section>
+        <section className="pref-section"><div className="pref-section-heading"><span className="pref-index">02</span><div><h2>ช่วงอายุ</h2><p>ช่วงอายุของคนที่คุณอยากทำความรู้จัก</p></div><span className="pref-value">{pref.min}–{pref.max} ปี</span></div><div className="pref-range-row"><label htmlFor="pref-age-min">ตั้งแต่ <b>{pref.min}</b> ปี</label><input id="pref-age-min" className="pref-range" type="range" min="18" max="40" value={pref.min} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.min-18)/22})`}} onChange={e => update({min:Math.min(+e.target.value,pref.max)})}/></div><div className="pref-range-row"><label htmlFor="pref-age-max">ถึง <b>{pref.max}</b> ปี</label><input id="pref-age-max" className="pref-range" type="range" min="18" max="60" value={pref.max} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.max-18)/42})`}} onChange={e => update({max:Math.max(+e.target.value,pref.min)})}/></div></section>
+        <section className="pref-section"><div className="pref-section-heading"><span className="pref-index">03</span><div><h2>มหาวิทยาลัย</h2><p>เลือกพื้นที่ที่อยากค้นหาคนใหม่ ๆ</p></div></div><div className="pref-mode-list">{[['nearby','มหาวิทยาลัยใกล้เคียง','คำนวณจากระยะห่างระหว่างวิทยาเขต'],['same','มหาวิทยาลัยเดียวกัน','คนจากมหาวิทยาลัยของคุณ'],['selected','เลือกมหาวิทยาลัยเอง','เลือกได้หลายแห่ง'],['all','ทุกมหาวิทยาลัย','ไม่จำกัดมหาวิทยาลัย']].map(([id,label,sub]) => <button type="button" key={id} className={'pref-mode' + (pref.mode === id ? ' is-active' : '')} onClick={() => update({mode:id})} aria-pressed={pref.mode === id}><span className="pref-radio"><span/></span><span className="pref-mode-text"><strong>{label}</strong><small>{sub}</small></span></button>)}</div>
+        {pref.mode === 'nearby' && <div className="pref-extra"><div className="pref-extra-head"><span>ระยะทางที่สนใจ</span><b>{pref.radius} กม.</b></div><input className="pref-range" aria-label="ระยะทางค้นหา" type="range" min="5" max="100" step="5" value={pref.radius} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.radius-5)/95})`}} onChange={e => update({radius:+e.target.value})}/>{!hasCoords && <p className="pref-hint">ยังไม่มีพิกัดวิทยาเขตนี้ กรุณาเลือกวิธีค้นหาอื่น</p>}</div>}
+        {pref.mode === 'selected' && <div className="pref-uni-list">{UNIVERSITIES.map(u => <button type="button" key={u.id} className={pref.universities.includes(u.id) ? 'is-active' : ''} onClick={() => toggleUni(u.id)}><span>{u.name}</span><span className="pref-uni-check">{pref.universities.includes(u.id) && <Check size={14}/>}</span></button>)}</div>}
+        </section>
+      </div>
+      <footer className="pref-footer"><span><ShieldCheck size={15}/> ไม่ใช้ตำแหน่ง GPS ส่วนตัว</span><div><button type="button" className="pref-cancel" onClick={close}>ยกเลิก</button><button type="button" className="pref-save" disabled={!valid || saving} onClick={save}>{saving ? 'กำลังบันทึก...' : 'บันทึกสเปก'}<ArrowRight size={17}/></button></div></footer>
+    </section>
+  </div>
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => { try { return sessionStorage.getItem('nisit-view') || 'search' } catch { return 'search' } }), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [detail, setDetail] = useState(null)
   const [newMatch, setNewMatch] = useState(null)
   const [fl, setFl] = useState({ q: '', uni: '', min: 18, max: 40, gender: '' }), [filterOpen, setFilterOpen] = useState(false)
+  const [discovery, setDiscovery] = useState(null), [discoveryReady, setDiscoveryReady] = useState(false), [discoveryEditing, setDiscoveryEditing] = useState(false)
+  const [visibleDetail, setVisibleDetail] = useState(null)
+  const [detailLeaving, setDetailLeaving] = useState(false)
+  useEffect(() => {
+    if (detail) { setVisibleDetail(detail); setDetailLeaving(false); return }
+    if (!visibleDetail) return
+    setDetailLeaving(true)
+    const timer = window.setTimeout(() => { setVisibleDetail(null); setDetailLeaving(false) }, 330)
+    return () => window.clearTimeout(timer)
+  }, [detail])
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
   const user = session?.user
   const userId = user?.id
@@ -1060,11 +1128,40 @@ const loadMatches = useCallback(async () => {
 
 }, [user?.id, notify])
 
+  useEffect(() => {
+    if (!userId || !profile?.id) { setDiscoveryReady(false); return }
+    let active = true
+    const cached = readDiscovery(userId)
+    setDiscovery(cached)
+    setDiscoveryReady(true)
+    supabase.from('discovery_preferences').select('preferences').eq('user_id', userId).maybeSingle().then(({data}) => {
+      if (!active || !data?.preferences) return
+      const remote = {...defaultDiscovery, ...data.preferences}
+      setDiscovery(remote)
+      try { localStorage.setItem(discoveryKey(userId), JSON.stringify(remote)) } catch {}
+    })
+    return () => { active = false }
+  }, [userId, profile?.id])
+  const saveDiscovery = async prefs => {
+    try { localStorage.setItem(discoveryKey(userId), JSON.stringify(prefs)) } catch {}
+    setDiscovery(prefs)
+    setDiscoveryEditing(false)
+    setFl(f => ({...f, uni: '', gender: prefs.gender, min: prefs.min, max: prefs.max}))
+    const {error} = await supabase.from('discovery_preferences').upsert({user_id:userId, preferences:prefs}, {onConflict:'user_id'})
+    if (error) notify('บันทึกในเครื่องแล้ว · หากต้องการซิงก์ข้ามอุปกรณ์ ให้รัน SQL ของ v11')
+  }
+  const campusFiltered = useCallback(p => {
+    if (!discovery) return true
+    if (discovery.mode === 'same') return p.university_id === profile?.university_id
+    if (discovery.mode === 'selected') return (discovery.universities || []).includes(p.university_id)
+    if (discovery.mode === 'nearby') { const km = campusDistance(profile?.university_id, p.university_id); return km !== null && km <= discovery.radius }
+    return true
+  }, [discovery, profile?.university_id])
   const loadPeople = useCallback(async () => {
     setPeople(null)
-    const { data, error } = await supabase.rpc('discover', { p_university: fl.uni || null, p_min_age: +fl.min, p_max_age: +fl.max, p_gender: fl.gender || null })
+    const { data, error } = await supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null })
     if (error) notify(error.message); setPeople(data || [])
-  }, [fl.uni, fl.min, fl.max, fl.gender, notify])
+  }, [discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify])
   useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
   useEffect(() => { if (profile) { loadMatches(); loadPeople() } }, [profile, loadMatches, loadPeople])
   useEffect(() => { const refresh = () => { if (document.visibilityState === 'visible' && user?.id) loadMatches() }; document.addEventListener('visibilitychange', refresh); return () => document.removeEventListener('visibilitychange', refresh) }, [user?.id, loadMatches])
@@ -1099,8 +1196,11 @@ const loadMatches = useCallback(async () => {
     if (!error && data) setDetail(current => current?.id === person.id ? { ...current, ...data } : current)
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  const go = (v) => { setView(v); setNav(false); if (v === 'messages') loadMatches() }
-  const shown = (people || []).filter((p) => !fl.q || p.display_name.toLowerCase().includes(fl.q.toLowerCase()))
+  const go = (v) => { if (v === 'search') v = 'home'; setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const shown = (people || []).filter((p) => campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
+  const filteredPeople = (people || []).filter(campusFiltered)
+  const nearbyFallback = discovery?.mode === 'nearby' && (people || []).length > 0 && filteredPeople.length === 0
+  const swipePeople = nearbyFallback ? (people || []) : filteredPeople
   
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
@@ -1108,7 +1208,10 @@ const loadMatches = useCallback(async () => {
   if (!user) return <><Landing onLogin={() => setModal('login')} onRegister={() => setModal('register')} />{modal && <AuthModal mode={modal} setMode={setModal} close={() => setModal('')} notify={notify} />}{Toast}</>
   if (!profile) return <main className="page-content onboard"><ProfilePage user={user} onboarding onSaved={loadProfile} notify={notify} /><button className="btn btn-ghost btn-small" onClick={() => supabase.auth.signOut()}><LogOut size={14} /> ออกจากระบบ</button>{Toast}</main>
 
-  const items = [['home', 'หน้าหลัก', Heart], ['search', 'ค้นหา', Search], ['messages', 'ข้อความ', MessageCircle], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
+  if (discoveryReady && discoveryEditing) return <PreferencesEditor initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
+  if (discoveryReady && !discovery) return <DiscoverySetup initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
+
+  const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
   const empty = <div className="empty-state"><div className="empty-icon"><Search /></div><h3>ยังไม่มีสมาชิกให้แสดง</h3><p>ตอนนี้ยังไม่มีสมาชิกคนอื่นที่ตรงกับตัวกรอง ลองปรับตัวกรอง หรือชวนเพื่อนมาสมัคร</p></div>
   return (
     <div className="app-shell">
@@ -1117,29 +1220,19 @@ const loadMatches = useCallback(async () => {
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
-        {[["profile","โปรไฟล์",UserRound],["search","ค้นหา",Search],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={view === id ? "bottom-nav-item active" : "bottom-nav-item"} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}</span><span>{label}</span></button>)}
+        {[["home","ปัด",Heart],["profile","โปรไฟล์",UserRound],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={view === id ? "bottom-nav-item active" : "bottom-nav-item"} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}</span><span>{label}</span></button>)}
       </nav>
       <main className="main-area">
-        <header className="topbar"><button className="mobile-menu icon-btn" onClick={() => setNav(!nav)}><Menu /></button><div className="breadcrumb">พื้นที่สำหรับความสัมพันธ์ดี ๆ <span>/</span> <b>{items.find((i) => i[0] === view)[1]}</b></div><div className="top-actions"><span className="online-pill"><i /> Your space, your pace</span><button className="profile-chip" onClick={() => go('profile')}><Av u={profile} cls="avatar sm" /><span>{profile.display_name}</span></button></div></header>
+        <header className="topbar"><button className="mobile-menu icon-btn" onClick={() => setNav(!nav)}><Menu /></button><div className="breadcrumb">พื้นที่สำหรับความสัมพันธ์ดี ๆ <span>/</span> <b>{items.find((i) => i[0] === view)?.[1] || 'หน้าหลัก'}</b></div><div className="top-actions"><span className="online-pill"><i /> Your space, your pace</span><button className="profile-chip" onClick={() => go('profile')}><Av u={profile} cls="avatar sm" /><span>{profile.display_name}</span></button></div></header>
         <div className="page-content">
           {view === 'home' && <>
-            <Heading kicker="YOUR NEXT CHAPTER" title={`สวัสดี ${profile.display_name}`} sub="วันนี้พร้อมเปิดใจทำความรู้จักใครใหม่ ๆ หรือยัง?"><button className="btn btn-ghost" onClick={() => go('search')}><Search size={16} /> ค้นหาคนที่ใช่</button></Heading>
-            <div className="dashboard-banner"><div className="banner-orb" /><div className="banner-copy"><span className="banner-kicker"><Sparkles size={14} /> A GOOD CONNECTION STARTS HERE</span><h2>ไม่ต้องสมบูรณ์แบบ<br />แค่เป็นตัวเองก็พอ</h2><p>คนที่ใช่อาจอยู่ใกล้กว่าที่คิด เริ่มต้นวันนี้ด้วยการค้นหาคนที่มีอะไรคล้ายกัน</p><button className="btn btn-pink" onClick={() => go('search')}>ค้นหา Match <ArrowRight size={16} /></button></div><div className="banner-art"><div className="banner-heart"><Heart fill="currentColor" /></div><div className="banner-orbit" /><div className="banner-orbit orbit2" /></div></div>
-            <div className="home-swipe-intro"><Sparkles size={20}/><span>ไม่ต้องเลือกจากตารางแล้ว ปัดเพื่อทำความรู้จักคนใหม่ได้เลย</span></div>
-            {people === null ? <div className="page-center"><span className="spin" /></div> : people.length ? <SwipeDeck people={people} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onOpen={openDetail} onReport={report} /> : empty}
+            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></Heading>
+            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
+            {nearbyFallback && <p className="nearby-fallback-note">ยังไม่พบคนในรัศมีที่ตั้งไว้ จึงแสดงโปรไฟล์อื่นให้ปัดได้ก่อน · ปรับระยะทางได้ในตั้งค่าสเปก</p>}
+            {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onOpen={openDetail} onReport={report} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
-            <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'search')}>{matches.length ? 'เปิดข้อความ' : 'เริ่มค้นหา'} <ArrowRight size={15} /></button></div></>}
-          {view === 'search' && <>
-            <Heading kicker="DISCOVER YOUR PEOPLE" title="ค้นหาคนที่ใช่" sub="ความสัมพันธ์ดี ๆ เริ่มจากความสนใจเล็ก ๆ ที่ตรงกัน"><button className={'btn ' + (filterOpen ? 'btn-pink' : 'btn-ghost')} onClick={() => setFilterOpen(!filterOpen)}><SlidersHorizontal size={16} /> ตัวกรอง</button></Heading>
-            <div className="searchbar"><Search size={19} /><input placeholder="ค้นหาชื่อที่อยากรู้จัก..." value={fl.q} onChange={(e) => setFl({ ...fl, q: e.target.value })} />{fl.q && <button className="icon-btn" onClick={() => setFl({ ...fl, q: '' })}><X size={16} /></button>}</div>
-            {filterOpen && <div className="filter-panel">
-              <label>มหาวิทยาลัย<select value={fl.uni} onChange={(e) => setFl({ ...fl, uni: e.target.value })}><option value="">ทั้งหมด</option>{UNIVERSITIES.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
-              <label>อายุขั้นต่ำ<select value={fl.min} onChange={(e) => setFl({ ...fl, min: e.target.value })}>{[18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 30].map((n) => <option key={n}>{n}</option>)}</select></label>
-              <label>อายุสูงสุด<select value={fl.max} onChange={(e) => setFl({ ...fl, max: e.target.value })}>{[20, 22, 24, 26, 28, 30, 35, 40, 50, 99].map((n) => <option key={n}>{n}</option>)}</select></label>
-              <label>เพศ<select value={fl.gender} onChange={(e) => setFl({ ...fl, gender: e.target.value })}><option value="">ทั้งหมด</option>{Object.entries(GENDERS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-              <button className="btn btn-ghost" onClick={() => setFl({ q: '', uni: '', min: 18, max: 40, gender: '' })}>ล้างตัวกรอง</button></div>}
-            <div className="result-meta"><span>พบผู้คนที่น่าสนใจ</span><span>{shown.length} โปรไฟล์</span></div>
-            {people === null ? <div className="page-center"><span className="spin" /></div> : shown.length ? <SwipeDeck people={shown} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onOpen={openDetail} onReport={report} /> : empty}</>}
+            <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
+          </>}
           {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
@@ -1147,15 +1240,15 @@ const loadMatches = useCallback(async () => {
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => notify('หากพบการละเมิด โปรดรายงานผ่านโปรไฟล์ผู้ใช้')}>ช่วยเหลือและความปลอดภัย</button></footer>
         </div>
       </main>
-      {detail && <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
-        <ProfileGallery person={detail} />
-        <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{detail.display_name}, {detail.age}</h2>
-          <p><GraduationCap size={15} />{uniName(detail.university_id)} · {detail.faculty}</p><p>{detail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
-          <div className="tags">{(detail.interests || []).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
-          <div className="match-profile-song"><ITunesSongCard track={itunesTrack(detail)} compact /></div>
-          {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(detail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
+      {visibleDetail && <div className={"modal-backdrop detail-backdrop" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
+        <ProfileGallery person={visibleDetail} />
+        <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{visibleDetail.display_name}, {visibleDetail.age}</h2>
+          <p><GraduationCap size={15} />{uniName(visibleDetail.university_id)} · {visibleDetail.faculty}</p><p>{visibleDetail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
+          <div className="tags">{(visibleDetail.interests || []).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
+          <div className="match-profile-song"><ITunesSongCard track={itunesTrack(visibleDetail)} compact /></div>
+          {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(visibleDetail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
           <button type="button" className="detail-bottom-close" onClick={() => setDetail(null)}>← กลับไปหน้าปัด</button>
-          <div className="detail-secondary"><button onClick={() => report(detail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(detail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
+          <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>}
       {newMatch && <div className="match-overlay"><div className="match-dialog"><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X/></button><div className="match-confetti" aria-hidden="true">{Array.from({length: 22}, (_,i) => <span key={i} style={{'--i':i,'--delay':`${(i%8)*.11}s`}}>{i%3===0?'♥':'✦'}</span>)}</div><div className="match-hearts">💗 ✨ 💗</div><div className="match-eyebrow">A NEW CONNECTION</div><h1>It's a Match!</h1><p>คุณและ {newMatch.p.display_name} ถูกใจกันและกัน</p><div className="match-avatars"><Av u={profile}/><Heart fill="currentColor"/><Av u={newMatch.p}/></div><button className="btn btn-pink btn-full" onClick={() => { setNewMatch(null); go('messages') }}>เริ่มพูดคุยเลย <MessageCircle size={18}/></button><button className="match-later" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
       {Toast}
     </div>
