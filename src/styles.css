@@ -1348,3 +1348,8 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .chat-room-unread-count{flex:0 0 auto;min-width:21px;height:21px;padding:0 5px;border-radius:99px;background:#f65b9f;color:white;display:grid;place-items:center;font-size:10px;font-weight:800;box-shadow:0 3px 10px #f65b9f40}
 @media(max-width:700px){.chat-inbox-open .chat-person{flex-direction:row!important;flex-wrap:nowrap!important}.chat-inbox-open .chat-person-info .chat-last-preview{display:block!important;font-size:11px!important}.chat-inbox-open .chat-person{gap:11px!important;padding:14px 13px!important}.chat-inbox-open .chat-person .avatar{width:43px!important;height:43px!important}.chat-inbox-open .chat-person-info b{font-size:13px!important}}
 @media(prefers-reduced-motion:reduce){.bottom-nav-item.has-unread-messages .bottom-icon svg,.nav-item.has-unread-messages>svg{animation:none!important}}
+
+/* v52: university verification within profile editor */
+.nm-edit-workspace .v27-verification{max-width:720px;margin:0 auto 20px;width:100%;box-sizing:border-box}
+.nm-edit-workspace .v27-verify-form{max-width:100%}
+.nm-edit-workspace .v27-verify-form input,.nm-edit-workspace .v27-verify-form select{max-width:100%;box-sizing:border-box}

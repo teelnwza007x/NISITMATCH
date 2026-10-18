@@ -1063,7 +1063,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
   const [editTab, setEditTab] = useState('photos')
-  const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
+  const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2], ['verification', 'ยืนยันเมลมหาวิทยาลัย', ShieldCheck]]
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
@@ -1148,6 +1148,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     <div className="nm-profile-editor">
       <nav className="nm-edit-tabs" aria-label="หมวดแก้ไขโปรไฟล์" role="tablist">{editTabs.map(([id, name, Icon]) => <button key={id} type="button" role="tab" aria-selected={editTab === id} className={editTab === id ? 'active' : ''} onClick={() => setEditTab(id)}><Icon size={17}/><span>{name}</span></button>)}</nav>
       <div className="nm-edit-workspace">
+      {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
         <div className="photo-editor"><b>รูปโปรไฟล์ ({photos.length + newPhotos.length}/6)</b><p>แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key)})), ...newPhotos].map(item => <div className="photo-tile" key={item.key}><img src={item.url} alt="รูปโปรไฟล์"/><button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button><button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button></div>)}{photos.length + newPhotos.length < 6 && <label className="photo-add"><Camera size={21}/><span>เพิ่มรูป</span><input type="file" accept="image/*" multiple onChange={e => {addPhotos(e.target.files); e.target.value = ''}} /></label>}</div></div>
       </section>}
@@ -1203,14 +1204,8 @@ if (typeof document !== 'undefined') {
   applyTheme(saved)
 }
 
-function SettingsPage({ user, notify }) {
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
-  })
-  const chooseTheme = (id) => { setTheme(id); applyTheme(id) }
 
-  const [privacy, setPrivacy] = useState({ mode: 'visible' })
-  const [privacyBusy, setPrivacyBusy] = useState(false)
+function CampusEmailVerification({ user }) {
   const [verification, setVerification] = useState('unverified')
   const [campusEmail, setCampusEmail] = useState('')
   const [campusCode, setCampusCode] = useState('')
@@ -1220,19 +1215,11 @@ function SettingsPage({ user, notify }) {
   const [verifyMessage, setVerifyMessage] = useState('')
   useEffect(() => {
     let active = true
-    Promise.all([
-      supabase.from('profile_visibility').select('mode').eq('user_id', user.id).maybeSingle(),
-      supabase.from('student_verifications').select('status').eq('user_id', user.id).maybeSingle()
-    ]).then(([a,b]) => { if (!active) return; if (!a.error && a.data) setPrivacy(a.data); if (!b.error && b.data) setVerification(b.data.status) }).catch(() => {})
+    supabase.from('student_verifications').select('status').eq('user_id', user.id).maybeSingle()
+      .then(({ data, error }) => { if (active && !error) setVerification(data?.status || 'unverified') })
+      .catch(() => {})
     return () => { active = false }
   }, [user.id])
-  const setPrivacyMode = async (mode) => {
-    setPrivacyBusy(true)
-    const { error } = await supabase.from('profile_visibility').upsert({user_id:user.id,mode}, {onConflict:'user_id'})
-    setPrivacyBusy(false)
-    if (error) return notify('ตั้งค่าความเป็นส่วนตัวไม่สำเร็จ: ' + error.message)
-    setPrivacy({mode}); notify('บันทึกการมองเห็นโปรไฟล์แล้ว')
-  }
   const requestVerification = async (action) => {
     if (verifyBusy) return
     const email = campusEmail.trim().toLowerCase()
@@ -1248,6 +1235,53 @@ function SettingsPage({ user, notify }) {
       else { setVerification('verified'); setVerifyMessage('ยืนยันอีเมลมหาวิทยาลัยสำเร็จ'); setCampusCode('') }
     } catch (err) { setVerifyMessage(err?.message || 'เกิดข้อผิดพลาด') }
     finally { setVerifyBusy(false) }
+  }
+  return (<>    <section className="v26-settings-section v27-verification" aria-label="ยืนยันนักศึกษา">
+      <span className="theme-kicker">STUDENT VERIFICATION</span>
+      <h3>ยืนยันอีเมลมหาวิทยาลัย</h3>
+      <p>ใช้ Gmail เข้าสู่ระบบได้เหมือนเดิม เพิ่มอีเมลมหาวิทยาลัยเพื่อรับรหัสยืนยันแยกต่างหาก</p>
+      <div className="v26-verify-row">{verification === 'verified' ? <span className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/>ยืนยันอีเมลมหาวิทยาลัยแล้ว</span> : <span className="v26-status">ยังไม่ยืนยันอีเมลมหาวิทยาลัย</span>}</div>
+      {verification === 'verified' && <p className="v27-verify-success" role="status"><ShieldCheck size={18}/> บัญชีนี้ผ่านการยืนยันความเป็นเจ้าของอีเมลมหาวิทยาลัยแล้ว</p>}
+      {verification !== 'verified' && <div className="v27-verify-form">
+        <label htmlFor="v27-campus">มหาวิทยาลัย / สถาบันอุดมศึกษา</label>
+        <select id="v27-campus" value={campusUniversity} onChange={e => {setCampusUniversity(e.target.value); setVerifyStep('email'); setVerifyMessage('')}}>
+          <option value="">เลือกมหาวิทยาลัย</option>
+          {UNIVERSITIES.filter((u,i,a)=>a.findIndex(x=>x.name===u.name)===i).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+        <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย (ไม่ใช่อีเมลล็อกอิน)</label>
+        <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder="student@university.ac.th" value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyStep('email')}} />
+        {verifyStep === 'code' && <p className="v27-spam-hint" role="note">หากไม่พบรหัสยืนยัน กรุณาตรวจโฟลเดอร์จดหมายขยะ (Spam / Junk) และรอสักครู่ก่อนกดส่งรหัสอีกครั้ง</p>}
+        {verifyStep === 'code' && <><label htmlFor="v27-campus-code">รหัสยืนยัน 6 หลัก</label><input id="v27-campus-code" type="text" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" placeholder="000000" value={campusCode} onChange={e=>setCampusCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></>}
+        <button type="button" className="btn btn-pink" disabled={verifyBusy} onClick={()=>requestVerification(verifyStep === 'code' ? 'verify' : 'send')}>{verifyBusy ? 'กำลังดำเนินการ...' : verifyStep === 'code' ? 'ยืนยันรหัส' : 'ส่งรหัสไปยังอีเมลมหาวิทยาลัย'}</button>
+        {verifyStep === 'code' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('send')}>ส่งรหัสอีกครั้ง</button>}
+        {verifyMessage && <p className="v27-verify-message" role="status">{verifyMessage}</p>}
+        <p className="v27-verify-note">ถ้ายังไม่รองรับโดเมนอีเมลของสถาบัน สามารถส่งคำขอเพิ่มได้ ผู้ดูแลจะตรวจสอบก่อนเปิดใช้ OTP และป้ายยืนยัน</p>
+        {verifyStep === 'email' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('request_domain')}>ไม่พบโดเมนของฉัน — ขอเพิ่มโดเมน</button>}
+      </div>}
+    </section>
+  </>)
+}
+
+function SettingsPage({ user, notify }) {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
+  })
+  const chooseTheme = (id) => { setTheme(id); applyTheme(id) }
+
+  const [privacy, setPrivacy] = useState({ mode: 'visible' })
+  const [privacyBusy, setPrivacyBusy] = useState(false)
+  useEffect(() => {
+    let active = true
+    supabase.from('profile_visibility').select('mode').eq('user_id', user.id).maybeSingle()
+      .then(({data,error}) => { if (active && !error && data) setPrivacy(data) }).catch(() => {})
+    return () => { active = false }
+  }, [user.id])
+  const setPrivacyMode = async (mode) => {
+    setPrivacyBusy(true)
+    const { error } = await supabase.from('profile_visibility').upsert({user_id:user.id,mode}, {onConflict:'user_id'})
+    setPrivacyBusy(false)
+    if (error) return notify('ตั้งค่าความเป็นส่วนตัวไม่สำเร็จ: ' + error.message)
+    setPrivacy({mode}); notify('บันทึกการมองเห็นโปรไฟล์แล้ว')
   }
   const [pushBusy, setPushBusy] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -1306,29 +1340,6 @@ function SettingsPage({ user, notify }) {
         ['incognito','Incognito','เฉพาะคนที่คุณกดถูกใจเท่านั้น'],
         ['paused','พักการค้นหา','ซ่อนโปรไฟล์ชั่วคราว']
       ].map(([id,title,sub]) => <button type="button" key={id} disabled={privacyBusy} className={'v26-mode' + (privacy.mode === id ? ' selected' : '')} onClick={() => setPrivacyMode(id)} aria-pressed={privacy.mode === id}><span><strong>{title}</strong><small>{sub}</small></span>{privacy.mode === id && <Check size={19}/>}</button>)}</div>
-    </section>
-    <section className="v26-settings-section v27-verification" aria-label="ยืนยันนักศึกษา">
-      <span className="theme-kicker">STUDENT VERIFICATION</span>
-      <h3>ยืนยันอีเมลมหาวิทยาลัย</h3>
-      <p>ใช้ Gmail เข้าสู่ระบบได้เหมือนเดิม เพิ่มอีเมลมหาวิทยาลัยเพื่อรับรหัสยืนยันแยกต่างหาก</p>
-      <div className="v26-verify-row">{verification === 'verified' ? <span className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/>ยืนยันอีเมลมหาวิทยาลัยแล้ว</span> : <span className="v26-status">ยังไม่ยืนยันอีเมลมหาวิทยาลัย</span>}</div>
-      {verification === 'verified' && <p className="v27-verify-success" role="status"><ShieldCheck size={18}/> บัญชีนี้ผ่านการยืนยันความเป็นเจ้าของอีเมลมหาวิทยาลัยแล้ว</p>}
-      {verification !== 'verified' && <div className="v27-verify-form">
-        <label htmlFor="v27-campus">มหาวิทยาลัย / สถาบันอุดมศึกษา</label>
-        <select id="v27-campus" value={campusUniversity} onChange={e => {setCampusUniversity(e.target.value); setVerifyStep('email'); setVerifyMessage('')}}>
-          <option value="">เลือกมหาวิทยาลัย</option>
-          {UNIVERSITIES.filter((u,i,a)=>a.findIndex(x=>x.name===u.name)===i).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
-        </select>
-        <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย (ไม่ใช่อีเมลล็อกอิน)</label>
-        <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder="student@university.ac.th" value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyStep('email')}} />
-        {verifyStep === 'code' && <p className="v27-spam-hint" role="note">หากไม่พบรหัสยืนยัน กรุณาตรวจโฟลเดอร์จดหมายขยะ (Spam / Junk) และรอสักครู่ก่อนกดส่งรหัสอีกครั้ง</p>}
-        {verifyStep === 'code' && <><label htmlFor="v27-campus-code">รหัสยืนยัน 6 หลัก</label><input id="v27-campus-code" type="text" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" placeholder="000000" value={campusCode} onChange={e=>setCampusCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></>}
-        <button type="button" className="btn btn-pink" disabled={verifyBusy} onClick={()=>requestVerification(verifyStep === 'code' ? 'verify' : 'send')}>{verifyBusy ? 'กำลังดำเนินการ...' : verifyStep === 'code' ? 'ยืนยันรหัส' : 'ส่งรหัสไปยังอีเมลมหาวิทยาลัย'}</button>
-        {verifyStep === 'code' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('send')}>ส่งรหัสอีกครั้ง</button>}
-        {verifyMessage && <p className="v27-verify-message" role="status">{verifyMessage}</p>}
-        <p className="v27-verify-note">ถ้ายังไม่รองรับโดเมนอีเมลของสถาบัน สามารถส่งคำขอเพิ่มได้ ผู้ดูแลจะตรวจสอบก่อนเปิดใช้ OTP และป้ายยืนยัน</p>
-        {verifyStep === 'email' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('request_domain')}>ไม่พบโดเมนของฉัน — ขอเพิ่มโดเมน</button>}
-      </div>}
     </section>
     <div className="settings-grid">
       <div className="settings-card"><div className="settings-icon"><ShieldCheck /></div><div><h3>ความเป็นส่วนตัวและความปลอดภัย</h3><p>หน้าค้นหาไม่แสดงอีเมลและวันเกิดของคุณ และคุณสามารถบล็อกหรือรายงานผู้ใช้ได้</p></div><span className="settings-status">เปิดใช้งาน</span></div>
