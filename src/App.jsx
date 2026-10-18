@@ -320,6 +320,32 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
     setThemePickerOpen(false)
     try { localStorage.setItem(`nisit-chat-theme:${me}:${selectedId}`, id) } catch {}
   }
+  // v50: independent inbox previews and per-room unread counters.
+  const [inbox, setInbox] = useState({})
+  const inboxRequest = useRef(0)
+  const refreshInbox = useCallback(async () => {
+    if (!me || !matches.length) { setInbox({}); return }
+    const request = ++inboxRequest.current
+    const results = await Promise.all(matches.map(async m => {
+      const [latest, unread] = await Promise.all([
+        supabase.from('messages').select('id,body,sender_id,attachment_type,created_at').eq('match_id', m.id).order('created_at', { ascending: false }).limit(1),
+        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('match_id', m.id).neq('sender_id', me).is('read_at', null)
+      ])
+      return [m.id, { last: latest.data?.[0] || null, unread: unread.count || 0 }]
+    }))
+    if (request === inboxRequest.current) setInbox(Object.fromEntries(results))
+  }, [me, matches])
+  useEffect(() => {
+    refreshInbox()
+    const channel = supabase.channel(`inbox-preview-${me}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refreshInbox)
+      .subscribe()
+    // Fallback for projects without Realtime publication enabled for messages.
+    const poll = setInterval(refreshInbox, 12000)
+    const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
+    document.addEventListener('visibilitychange', visible)
+    return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
+  }, [me, refreshInbox])
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
   // v48: Freeze the underlying page at its exact scroll position while a chat room is open.
@@ -505,7 +531,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
       else { setMsgs((data || []).reverse()); setHasMore((data || []).length === 40) }
       const { error: readError } = await supabase.from('messages').update({ read_at: new Date().toISOString() })
         .eq('match_id', roomId).neq('sender_id', me).is('read_at', null)
-      if (!readError) onMessagesRead?.()
+      if (!readError) { onMessagesRead?.(); refreshInbox() }
     }
     load()
     const channel = supabase.channel('chat-' + roomId, { config: { presence: { key: me } } })
@@ -516,7 +542,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
           if (incoming.sender_id !== me) {
             supabase.from('messages').update({ read_at: new Date().toISOString() })
               .eq('id', incoming.id).is('read_at', null)
-              .then(({ error }) => { if (!error) onMessagesRead?.() })
+              .then(({ error }) => { if (!error) { onMessagesRead?.(); refreshInbox() } })
           }
           // The optimistic bubble already represents our outgoing message.
           const alreadyPending = [...pendingSends.current.values()].some(p =>
@@ -672,7 +698,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
     <div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
-        {matches.map(m => <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '')} onClick={() => setSelectedId(m.id)}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small>💗 Match กันแล้ว</small></span></button>)}
+        {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
+          const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
+          const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
+          return <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '') + (unreadCount ? ' chat-person-unread' : '')} onClick={() => { setSelectedId(m.id); setInbox(prev => ({ ...prev, [m.id]: { ...prev[m.id], unread: 0 } })) }}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small className="chat-last-preview">{preview}</small></span>{unreadCount > 0 && <span className="chat-room-unread-count" aria-label={`${unreadCount} ข้อความยังไม่อ่าน`}>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
+        })}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
       <div className="chat-window">{sel ? <>
@@ -1458,12 +1488,13 @@ export default function App() {
   useEffect(() => {
     if (!userId) { setUnreadMessages(0); return }
     loadUnreadMessages()
+    const poll = setInterval(loadUnreadMessages, 12000)
     const channel = supabase.channel(`unread-messages-${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadUnreadMessages())
       .subscribe()
     const refresh = () => { if (document.visibilityState === 'visible') loadUnreadMessages() }
     document.addEventListener('visibilitychange', refresh)
-    return () => { document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
+    return () => { clearInterval(poll); document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
   }, [userId, loadUnreadMessages])
 
   
@@ -1710,7 +1741,7 @@ const loadMatches = useCallback(async () => {
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
-        {[["home","ปัด",Heart],["profile","โปรไฟล์",UserRound],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <i className="message-unread-dot"/>}</span><span>{label}</span></button>)}
+        {[["home","ปัด",Heart],["profile","โปรไฟล์",UserRound],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
       </nav>
       <main className="main-area">
         <header className="topbar"><button className="mobile-menu icon-btn" onClick={() => setNav(!nav)}><Menu /></button><div className="breadcrumb">พื้นที่สำหรับความสัมพันธ์ดี ๆ <span>/</span> <b>{items.find((i) => i[0] === view)?.[1] || 'หน้าหลัก'}</b></div><div className="top-actions"><span className="online-pill"><i /> Your space, your pace</span><button className="profile-chip" onClick={() => go('profile')}><Av u={profile} cls="avatar sm" /><span>{profile.display_name}</span></button></div></header>
