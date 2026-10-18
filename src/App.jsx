@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
@@ -1069,6 +1069,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
   const [editTab, setEditTab] = useState('photos')
+  const [selfPreviewOpen, setSelfPreviewOpen] = useState(false)
+  const [selfPreviewIndex, setSelfPreviewIndex] = useState(0)
   const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2], ['verification', 'ยืนยันเมลมหาวิทยาลัย', ShieldCheck]]
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
@@ -1149,8 +1151,20 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
   const toggle = (i) => setF({ ...f, interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i].slice(0, 12) })
+  const selfPreviewPhotos = [...photos.map(path => ({ key: path, url: pub(path) })), ...newPhotos.map(item => ({ key: item.key, url: item.url }))]
+  const orderedSelfPhotos = [...selfPreviewPhotos.filter(item => item.key === mainPhoto), ...selfPreviewPhotos.filter(item => item.key !== mainPhoto)]
+  const selfPreviewImage = orderedSelfPhotos[selfPreviewIndex]?.url || ph(f.display_name)
+  useEffect(() => {
+    if (!selfPreviewOpen) return
+    const oldOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = e => { if (e.key === 'Escape') setSelfPreviewOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = oldOverflow; window.removeEventListener('keydown', onKey) }
+  }, [selfPreviewOpen])
   return (<>
     <Heading kicker={onboarding ? 'WELCOME' : 'THIS IS YOU'} title={onboarding ? 'สร้างโปรไฟล์ของคุณ' : 'โปรไฟล์ของฉัน'} sub="เล่าเรื่องของคุณในแบบที่เป็นตัวเอง" />
+    <div className="nm-self-preview-actions"><button type="button" className="btn btn-ghost nm-self-preview-open" onClick={() => { setSelfPreviewIndex(0); setSelfPreviewOpen(true) }}><Eye size={18}/> ดูตัวอย่างโปรไฟล์ของฉัน <ArrowRight size={16}/></button><span>ดูหน้าตาที่คนอื่นจะเห็น โดยไม่ต้องบันทึกก่อน</span></div>
     <div className="nm-profile-editor">
       <nav className="nm-edit-tabs" aria-label="หมวดแก้ไขโปรไฟล์" role="tablist">{editTabs.map(([id, name, Icon]) => <button key={id} type="button" role="tab" aria-selected={editTab === id} className={editTab === id ? 'active' : ''} onClick={() => setEditTab(id)}><Icon size={17}/><span>{name}</span></button>)}</nav>
       <div className="nm-edit-workspace">
@@ -1188,7 +1202,27 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
         </>}
         {editTab === 'music' && <ITunesSongPicker value={song} onChange={setSong} />}
         <button className="btn btn-pink btn-lg save-btn" disabled={busy}>{busy ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'} <Check size={17} /></button>
-      </form></div></div></>)
+      </form></div></div>
+    {selfPreviewOpen && <div className="modal-backdrop detail-backdrop nm-self-preview-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setSelfPreviewOpen(false) }}>
+      <div className="detail-modal nm-self-preview-modal" role="dialog" aria-modal="true" aria-label="ตัวอย่างโปรไฟล์ของฉัน">
+        <button type="button" className="modal-close detail-close-btn" onClick={() => setSelfPreviewOpen(false)} aria-label="ปิดตัวอย่างโปรไฟล์"><X size={21}/></button>
+        <div className="nm-self-preview-label"><Eye size={15}/> ตัวอย่างโปรไฟล์ของคุณ</div>
+        <div className="detail-gallery"><img className="detail-cover" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>
+          {orderedSelfPhotos.length > 1 && <><button type="button" className="gallery-prev" onClick={() => setSelfPreviewIndex(i => (i - 1 + orderedSelfPhotos.length) % orderedSelfPhotos.length)} aria-label="รูปก่อนหน้า">‹</button><button type="button" className="gallery-next" onClick={() => setSelfPreviewIndex(i => (i + 1) % orderedSelfPhotos.length)} aria-label="รูปถัดไป">›</button><div className="gallery-count">{selfPreviewIndex + 1} / {orderedSelfPhotos.length}</div><div className="gallery-thumbnails">{orderedSelfPhotos.map((item,i) => <button type="button" key={item.key} className={i === selfPreviewIndex ? 'active' : ''} onClick={() => setSelfPreviewIndex(i)} aria-label={`ดูรูปที่ ${i+1}`}><img src={item.url} alt=""/></button>)}</div></>}
+        </div>
+        <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>
+          <p><GraduationCap size={15}/>{uniName(f.uni) || 'มหาวิทยาลัย'}{f.faculty ? ` · ${f.faculty}` : ''}</p>
+          {profileEmailVerified && <CampusVerifiedBadge/>}
+          {f.relationship_intent && <span className="nm-intent-tag">{intentLabel(f.relationship_intent)}</span>}
+          <p>{f.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
+          <div className="tags">{(f.interests || []).map(i => <span className="tag" key={i}>{i}</span>)}</div>
+          <div className="match-profile-song"><ITunesSongCard track={song} compact/></div>
+          <button type="button" className="btn btn-pink btn-full" onClick={() => setSelfPreviewOpen(false)}>กลับไปแก้ไขโปรไฟล์</button>
+          <p className="nm-self-preview-note">นี่คือตัวอย่างจากข้อมูลที่กำลังแก้ไข คนอื่นจะเห็นข้อมูลใหม่หลังจากคุณกดบันทึกเท่านั้น</p>
+        </div>
+      </div>
+    </div>}
+  </>)
 }
 
 const THEME_OPTIONS = [

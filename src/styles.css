@@ -1369,3 +1369,16 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .swipe-controls .swipe-control{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .chat-person,.chat-theme-choice,.profile-tab,.edit-profile-tab{transition:background-color .23s ease,border-color .23s ease,transform .23s ease}
 @media (prefers-reduced-motion:reduce){.swipe-stage,.chat-starter-options{animation:none!important}.chat-starter-toggle,.chat-starter-options button,.chat-person,.chat-theme-choice,.profile-tab,.edit-profile-tab{transition:none!important}}
+
+/* v54: self profile preview — retain the dark profile detail presentation */
+.nm-self-preview-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 20px}
+.nm-self-preview-open{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(221,151,255,.35)!important;background:linear-gradient(110deg,rgba(128,76,176,.25),rgba(232,88,153,.13))!important;color:#f9eaff!important;border-radius:16px!important;padding:12px 18px!important;transition:transform .2s ease,box-shadow .2s ease}
+.nm-self-preview-open:hover{transform:translateY(-2px);box-shadow:0 9px 28px rgba(170,85,187,.2)}
+.nm-self-preview-actions>span{font-size:12px;color:#a99fb9}
+.nm-self-preview-backdrop{z-index:1200!important;overscroll-behavior:contain}
+.nm-self-preview-modal{background:#151321!important;color:#f6eefb!important;overflow-y:auto;overscroll-behavior:contain;max-height:min(92dvh,860px);position:relative}
+.nm-self-preview-label{position:absolute;top:13px;left:14px;z-index:4;border-radius:30px;background:rgba(19,14,32,.85);backdrop-filter:blur(8px);color:#f3d5ff;padding:8px 12px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700}
+.nm-self-preview-modal .detail-body{background:#151321!important;color:#f6eefb!important}
+.nm-self-preview-modal .detail-body p{color:#c9bed4!important}
+.nm-self-preview-note{font-size:12px;text-align:center;margin-top:14px;line-height:1.6}
+@media(max-width:600px){.nm-self-preview-modal{width:min(100%,430px)!important;max-height:calc(100dvh - 24px)!important}.nm-self-preview-actions>span{flex-basis:100%}}
