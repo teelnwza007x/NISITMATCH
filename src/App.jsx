@@ -266,6 +266,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-spark spark-one"/><span className="swipe-feedback-spark spark-two"/><span className="swipe-feedback-spark spark-three"/>
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
+      {person.is_premium && <div className="swipe-premium-badge"><Crown size={13} fill="currentColor"/><span>PREMIUM</span><Sparkles size={12}/></div>}
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge />}{person.relationship_intent && <span className="nm-intent-tag">{intentLabel(person.relationship_intent)}</span>}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
@@ -1459,7 +1460,7 @@ const RELATIONSHIP_INTENTS = [{ id: 'serious', label: 'ความสัมพ�
 const intentLabel = id => RELATIONSHIP_INTENTS.find(item => item.id === id)?.label || ''
 const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [], relationship_intent: p?.relationship_intent || '' })
 
-function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
+function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium = false }) {
   const [profileEmailVerified, setProfileEmailVerified] = useState(false)
   useEffect(() => {
     let alive = true
@@ -1675,7 +1676,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
         <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { selfTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (selfTouchStart.current === null || orderedSelfPhotos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? selfTouchStart.current) - selfTouchStart.current; selfTouchStart.current = null; if (Math.abs(diff) > 45) setSelfPreviewIndex(i => (i + (diff < 0 ? 1 : orderedSelfPhotos.length - 1)) % orderedSelfPhotos.length) }}>{selfPreviewCurrent?.type === 'video' ? <video key={selfPreviewCurrent.key} className="detail-cover v64-photo-fade" src={selfPreviewCurrent.url} controls playsInline loop autoPlay muted preload="metadata" aria-label="วิดีโอโปรไฟล์ของฉัน"/> : <img key={selfPreviewImage} className="detail-cover v64-photo-fade" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>}
           {orderedSelfPhotos.length > 1 && <><button type="button" className="gallery-prev" onClick={() => setSelfPreviewIndex(i => (i - 1 + orderedSelfPhotos.length) % orderedSelfPhotos.length)} aria-label="สื่อก่อนหน้า">‹</button><button type="button" className="gallery-next" onClick={() => setSelfPreviewIndex(i => (i + 1) % orderedSelfPhotos.length)} aria-label="สื่อถัดไป">›</button><div className="gallery-count">{selfPreviewIndex + 1} / {orderedSelfPhotos.length}</div><div className="gallery-thumbnails">{orderedSelfPhotos.map((item,i) => <button type="button" key={item.key} className={i === selfPreviewIndex ? 'active' : ''} onClick={() => setSelfPreviewIndex(i)} aria-label={`ดูสื่อที่ ${i+1}`}>{item.type === 'video' ? <span className="v76-video-thumb"><Video size={18}/></span> : <img src={item.url} alt=""/>}</button>)}</div></>}
         </div>
-        <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>
+        <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>{ownerPremium && <PremiumProfileBadge owner />}
           <p><GraduationCap size={15}/>{uniName(f.uni) || 'มหาวิทยาลัย'}{f.faculty ? ` · ${f.faculty}` : ''}</p>
           {profileEmailVerified && <CampusVerifiedBadge/>}
           {f.relationship_intent && <span className="nm-intent-tag">{intentLabel(f.relationship_intent)}</span>}
@@ -1886,6 +1887,14 @@ function LockedProfileDetail({ children, onClose, className = '' }) {
   useViewportScrollLock(true)
   useEffect(() => { const onKey = e => { if (e.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose])
   return createPortal(<div className={'modal-backdrop detail-backdrop ' + className} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>{children}</div>, document.body)
+}
+
+function PremiumProfileBadge({ owner = false }) {
+  return <span className={"nm-profile-premium-badge" + (owner ? " is-owner" : "")} title={owner ? "Premium ของเจ้าของบัญชี" : "สมาชิก Premium"}>
+    <span className="nm-profile-premium-orbit" aria-hidden="true" />
+    <Crown size={14} fill="currentColor" strokeWidth={2.1} />
+    <b>PREMIUM</b><Sparkles size={12} className="nm-profile-premium-spark" aria-hidden="true" />
+  </span>
 }
 
 function ProfileGallery({ person }) {
@@ -2200,6 +2209,7 @@ export default function App() {
   const [guideOpen, setGuideOpen] = useState(false)
   const [guideStep, setGuideStep] = useState(0)
   const [verifiedCampusIds, setVerifiedCampusIds] = useState([])
+  const [ownerPremium, setOwnerPremium] = useState(false)
   const [fl, setFl] = useState({ q: '', uni: '', min: 18, max: 40, gender: '' }), [filterOpen, setFilterOpen] = useState(false)
   const [discovery, setDiscovery] = useState(null), [discoveryReady, setDiscoveryReady] = useState(false), [discoveryEditing, setDiscoveryEditing] = useState(false)
   const [visibleDetail, setVisibleDetail] = useState(null)
@@ -2237,6 +2247,16 @@ export default function App() {
     if (!userId) return
     try { sessionStorage.setItem(`nisit-last-view:${userId}`, view) } catch {}
   }, [view, userId])
+  useEffect(() => {
+    let active = true
+    if (!userId) { setOwnerPremium(false); return () => { active = false } }
+    supabase.from('premium_subscriptions').select('status,ends_at').eq('user_id', userId).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active || error) return
+        setOwnerPremium(data?.status === 'active' && (!data.ends_at || new Date(data.ends_at).getTime() > Date.now()))
+      }).catch(() => {})
+    return () => { active = false }
+  }, [userId])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -2527,8 +2547,13 @@ const loadMatches = useCallback(async () => {
     try { if (userId) localStorage.setItem(`nisit-intro-v1:${userId}`, 'done') } catch {}
   }
   const openDetail = async (person) => {
-    setDetail(person)
+    setDetail({ ...person, is_premium: person?.id === userId ? ownerPremium : !!person?.is_premium })
     if (!person?.id) return
+    if (person.id !== userId) {
+      supabase.rpc('is_profile_premium', { p_profile_id: person.id }).then(({ data, error }) => {
+        if (!error) setDetail(current => current?.id === person.id ? { ...current, is_premium: data === true } : current)
+      }).catch(() => {})
+    }
     if (person.id !== userId) supabase.rpc('track_profile_view', { p_profile_id: person.id }).then(({error}) => { if (error && !String(error.message || '').includes('function')) console.debug('Profile view tracking unavailable until v76 SQL is applied') }).catch(() => {})
     // Matches may not be in the swipe deck: fetch verification for the opened profile too.
     // Only the verified user ID is returned; university email stays private.
@@ -2597,14 +2622,14 @@ const loadMatches = useCallback(async () => {
           {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
           {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={() => { loadUnreadMessages(); loadUnread() }} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
-          {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
+          {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => { setGuideStep(0); setGuideOpen(true) }}>คู่มือและวิธีเพิ่มแอปลงหน้าจอโฮม</button></footer>
         </div>
       </main>
       {visibleDetail && createPortal(<div className={"modal-backdrop detail-backdrop hangout-member-profile-portal" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
         <ProfileGallery person={visibleDetail} />
-        <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{visibleDetail.display_name}, {visibleDetail.age}</h2>
+        <div className="detail-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{visibleDetail.display_name}, {visibleDetail.age}</h2>{visibleDetail.is_premium && <PremiumProfileBadge owner={visibleDetail.id === userId} />}
           <p className="detail-campus-line"><GraduationCap size={15} />{visibleDetail.university_id ? uniName(visibleDetail.university_id) : 'มหาวิทยาลัยยังไม่ระบุ'}{visibleDetail.faculty ? ` · ${visibleDetail.faculty}` : ''}{visibleDetail.major ? ` · ${visibleDetail.major}` : ''}</p>{verifiedCampusIds.includes(visibleDetail.id) && <CampusVerifiedBadge />}{visibleDetail.relationship_intent && <span className="nm-intent-tag">{intentLabel(visibleDetail.relationship_intent)}</span>}<p>{visibleDetail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags">{(visibleDetail.interests || []).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
           <div className="match-profile-song">{itunesTrack(visibleDetail) ? <ITunesSongCard track={itunesTrack(visibleDetail)} compact /> : <div className="detail-no-song"><Music2 size={17}/><span><b>ยังไม่ได้เพิ่มเพลงโปรด</b><small>เพลงที่สมาชิกเลือกจะแสดงตรงนี้</small></span></div>}</div>
