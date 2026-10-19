@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
@@ -10,6 +10,7 @@ const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่อง
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
 const uniName = (id) => UNIVERSITIES.find((u) => u.id === id)?.name || id
 const ageOf = (d) => { if (!d) return ''; const b = new Date(d), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n < new Date(n.getFullYear(), b.getMonth(), b.getDate())) a--; return a }
+const mediaPub = (p) => { if (!p || typeof p !== 'string') return null; if (/^(https?:|data:|blob:)/i.test(p)) return p; return supabase.storage.from('profile-media').getPublicUrl(p.replace(/^\/+/, '').replace(/^profile-media\//, '')).data.publicUrl }
 const pub = (p) => {
   if (!p || typeof p !== 'string') return null
   const path = p.trim()
@@ -41,7 +42,7 @@ function useViewportScrollLock(active) {
   }, [active])
 }
 
-const Brand = ({ onClick }) => <button className="brand" onClick={onClick}><span className="brand-icon"><Heart fill="currentColor" /></span><span>nisit <b>match</b></span></button>
+const Brand = ({ onClick }) => <button className="brand" onClick={onClick} aria-label="NISIT MATCH หน้าหลัก"><span className="brand-icon"><img src="/nisit-match-mark.png" alt="" /></span><span>nisit <b>match</b></span></button>
 
 function Landing({ onLogin, onRegister }) {
   return <div className="landing landing-editorial">
@@ -76,7 +77,7 @@ function AuthModal({ mode, setMode, close, notify }) {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}><div className="auth-modal">
       <button className="modal-close icon-btn" onClick={close}><X /></button>
-      <div className="auth-brand"><span className="brand-icon"><Heart fill="currentColor" /></span><span>nisit <b>match</b></span></div>
+      <div className="auth-brand"><span className="brand-icon"><img src="/nisit-match-mark.png" alt="" /></span><span>nisit <b>match</b></span></div>
       <div className="auth-heading"><h2>{title}</h2><p>{mode === 'reset' ? 'กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' : mode === 'register' ? 'สร้างบัญชีด้วยอีเมล แล้วตั้งโปรไฟล์ในขั้นต่อไป' : 'เข้าสู่ระบบเพื่อไปต่อจากที่ค้างไว้'}</p></div>
       <form className="auth-form" onSubmit={submit}>
         <label>อีเมล<input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
@@ -96,36 +97,57 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
   const [zoom, setZoom] = useState(1)
   const [url] = useState(() => URL.createObjectURL(file))
   const image = useRef(null)
+  const drag = useRef(null)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [natural, setNatural] = useState({ w: 0, h: 0 })
   const [working, setWorking] = useState(false)
   useEffect(() => () => URL.revokeObjectURL(url), [url])
   useViewportScrollLock(true)
+  const previewSize = 320
+  const baseScale = natural.w && natural.h ? previewSize / Math.min(natural.w, natural.h) : 1
+  const renderW = natural.w ? natural.w * baseScale : '100%'
+  const renderH = natural.h ? natural.h * baseScale : '100%'
+  const clampPan = (next, z = zoom) => {
+    const scale = baseScale * z
+    const maxX = Math.max(0, (natural.w * scale - previewSize) / 2)
+    const maxY = Math.max(0, (natural.h * scale - previewSize) / 2)
+    setPan({ x: Math.max(-maxX, Math.min(maxX, next.x)), y: Math.max(-maxY, Math.min(maxY, next.y)) })
+  }
   const finish = async () => {
     const img = image.current
     if (!img?.naturalWidth || working) return
     setWorking(true)
     try {
+      const w = img.naturalWidth, h = img.naturalHeight
+      const side = Math.min(w, h) / zoom
+      const scale = previewSize / Math.min(w, h)
+      const sx = Math.max(0, Math.min(w - side, (w - side) / 2 - pan.x / (scale * zoom)))
+      const sy = Math.max(0, Math.min(h - side, (h - side) / 2 - pan.y / (scale * zoom)))
       const canvas = document.createElement('canvas')
       canvas.width = 900; canvas.height = 900
       const ctx = canvas.getContext('2d')
-      const side = Math.min(img.naturalWidth, img.naturalHeight) / zoom
-      ctx.drawImage(img, (img.naturalWidth-side)/2, (img.naturalHeight-side)/2, side, side, 0, 0, 900, 900)
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .88))
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, 900, 900)
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .9))
       if (!blob) throw new Error('ไม่สามารถประมวลผลรูปภาพได้')
-      const edited = new File([blob], `profile-${Date.now()}.jpg`, { type: 'image/jpeg' })
-      onDone(edited)
+      onDone(new File([blob], `profile-${Date.now()}.jpg`, { type: 'image/jpeg' }))
     } catch(e) { notify(e.message); setWorking(false) }
   }
+  const pointerDown = e => { drag.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }; e.currentTarget.setPointerCapture?.(e.pointerId) }
+  const pointerMove = e => { if (!drag.current) return; clampPan({ x: drag.current.panX + e.clientX - drag.current.x, y: drag.current.panY + e.clientY - drag.current.y }) }
   return createPortal(<div className="v60-crop-backdrop" role="dialog" aria-modal="true" aria-label="ปรับรูปโปรไฟล์"><div className="v60-crop-dialog">
-    <div className="v60-crop-head"><h3><Crop size={19}/> ปรับรูปก่อนอัปโหลด</h3><button type="button" className="icon-btn" onClick={onCancel} aria-label="ปิด"><X size={21}/></button></div>
-    <div className="v60-crop-preview"><img ref={image} src={url} alt="รูปที่กำลังครอป" style={{ transform: `scale(${zoom})` }}/></div>
-    <label className="v60-crop-zoom">ซูมรูป <input type="range" min="1" max="2.5" step="0.05" value={zoom} onChange={e=>setZoom(+e.target.value)}/></label>
-    <p>รูปจะถูกครอปเป็นสี่เหลี่ยมจัตุรัส โดยจัดกึ่งกลางภาพ</p>
+    <div className="v60-crop-head"><h3><Crop size={19}/> จัดตำแหน่งรูปก่อนอัปโหลด</h3><button type="button" className="icon-btn" onClick={onCancel} aria-label="ปิด"><X size={21}/></button></div>
+    <div className="v60-crop-preview" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={() => {drag.current=null}} onPointerCancel={() => {drag.current=null}}>
+      <img ref={image} src={url} alt="รูปที่กำลังครอป" draggable="false" onLoad={e => setNatural({w:e.currentTarget.naturalWidth,h:e.currentTarget.naturalHeight})} style={{width:renderW,height:renderH,maxWidth:'none',maxHeight:'none',objectFit:'cover',transform:`translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`,transformOrigin:'center',touchAction:'none',cursor:'grab'}} />
+      <span className="v76-crop-guide">ลากรูปเพื่อจัดตำแหน่ง</span>
+    </div>
+    <label className="v60-crop-zoom">ซูมรูป <input type="range" min="1" max="3" step="0.02" value={zoom} onChange={e=>{const z=+e.target.value;setZoom(z);clampPan(pan,z)}}/></label>
+    <p>ลากรูปเพื่อเลือกส่วนที่ต้องการ แล้วใช้แถบซูมเพื่อปรับกรอบได้เอง</p>
     <div className="v60-crop-actions"><button type="button" className="btn btn-ghost" onClick={onCancel}>ยกเลิก</button><button type="button" className="btn btn-pink" disabled={working} onClick={finish}>{working?'กำลังปรับรูป...':'ใช้รูปนี้'}</button></div>
   </div></div>, document.body)
 }
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
-  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [swipeBurstToken, setSwipeBurstToken] = useState(0), [exitHold, setExitHold] = useState(null), [cardEntering, setCardEntering] = useState(false)
+  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null)
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
   const dragFrame = useRef(0)
@@ -133,17 +155,11 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   const yesRef = useRef(null)
   const noRef = useRef(null)
   const busyRef = useRef(false)
-  const enterTimer = useRef(0)
-  const burstTimer = useRef(0)
-  // Hold the outgoing card for the short compositor animation while the data deck advances immediately.
-  const person = exitHold || people[0]
-  // Keep the immediate next profile (B) underneath the outgoing card, even before the deck state settles.
-  // Using people[1] during exit would expose C for a frame and then snap back to B.
-  const behindPerson = exitHold ? (people.find(p => p.id !== exitHold.id) || people[1]) : people[1]
+  const person = people[0]
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
-    card.style.transition = animate ? 'transform 640ms cubic-bezier(.22,.72,.18,1)' : 'none'
+    card.style.transition = animate ? 'transform 520ms cubic-bezier(.22,1,.36,1)' : 'none'
     card.style.transform = `translate3d(${x}px,${y}px,0) rotate(${x / 18}deg)`
     const strength = Math.min(Math.abs(x) / 125, 1)
     for (const [el, visible] of [[yesRef.current, x > 12], [noRef.current, x < -12]]) {
@@ -152,61 +168,33 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
       el.style.transform = `translate3d(0,${(1-strength)*14}px,0) scale(${.83+strength*.17})`
     }
   }, [])
-  useEffect(() => () => { cancelAnimationFrame(dragFrame.current); window.clearTimeout(enterTimer.current); window.clearTimeout(burstTimer.current) }, [])
+  useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
   useLayoutEffect(() => {
-    window.clearTimeout(enterTimer.current)
-    setCardEntering(true)
-    enterTimer.current = window.setTimeout(() => setCardEntering(false), window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 300)
     setPhoto(0)
     setSuperBurst(false)
     start.current = null
     dragNow.current = { x: 0, y: 0 }
-    busyRef.current = false
-    setBusy(false)
     paint(0, 0)
   }, [person?.id, paint])
   const photos = person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : []
-  useEffect(() => {
-    if (typeof Image === 'undefined') return
-    const nextPerson = exitHold ? people[0] : people[1]
-    const urls = [
-      ...photos.slice(0, 4).map(path => pub(path)),
-      nextPerson?.avatar_path ? pub(nextPerson.avatar_path) : null,
-      ...(nextPerson?.photo_paths || []).slice(0, 2).map(path => pub(path))
-    ].filter(Boolean)
-    const warmed = urls.map(src => { const img = new Image(); img.decoding = 'async'; img.src = src; return img })
-    return () => { warmed.forEach(img => { img.onload = null; img.onerror = null }) }
-  }, [person?.id, people[0]?.id, people[1]?.id, !!exitHold])
-  const act = (like) => {
+  const act = async (like) => {
     if (!person || busyRef.current) return
-    // Lock synchronously: a double tap cannot enqueue the same card twice.
     busyRef.current = true
     setBusy(true)
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(like ? 12 : 7)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(like ? 18 : 9)
     setSwipeBurst(like ? 'like' : 'pass')
-    setSwipeBurstToken(token => token + 1)
-    window.clearTimeout(burstTimer.current)
-    // Start persistence immediately, but never wait for the network before animating.
-    // App optimistically advances the deck and rolls back if persistence fails.
+    // Keep the current profile visible during the cinematic charge-up.
+    // The parent only advances the deck after the transition has completed.
     try {
-      const outgoingId = person.id
-      setExitHold(person)
-      const result = like ? onLike(person) : onSkip(person)
-      Promise.resolve(result).catch(() => {})
-      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      paint(like ? 560 : -560, -14, true)
-      window.setTimeout(() => {
-        // Release the outgoing identity only. Do NOT reset the old DOM card here:
-        // React is about to replace it with the next profile, and resetting its transform
-        // to (0,0) for one frame causes the visible 'gulp/snap-back' at the end of a swipe.
-        setExitHold(current => current?.id === outgoingId ? null : current)
-        busyRef.current = false
-        setBusy(false)
-      }, reduceMotion ? 0 : 660)
-      burstTimer.current = window.setTimeout(() => setSwipeBurst(null), reduceMotion ? 180 : 1260)
-    } catch (error) {
-      setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0)
-    }
+      // Give the visual feedback a short beat, then move the card on the compositor.
+      // The database request runs concurrently with the exit animation.
+      await new Promise(resolve => setTimeout(resolve, 120))
+      paint(like ? 560 : -560, -22, true)
+      await Promise.all([
+        (like ? onLike(person) : onSkip(person)),
+        new Promise(resolve => setTimeout(resolve, 840))
+      ])
+    } finally { setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0) }
   }
   const doSuperLike = async () => {
     if (!person || busyRef.current) return
@@ -244,14 +232,14 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     cancelAnimationFrame(dragFrame.current)
     dragFrame.current = 0
     const x = dragNow.current.x
-    if (Math.abs(x) > 95) act(x > 0)
+    if (Math.abs(x) > 62) act(x > 0)
     else { dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
-    {behindPerson && <div className={`swipe-card swipe-behind${exitHold ? ' swipe-behind-next' : ''}`} key={`behind-${behindPerson.id}`}><Av u={behindPerson} cls="swipe-behind-image" /></div>}
-    <article className={`swipe-card swipe-front${cardEntering ? ' swipe-entering' : ''}`} ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
-      <img key={`${person.id}-${photo}`} className="swipe-main-photo" draggable="false" decoding="async" fetchPriority="high" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
+    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
+    <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
+      <img draggable="false" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
       <div className="swipe-photo-bars">{(photos.length ? photos : [null]).map((_, i) => <span key={i} className={i === photo ? 'active' : ''}/>)}</div>
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photos.length - 1, v + 1))}/>
       <div className="swipe-feedback yes" ref={yesRef} aria-hidden="true">
@@ -263,8 +251,6 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge />}{person.relationship_intent && <span className="nm-intent-tag">{intentLabel(person.relationship_intent)}</span>}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
-      {/* Like/Pass feedback is rendered once in the fixed viewport portal below.
-          Duplicating it inside the moving card makes the effect get cut off when the card unmounts. */}
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
         <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />
@@ -272,7 +258,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <div className="nm-superburst-star"><Star size={68} strokeWidth={1.7} fill="currentColor"/></div>
         <div className="nm-superburst-title">SUPER LIKE</div><div className="nm-superburst-caption">ส่งความพิเศษไปแล้ว</div>
       </div>}
-    </article></div>{swipeBurst && createPortal(<div key={swipeBurstToken} className={'v64-swipe-burst nm-swipe-center ' + swipeBurst} aria-hidden="true"><div className="nm-swipe-aura"/><div className="nm-swipe-ring ring-a"/><div className="nm-swipe-ring ring-b"/><div className="nm-swipe-icon-wrap"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={72} strokeWidth={1.4}/> : <X size={72} strokeWidth={1.8}/>}</div></div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span><small>{swipeBurst === 'like' ? 'หัวใจถูกส่งออกไปแล้ว' : 'กำลังพบคนที่ใช่สำหรับคุณ'}</small>{Array.from({length:18},(_,i)=><i key={i} style={{'--i':i,'--angle':`${i*20}deg`}}/>)}</div>, document.body)}<div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
+    </article>{swipeBurst && createPortal(<div className={'v64-swipe-burst v76-swipe-burst-overlay ' + swipeBurst} aria-hidden="true"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={64}/> : <X size={70}/>}</div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span>{Array.from({length:10},(_,i)=><i key={i} style={{'--i':i}}/>)}</div>, document.body)}</div><div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
 
 function CampusVerifiedBadge() {
@@ -1242,6 +1228,13 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       .catch(() => {})
     return () => { alive = false }
   }, [user.id])
+  useEffect(() => {
+    let active = true
+    supabase.from('profile_media').select('id,media_type,storage_path,created_at').eq('profile_id', user.id).order('created_at', { ascending: true })
+      .then(({ data, error }) => { if (active && !error) setProfileVideos(data || []) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [user.id])
   const [f, setF] = useState(() => initialProfileForm(profile))
   const [busy, setBusy] = useState(false)
   const [draftReady, setDraftReady] = useState(false)
@@ -1251,12 +1244,14 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
   const [photos, setPhotos] = useState(profile?.photo_paths?.length ? profile.photo_paths : (profile?.avatar_path ? [profile.avatar_path] : []))
   const [newPhotos, setNewPhotos] = useState([])
   const [cropQueue, setCropQueue] = useState([])
+  const [profileVideos, setProfileVideos] = useState([])
+  const [newVideos, setNewVideos] = useState([])
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
   const [editTab, setEditTab] = useState('photos')
   const [selfPreviewOpen, setSelfPreviewOpen] = useState(false)
   const [selfPreviewIndex, setSelfPreviewIndex] = useState(0)
-  const editTabs = [['photos', 'รูปภาพ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2], ['verification', 'ยืนยันเมลมหาวิทยาลัย', ShieldCheck]]
+  const editTabs = [['photos', 'รูปและวิดีโอ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2], ['verification', 'ยืนยันเมลมหาวิทยาลัย', ShieldCheck]]
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
@@ -1306,6 +1301,21 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     const slots = Math.max(0, 6 - photos.length - newPhotos.length - cropQueue.length)
     setCropQueue(q => [...q, ...valid.slice(0, slots)])
   }
+  const addVideos = files => {
+    const incoming = Array.from(files || [])
+    const valid = incoming.filter(file => file.type.startsWith('video/') && file.size <= 25 * 1024 * 1024)
+    if (valid.length !== incoming.length) notify('วิดีโอควรเป็น MP4/MOV และขนาดไม่เกิน 25MB ต่อไฟล์')
+    const accepted = valid.slice(0, Math.max(0, 3 - profileVideos.length - newVideos.length))
+    setNewVideos(old => [...old, ...accepted.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file) }))])
+  }
+  const removeNewVideo = key => setNewVideos(old => old.filter(item => { if (item.key === key) URL.revokeObjectURL(item.url); return item.key !== key }))
+  const removeExistingVideo = async item => {
+    const { error } = await supabase.from('profile_media').delete().eq('id', item.id).eq('profile_id', user.id)
+    if (error) return notify('ลบวิดีโอไม่สำเร็จ: ' + error.message)
+    setProfileVideos(old => old.filter(x => x.id !== item.id))
+    await supabase.storage.from('profile-media').remove([item.storage_path])
+    notify('ลบวิดีโอแล้ว')
+  }
   const removePhoto = (key) => {
     const remaining = [...photos.filter(x => x !== key), ...newPhotos.filter(x => x.key !== key).map(x => x.key)]
     setPhotos(old => old.filter(x => x !== key)); setNewPhotos(old => old.filter(x => x.key !== key))
@@ -1334,12 +1344,21 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
+    if (error) { setBusy(false); return notify(error.code === '23503' ? 'ไม่พบมหาวิทยาลัยในฐานข้อมูล กรุณารันไฟล์ supabase/sync_universities.sql ก่อน' : 'บันทึกไม่สำเร็จ: ' + error.message) }
+    for (const item of newVideos) {
+      const ext = (item.file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const path = `${user.id}/clip-${crypto.randomUUID()}.${ext}`
+      const { error: videoUploadError } = await supabase.storage.from('profile-media').upload(path, item.file, { contentType: item.file.type, upsert: false })
+      if (videoUploadError) { setBusy(false); return notify(`อัปโหลดวิดีโอไม่สำเร็จ: ${videoUploadError.message} · ตรวจว่ารัน SQL v76 แล้ว`) }
+      const { data: mediaRow, error: mediaError } = await supabase.from('profile_media').insert({ profile_id: user.id, media_type: 'video', storage_path: path }).select('id,media_type,storage_path,created_at').single()
+      if (mediaError) { setBusy(false); return notify(`บันทึกวิดีโอไม่สำเร็จ: ${mediaError.message}`) }
+      setProfileVideos(old => [...old, mediaRow])
+    }
     setBusy(false)
-    if (error) return notify(error.code === '23503' ? 'ไม่พบมหาวิทยาลัยในฐานข้อมูล กรุณารันไฟล์ supabase/sync_universities.sql ก่อน' : 'บันทึกไม่สำเร็จ: ' + error.message)
     skipDraftSave.current = true
     draftRevision.current++
     await draftAction(user.id, 'delete').catch(err => console.warn('Draft cleanup unavailable:', err))
-    setPhotos(photo_paths); setNewPhotos([]); setMainPhoto(avatar_path || '')
+    setPhotos(photo_paths); setNewPhotos([]); newVideos.forEach(item => URL.revokeObjectURL(item.url)); setNewVideos([]); setMainPhoto(avatar_path || '')
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
   const toggle = (i) => setF({ ...f, interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i].slice(0, 12) })
@@ -1370,6 +1389,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
         <div className="photo-editor"><b>รูปโปรไฟล์ ({photos.length + newPhotos.length}/6)</b><p>แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key)})), ...newPhotos].map(item => <div className="photo-tile" key={item.key}><img src={item.url} alt="รูปโปรไฟล์"/><button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button><button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button></div>)}{photos.length + newPhotos.length < 6 && <label className="photo-add"><Camera size={21}/><span>เพิ่มรูป</span><input type="file" accept="image/*" multiple onChange={e => {addPhotos(e.target.files); e.target.value = ''}} /></label>}</div></div>
+        <div className="v76-media-section"><div className="v76-media-heading"><div><b><Video size={17}/> Live Photo / วิดีโอโปรไฟล์</b><p>อัปโหลดคลิปสั้นเพื่อให้โปรไฟล์มีชีวิตชีวา รองรับสูงสุด 3 คลิป</p></div><span>{profileVideos.length + newVideos.length}/3</span></div>
+          <div className="v76-video-grid">{profileVideos.map(item => <div className="v76-video-tile" key={item.id}><video src={mediaPub(item.storage_path)} muted playsInline controls preload="metadata"/><button type="button" onClick={() => removeExistingVideo(item)} aria-label="ลบวิดีโอ">×</button></div>)}{newVideos.map(item => <div className="v76-video-tile" key={item.key}><video src={item.url} muted playsInline controls preload="metadata"/><button type="button" onClick={() => removeNewVideo(item.key)} aria-label="ลบวิดีโอ">×</button></div>)}{profileVideos.length + newVideos.length < 3 && <label className="v76-video-add"><Video size={22}/><span>เพิ่มคลิป</span><input type="file" accept="video/mp4,video/quicktime,video/webm" multiple onChange={e => {addVideos(e.target.files);e.target.value=''}}/></label>}</div>
+          <small>หมายเหตุ: Live Photo จาก iPhone จะแสดงเป็นคลิปวิดีโอสั้น ไม่ใช่ไฟล์ Live Photo แบบจับคู่ HEIC/MOV โดยตรง</small>
+        </div>
       </section>}
       <form className="form-panel nm-tab-form" onSubmit={save} noValidate>
         {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
@@ -1596,19 +1619,32 @@ function LockedProfileDetail({ children, onClose, className = '' }) {
 }
 
 function ProfileGallery({ person }) {
-  const photos = [...new Set([person?.avatar_path, ...(Array.isArray(person?.photo_paths) ? person.photo_paths : [])].filter(Boolean))]
+  const photos = [...new Set([person?.avatar_path, ...(Array.isArray(person?.photo_paths) ? person.photo_paths : [])].filter(Boolean))].map(path => ({ type: 'image', path, key: path }))
+  const [media, setMedia] = useState([])
   const [index, setIndex] = useState(0)
-  useEffect(() => setIndex(0), [person?.id])
-  const current = photos[index] || photos[0]
+  useEffect(() => {
+    setIndex(0); setMedia([])
+    if (!person?.id) return
+    let active = true
+    supabase.from('profile_media').select('id,media_type,storage_path').eq('profile_id', person.id).order('created_at', { ascending: true })
+      .then(({data,error}) => { if (active && !error) setMedia((data||[]).map(item => ({type:item.media_type,path:item.storage_path,key:item.id}))) }).catch(()=>{})
+    return () => { active = false }
+  }, [person?.id])
+  const items = [...photos, ...media]
+  const current = items[index] || items[0]
   const touchStart = useRef(null)
-  useEffect(() => { if (photos.length > 1) { const image = new Image(); image.src = pub(photos[(index + 1) % photos.length]) } }, [index, person?.id])
-  return <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { touchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (touchStart.current === null || photos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current; touchStart.current = null; if (Math.abs(diff) > 45) setIndex(i => (i + (diff < 0 ? 1 : photos.length - 1)) % photos.length) }}>
-    <img className="detail-cover v64-photo-fade" src={pub(current) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />
-    {photos.length > 1 && <>
-      <button type="button" className="gallery-prev" onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)} aria-label="รูปก่อนหน้า">‹</button>
-      <button type="button" className="gallery-next" onClick={() => setIndex(i => (i + 1) % photos.length)} aria-label="รูปถัดไป">›</button>
-      <div className="gallery-count">{index + 1} / {photos.length}</div>
-      <div className="gallery-thumbnails">{photos.map((path, i) => <button type="button" key={path} className={i === index ? 'active' : ''} onClick={() => setIndex(i)} aria-label={`ดูรูปที่ ${i + 1}`}><img src={pub(path)} alt="" /></button>)}</div>
+  useEffect(() => {
+    if (items.length < 2) return
+    const next = items[(index + 1) % items.length]
+    if (next?.type === 'image') { const image = new Image(); image.src = pub(next.path) }
+  }, [index, person?.id, items.length])
+  return <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { touchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (touchStart.current === null || items.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current; touchStart.current = null; if (Math.abs(diff) > 45) setIndex(i => (i + (diff < 0 ? 1 : items.length - 1)) % items.length) }}>
+    {current?.type === 'video' ? <video className="detail-cover v64-photo-fade" src={mediaPub(current.path)} controls playsInline loop autoPlay muted preload="metadata" aria-label={`วิดีโอของ ${person?.display_name || 'สมาชิก'}`} /> : <img className="detail-cover v64-photo-fade" src={pub(current?.path) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />}
+    {items.length > 1 && <>
+      <button type="button" className="gallery-prev" onClick={() => setIndex(i => (i - 1 + items.length) % items.length)} aria-label="สื่อก่อนหน้า">‹</button>
+      <button type="button" className="gallery-next" onClick={() => setIndex(i => (i + 1) % items.length)} aria-label="สื่อถัดไป">›</button>
+      <div className="gallery-count">{index + 1} / {items.length}</div>
+      <div className="gallery-thumbnails">{items.map((item, i) => <button type="button" key={item.key} className={i === index ? 'active' : ''} onClick={() => setIndex(i)} aria-label={`ดูสื่อที่ ${i + 1}`}>{item.type === 'video' ? <span className="v76-video-thumb"><Video size={18}/></span> : <img src={pub(item.path)} alt="" />}</button>)}</div>
     </>}
   </div>
 }
@@ -1627,7 +1663,7 @@ function DiscoverySetup({ initial, profile, onSave, onClose, isEditing = false }
   const toggleUni = id => setPref(p => ({ ...p, universities: p.universities.includes(id) ? p.universities.filter(x => x !== id) : [...p.universities, id] }))
   const finish = async () => { setSaving(true); try { await onSave(pref) } finally { setSaving(false) } }
   return <div className={"discovery-overlay" + (isEditing ? " discovery-editing" : "") + (closing ? " is-closing" : "")}><div className="discovery-aurora a"/><div className="discovery-aurora b"/><div className="discovery-card" key={step}>
-    <div className="discovery-head"><span className="discovery-logo"><Heart size={18} fill="currentColor"/> NISIT <b>MATCH</b></span>{isEditing && <button className="discovery-close" onClick={closeSmoothly} aria-label="ปิด"><X size={20}/></button>}</div>
+    <div className="discovery-head"><span className="discovery-logo"><img src="/nisit-match-mark.png" alt="" /> <span>NISIT <b>MATCH</b></span></span>{isEditing && <button className="discovery-close" onClick={closeSmoothly} aria-label="ปิด"><X size={20}/></button>}</div>
     <div className="discovery-progress"><span style={{ width: `${(step + 1) * 33.333}%` }}/></div>
     <div className="discovery-step-label">DISCOVERY PREFERENCES <span>0{step + 1} / 03</span></div>
     {step === 0 && <div className="discovery-body"><div className="discovery-symbol"><Heart size={27} strokeWidth={1.6}/></div><h1>หัวใจคุณกำลัง<br/><em>มองหาใครอยู่?</em></h1><p>เลือกคนที่คุณสนใจ แล้วเราจะช่วยพาไปเจอคนที่ใช่</p><div className="discovery-choice-grid">{[['',Users,'ทุกเพศ'],['male',UserRound,'ผู้ชาย'],['female',Heart,'ผู้หญิง'],['other',Sparkles,'เพศอื่น ๆ']].map(([id,Icon,label]) => <button key={id} className={'discovery-choice ' + (pref.gender === id ? 'chosen' : '')} onClick={() => setPref(p => ({...p, gender:id}))}><span className="choice-icon"><Icon size={19} strokeWidth={1.8}/></span><b>{label}</b>{pref.gender === id && <Check size={17}/>}</button>)}</div><div className="discovery-age"><div className="discovery-age-title"><b>ช่วงอายุที่สนใจ</b><span>{pref.min} – {pref.max} ปี</span></div><label>อายุต่ำสุด <input type="range" min="18" max="40" value={pref.min} onChange={e => setPref(p => ({...p,min: Math.min(+e.target.value,p.max)}))}/></label><label>อายุสูงสุด <input type="range" min="18" max="60" value={pref.max} onChange={e => setPref(p => ({...p,max: Math.max(+e.target.value,p.min)}))}/></label></div></div>}
@@ -1670,14 +1706,102 @@ function PreferencesEditor({ initial, profile, onSave, onClose }) {
   </div>
 }
 
+function PremiumPage({ user, notify, onGoVisitors }) {
+  const [plan, setPlan] = useState('monthly')
+  const [status, setStatus] = useState(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let active = true
+    supabase.from('premium_subscriptions').select('plan,status,ends_at').eq('user_id', user.id).maybeSingle()
+      .then(({data,error}) => { if (active && !error) setStatus(data) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [user.id])
+  const request = async () => {
+    setBusy(true)
+    const { error } = await supabase.from('premium_requests').insert({ user_id: user.id, plan })
+    setBusy(false)
+    if (error) return notify('บันทึกคำขอ Premium ไม่สำเร็จ กรุณารัน supabase/V76_PREMIUM_HANGOUT_MEDIA.sql ก่อน')
+    notify('บันทึกแพ็กเกจที่สนใจแล้ว ระบบชำระเงินจริงยังอยู่ระหว่างเชื่อมต่อ')
+  }
+  return <div className="v76-page"><Heading kicker="NISIT MATCH / PREMIUM" title="ความสัมพันธ์ที่ลึกขึ้น" sub="เครื่องมือเพิ่มเติมสำหรับคนที่อยากค้นหาให้ตรงใจมากขึ้น" />
+    {status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date() && <div className="v76-active-plan"><Crown size={19}/> Premium เปิดใช้งานอยู่ · หมดอายุ {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
+    <div className="v76-premium-hero"><div className="v76-premium-orb"><Crown size={34}/></div><span className="v76-eyebrow">A LITTLE MORE MAGIC</span><h2>เห็นโอกาสที่คุณอาจพลาด</h2><p>ดูคนที่กดใจคุณ ดูผู้เข้าชมโปรไฟล์ และใช้ตัวช่วยค้นหาคนที่สนใจคุณจริง ๆ</p></div>
+    <div className="v76-plan-grid">
+      {[['weekly','รายสัปดาห์','เหมาะกับการลองใช้ Premium'],['monthly','รายเดือน','สำหรับคนที่อยากใช้ต่อเนื่อง']].map(([id,title,sub]) => <button type="button" key={id} className={'v76-plan-card'+(plan===id?' selected':'')} onClick={()=>setPlan(id)} aria-pressed={plan===id}><span className="v76-plan-radio">{plan===id&&<Check size={13}/>}</span><strong>{title}</strong><small>{sub}</small><span className="v76-plan-price">ราคาแสดงก่อนเปิดชำระเงินจริง</span></button>)}
+    </div>
+    <div className="v76-premium-features"><div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div><div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div><div><Sparkles/><span><b>สิทธิพิเศษเพิ่มเติม</b><small>รองรับการเพิ่มฟีเจอร์ในอนาคต</small></span></div></div>
+    <button className="v76-primary-cta" type="button" onClick={request} disabled={busy}>{busy?'กำลังบันทึก...':'เลือกแพ็กเกจนี้'} <ArrowRight size={18}/></button>
+    <button type="button" className="v76-secondary-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูหน้าคนที่เข้าชมโปรไฟล์</button>
+    <p className="v76-disclaimer">หมายเหตุ: หน้านี้เป็นการเตรียมระบบแพ็กเกจและบันทึกความสนใจ ยังไม่เรียกเก็บเงินจริง ต้องเชื่อม Payment Gateway และ webhook ที่ตรวจสอบการชำระเงินฝั่งเซิร์ฟเวอร์ก่อนเปิดใช้งาน</p>
+  </div>
+}
+
+function PremiumListPage({ kind, user, notify, onOpenProfile, onGoPremium }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [locked, setLocked] = useState(false)
+  useEffect(() => {
+    let active = true
+    const rpc = kind === 'likes' ? 'get_received_likes' : 'get_profile_visitors'
+    supabase.rpc(rpc).then(({data,error}) => {
+      if (!active) return
+      setLoading(false)
+      if (error) {
+        const msg = String(error.message || '').toLowerCase()
+        if (msg.includes('premium') || msg.includes('subscription')) setLocked(true)
+        else notify(`โหลดข้อมูลไม่สำเร็จ: ${error.message} · ตรวจว่าได้รัน SQL v76 แล้ว`)
+        return
+      }
+      setItems(data || [])
+    }).catch(() => { if (active) { setLoading(false); notify('เชื่อมต่อข้อมูลไม่สำเร็จ') } })
+    return () => { active = false }
+  }, [kind, notify])
+  const isLikes = kind === 'likes'
+  return <div className="v76-page"><Heading kicker={isLikes?'YOUR ADMIRERS':'PROFILE VISITORS'} title={isLikes?'คนที่กดใจคุณ':'คนที่เข้าชมโปรไฟล์'} sub={isLikes?'คนที่ส่งหัวใจมาให้คุณ อาจเป็นคนที่กำลังรอให้คุณทัก':'ดูคนที่แวะเข้ามาดูโปรไฟล์ของคุณ'} />
+    {locked ? <div className="v76-locked-panel"><div className="v76-lock-icon"><Crown size={28}/></div><h2>ฟีเจอร์สำหรับ Premium</h2><p>อัปเกรดเพื่อดูรายชื่อแบบเต็ม โดยข้อมูลจะแสดงเมื่อระบบ Premium เปิดใช้งานและตรวจสอบสิทธิ์แล้ว</p><button className="v76-primary-cta" onClick={onGoPremium}>ดูแพ็กเกจ Premium <ArrowRight size={17}/></button></div> : loading ? <div className="page-center"><span className="spin"/></div> : items.length ? <div className="v76-people-grid">{items.map(item => <button className="v76-person-row" key={item.id} onClick={()=>onOpenProfile(item)}><Av u={item} cls="v76-person-avatar"/><span><b>{item.display_name}{item.age?`, ${item.age}`:''}</b><small>{uniName(item.university_id)}{item.faculty?` · ${item.faculty}`:''}</small><small>{item.viewed_at?`เข้าชม ${new Date(item.viewed_at).toLocaleDateString('th-TH')}`:item.liked_at?`กดใจ ${new Date(item.liked_at).toLocaleDateString('th-TH')}`:''}</small></span><ArrowRight size={17}/></button>)}</div> : <div className="v76-empty"><div><HeartHandshake size={30}/></div><h2>{isLikes?'ยังไม่มีคนกดใจที่แสดงได้':'ยังไม่มีผู้เข้าชมที่แสดงได้'}</h2><p>{isLikes?'เมื่อมีคนกดใจคุณ รายชื่อจะแสดงตรงนี้เมื่อ Premium พร้อมใช้งาน':'เมื่อมีคนเปิดโปรไฟล์ รายชื่อจะเริ่มปรากฏที่นี่'}</p></div>}
+  </div>
+}
+
+function HangoutPage({ user, profile, notify }) {
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [joined, setJoined] = useState([])
+  const [form, setForm] = useState({title:'',venue:'',city:'กรุงเทพฯ',starts_at:'',capacity:'6',description:''})
+  const refresh = useCallback(async () => {
+    const {data,error} = await supabase.from('hangout_events').select('id,creator_id,title,venue,city,starts_at,capacity,description,created_at').eq('status','open').gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true}).limit(40)
+    if (error) { setLoading(false); if (!String(error.message||'').includes('does not exist')) notify('โหลด Hangout ไม่สำเร็จ: '+error.message+' · ตรวจว่าได้รัน SQL v76 แล้ว'); return }
+    setEvents(data||[]); setLoading(false)
+    const {data:mine,error:mineError} = await supabase.from('hangout_rsvps').select('event_id').eq('user_id',user.id)
+    if (!mineError) setJoined((mine||[]).map(x=>x.event_id))
+  },[user.id,notify])
+  useEffect(()=>{refresh()},[refresh])
+  const create = async e => {
+    e.preventDefault(); if(!form.title.trim()||!form.venue.trim()||!form.starts_at) return notify('กรอกชื่อกิจกรรม สถานที่ และวันเวลาให้ครบ')
+    if(new Date(form.starts_at)<=new Date()) return notify('เลือกวันเวลาในอนาคต')
+    setBusy(true)
+    const {error}=await supabase.from('hangout_events').insert({creator_id:user.id,title:form.title.trim(),venue:form.venue.trim(),city:form.city.trim()||'ไม่ระบุ',starts_at:new Date(form.starts_at).toISOString(),capacity:Math.max(2,Math.min(20,+form.capacity||6)),description:form.description.trim(),status:'open'})
+    setBusy(false); if(error) return notify('สร้าง Hangout ไม่สำเร็จ: '+error.message+' · ตรวจว่าได้รัน SQL v76 แล้ว')
+    setForm({title:'',venue:'',city:'กรุงเทพฯ',starts_at:'',capacity:'6',description:''}); setShowCreate(false); notify('สร้าง Hangout แล้ว'); refresh()
+  }
+  const rsvp = async event => {
+    if(joined.includes(event.id)) { const {error}=await supabase.from('hangout_rsvps').delete().eq('event_id',event.id).eq('user_id',user.id); if(error) return notify('ยกเลิกการเข้าร่วมไม่สำเร็จ: '+error.message); setJoined(old=>old.filter(x=>x!==event.id)); notify('ยกเลิกการเข้าร่วมแล้ว'); return }
+    const {error}=await supabase.from('hangout_rsvps').insert({event_id:event.id,user_id:user.id}); if(error) return notify(error.code==='23505'?'คุณเข้าร่วมกิจกรรมนี้แล้ว':`เข้าร่วมไม่สำเร็จ: ${error.message}`); setJoined(old=>[...old,event.id]); notify('ส่งคำขอเข้าร่วมแล้ว')
+  }
+  return <div className="v76-page"><Heading kicker="MEET IRL" title="Hangout กับคนใหม่ ๆ" sub="นัดเจอกันในพื้นที่สาธารณะ ตั้งแต่คาเฟ่ กิจกรรมมหาวิทยาลัย ไปจนถึงสังสรรค์กับเพื่อนใหม่"><button className="btn btn-pink" onClick={()=>setShowCreate(v=>!v)}><CalendarDays size={17}/> สร้าง Hangout</button></Heading>
+    <div className="v76-hangout-safety"><ShieldCheck size={19}/><span><b>เจอกันอย่างปลอดภัย</b><small>เลือกสถานที่สาธารณะ แจ้งเพื่อนที่ไว้ใจ และอย่าโอนเงินให้คนที่เพิ่งรู้จัก</small></span></div>
+    {showCreate&&<form className="v76-hangout-form" onSubmit={create}><div className="v76-form-heading"><h2>สร้างนัด Hangout</h2><button type="button" className="icon-btn" onClick={()=>setShowCreate(false)}><X size={19}/></button></div><label>ชื่อนัด<input required maxLength="70" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="เช่น หลังเลิกเรียนไปนั่งชิลกัน"/></label><div className="v76-form-two"><label>สถานที่<input required maxLength="100" value={form.venue} onChange={e=>setForm({...form,venue:e.target.value})} placeholder="ชื่อร้าน / สถานที่สาธารณะ"/></label><label>จังหวัด / พื้นที่<input value={form.city} maxLength="80" onChange={e=>setForm({...form,city:e.target.value})}/></label></div><div className="v76-form-two"><label>วันและเวลา<input type="datetime-local" required value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label><label>จำนวนคนสูงสุด<select value={form.capacity} onChange={e=>setForm({...form,capacity:e.target.value})}>{[2,3,4,5,6,8,10,12,15,20].map(n=><option key={n} value={n}>{n} คน</option>)}</select></label></div><label>รายละเอียด<textarea rows="3" maxLength="500" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="แนวกิจกรรม งบประมาณโดยประมาณ หรือสิ่งที่ควรรู้"/></label><button className="v76-primary-cta" disabled={busy}>{busy?'กำลังสร้าง...':'เผยแพร่นัด Hangout'} <ArrowRight size={17}/></button></form>}
+    {loading?<div className="page-center"><span className="spin"/></div>:events.length?<div className="v76-hangout-grid">{events.map(event=><article className="v76-event-card" key={event.id}><div className="v76-event-date"><span>{new Date(event.starts_at).toLocaleDateString('th-TH',{day:'2-digit'})}</span><small>{new Date(event.starts_at).toLocaleDateString('th-TH',{month:'short'})}</small></div><div className="v76-event-content"><span className="v76-event-tag"><MapPinned size={13}/>{event.city||'นัดพบ'}</span><h3>{event.title}</h3><p><MapPin size={14}/>{event.venue}</p><p><Clock size={14}/>{new Date(event.starts_at).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'})}</p>{event.description&&<p className="v76-event-desc">{event.description}</p>}<div className="v76-event-footer"><span><Users size={15}/> สูงสุด {event.capacity} คน</span><button className={joined.includes(event.id)?'joined':''} onClick={()=>rsvp(event)}>{joined.includes(event.id)?'เข้าร่วมแล้ว ✓':'ขอเข้าร่วม'} </button></div></div></article>)}</div>:<div className="v76-empty"><div><CalendarDays size={30}/></div><h2>ยังไม่มีนัด Hangout</h2><p>เริ่มสร้างนัดในพื้นที่สาธารณะ แล้วชวนคนที่สนใจมาร่วมกิจกรรม</p><button className="v76-primary-cta" onClick={()=>setShowCreate(true)}>สร้าง Hangout แรก <ArrowRight size={17}/></button></div>}
+  </div>
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [newMatch, setNewMatch] = useState(null)
   const [lastSwipe, setLastSwipe] = useState(null)
-  const swipeInFlight = useRef(new Set())
-  const swipeSequence = useRef(0)
-  const lastSwipeSequence = useRef(0)
   const [superBusy, setSuperBusy] = useState(false)
   const [reportTarget, setReportTarget] = useState(null)
   const [reportReason, setReportReason] = useState('fake_profile')
@@ -1715,7 +1839,7 @@ export default function App() {
       lastAccountRef.current = userId
       try {
         const saved = sessionStorage.getItem(`nisit-last-view:${userId}`)
-        setView(['home', 'messages', 'notifs', 'profile', 'settings'].includes(saved) ? saved : 'home')
+        setView(['home', 'messages', 'notifs', 'profile', 'settings', 'likes', 'visitors', 'hangout', 'premium'].includes(saved) ? saved : 'home')
       } catch { setView('home') }
     }
   }, [userId, session === undefined])
@@ -1915,62 +2039,27 @@ const loadMatches = useCallback(async () => {
   }, [user, notify, loadUnread, loadMatches])
 
   const swipe = async (p, is_like) => {
-    if (!user || !p?.id) { notify('กรุณาเข้าสู่ระบบก่อน'); return false }
-    if (swipeInFlight.current.has(p.id)) return false
-    swipeInFlight.current.add(p.id)
-    const sequence = ++swipeSequence.current
-    // Optimistic UI: remove the card before awaiting Supabase. Save a stable snapshot
-    // so a failed write can restore the profile without duplicating it.
-    const previousPeople = people || []
-    setPeople(current => (current || []).filter(x => x.id !== p.id))
-    setDetail(current => current?.id === p.id ? null : current)
-    try {
-      const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
-      if (error) {
-        setPeople(current => {
-          const list = current || []
-          if (list.some(x => x.id === p.id)) return list
-          const oldIndex = Math.max(0, previousPeople.findIndex(x => x.id === p.id))
-          const restored = [...list]
-          restored.splice(Math.min(oldIndex, restored.length), 0, p)
-          return restored
-        })
-        notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว โปรไฟล์ถูกนำออกจากหน้าปัด' : `บันทึกไม่สำเร็จ จึงคืนโปรไฟล์ให้แล้ว: ${error.message}`)
-        return false
-      }
-      if (sequence >= lastSwipeSequence.current) {
-        lastSwipeSequence.current = sequence
-        setLastSwipe({ person: p, at: Date.now(), matched: false, sequence })
-      }
-      if (is_like) {
-        const [a, b] = [user.id, p.id].sort()
-        // Existing database trigger remains authoritative for match creation.
-        const { data, error: matchError } = await supabase.from('matches').select('id').eq('user_a', a).eq('user_b', b).maybeSingle()
-        if (matchError) notify('บันทึก Like แล้ว แต่ตรวจสอบ Match ไม่สำเร็จ กรุณาเปิดข้อความอีกครั้งเพื่อตรวจสอบ')
-        else if (data) {
-          setLastSwipe(current => current?.person?.id === p.id ? null : current)
-          setNewMatch({ id: data.id, p })
-          await loadMatches()
-        } else notify(`ส่งหัวใจให้ ${p.display_name} แล้ว`)
-      } else notify('ข้ามโปรไฟล์แล้ว')
-      return true
-    } catch (error) {
-      setPeople(current => {
-        const list = current || []
-        if (list.some(x => x.id === p.id)) return list
-        const oldIndex = Math.max(0, previousPeople.findIndex(x => x.id === p.id))
-        const restored = [...list]; restored.splice(Math.min(oldIndex, restored.length), 0, p); return restored
-      })
-      notify(`เชื่อมต่อไม่สำเร็จ จึงคืนโปรไฟล์ให้แล้ว: ${error?.message || 'ลองอีกครั้ง'}`)
-      return false
-    } finally { swipeInFlight.current.delete(p.id) }
+    if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
+    const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
+    if (error) return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
+    setLastSwipe({ person: p, at: Date.now(), matched: false })
+    // Keep the current profile mounted while the swipe-out transition completes.
+    await new Promise(resolve => setTimeout(resolve, 520))
+    setPeople((l) => (l || []).filter((x) => x.id !== p.id)); setDetail(null)
+    if (is_like) {
+      const [a, b] = [user.id, p.id].sort()
+      // Trigger on_like() creates the match when the other person has already liked back.
+      const { data, error: matchError } = await supabase.from('matches').select('id').eq('user_a', a).eq('user_b', b).maybeSingle()
+      if (matchError) notify('บันทึก Like แล้ว แต่ตรวจสอบ Match ไม่สำเร็จ กรุณารีเฟรชหน้า')
+      else if (data) { setLastSwipe(null); setNewMatch({ id: data.id, p }); await loadMatches() }
+      else notify(`ส่งหัวใจให้ ${p.display_name} แล้ว 💙`)
+    } else notify('ข้ามโปรไฟล์แล้ว')
   }
   const undoSwipe = async () => {
     if (!lastSwipe || Date.now()-lastSwipe.at > 120000) { setLastSwipe(null); return notify('ย้อนกลับได้ภายใน 2 นาทีหลังปัด') }
     const { data, error } = await supabase.rpc('v60_undo_swipe', { p_target: lastSwipe.person.id })
     if (error || !data) return notify(error?.message || 'ไม่สามารถย้อนกลับได้ หากเกิด Match แล้วจะย้อนกลับไม่ได้')
     setPeople(old => [lastSwipe.person, ...(old || []).filter(p=>p.id!==lastSwipe.person.id)])
-    lastSwipeSequence.current = 0
     setLastSwipe(null); notify('ย้อนกลับการปัดล่าสุดแล้ว')
   }
   const superLike = async (p) => {
@@ -2022,6 +2111,7 @@ const loadMatches = useCallback(async () => {
   const openDetail = async (person) => {
     setDetail(person)
     if (!person?.id) return
+    if (person.id !== userId) supabase.rpc('track_profile_view', { p_profile_id: person.id }).then(({error}) => { if (error && !String(error.message || '').includes('function')) console.debug('Profile view tracking unavailable until v76 SQL is applied') }).catch(() => {})
     // Matches may not be in the swipe deck: fetch verification for the opened profile too.
     // Only the verified user ID is returned; university email stays private.
     supabase.rpc('verified_student_profile_ids', { candidate_ids: [person.id] })
@@ -2054,7 +2144,7 @@ const loadMatches = useCallback(async () => {
   if (discoveryReady && discoveryEditing) return <PreferencesEditor initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
   if (discoveryReady && !discovery) return <DiscoverySetup initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
 
-  const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
+  const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['likes', 'คนที่กดใจ', HeartHandshake], ['visitors', 'คนที่เข้าชม', EyeIcon], ['hangout', 'Hangout', CalendarDays], ['premium', 'Premium', Crown], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
   const empty = <div className="empty-state"><div className="empty-icon"><Search /></div><h3>ยังไม่มีสมาชิกให้แสดง</h3><p>ตอนนี้ยังไม่มีสมาชิกคนอื่นที่ตรงกับตัวกรอง ลองปรับตัวกรอง หรือชวนเพื่อนมาสมัคร</p></div>
   return (
     <div className="app-shell">
@@ -2063,18 +2153,22 @@ const loadMatches = useCallback(async () => {
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
-        {[["home","ปัด",Heart],["profile","โปรไฟล์",UserRound],["messages","ข้อความ",MessageCircle],["notifs","แจ้งเตือน",Bell],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
+        {[["home","ปัด",Heart],["likes","คนที่กดใจ",HeartHandshake],["messages","ข้อความ",MessageCircle],["hangout","Hangout",CalendarDays],["profile","โปรไฟล์",UserRound]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
       </nav>
       <main className="main-area">
         <div className="page-content">
           {view === 'home' && <>
-            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></Heading>
+            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button className="btn btn-ghost" onClick={() => go('premium')}><Crown size={16}/> Premium</button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             {nearbyFallback && <p className="nearby-fallback-note">ยังไม่พบคนในรัศมีที่ตั้งไว้ จึงแสดงโปรไฟล์อื่นให้ปัดได้ก่อน · ปรับระยะทางได้ในตั้งค่าสเปก</p>}
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
+          {view === 'likes' && <PremiumListPage kind="likes" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
+          {view === 'visitors' && <PremiumListPage kind="visitors" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
+          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} />}
+          {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
           {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={loadUnreadMessages} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
