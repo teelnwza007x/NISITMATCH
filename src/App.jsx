@@ -227,34 +227,48 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   }
   const down = (e) => {
     if (busyRef.current || (e.pointerType === 'mouse' && e.button !== 0)) return
-    if (e.cancelable) e.preventDefault()
-    start.current = { x: e.clientX, y: e.clientY }
-    e.currentTarget.setPointerCapture(e.pointerId)
+    // Do not cancel touch at pointer-down: the browser needs a chance to
+    // recognize vertical intent and scroll the discovery page naturally.
+    start.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId, horizontal: false }
+    dragNow.current = { x: 0, y: 0 }
   }
   const move = (e) => {
-    if (!start.current || busyRef.current) return
-    // Keep the card gesture in control on touch screens so the page doesn't
-    // scroll underneath the deck while the user is trying to swipe.
+    const origin = start.current
+    if (!origin || busyRef.current) return
+    const dx = e.clientX - origin.x, dy = e.clientY - origin.y
+    // Vertical-dominant movement belongs to the page, not the swipe gesture.
+    if (!origin.horizontal && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 1.12) {
+      start.current = null
+      dragNow.current = { x: 0, y: 0 }
+      return
+    }
+    // Claim the pointer only after a clear horizontal gesture is detected.
+    if (!origin.horizontal && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.08) {
+      origin.horizontal = true
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+    }
+    if (!origin.horizontal) return
     if (e.cancelable) e.preventDefault()
-    dragNow.current = { x: e.clientX - start.current.x, y: e.clientY - start.current.y }
+    dragNow.current = { x: dx, y: dy }
     if (!dragFrame.current) dragFrame.current = requestAnimationFrame(() => {
       dragFrame.current = 0
       paint(dragNow.current.x, dragNow.current.y)
     })
   }
   const up = () => {
-    if (!start.current) return
+    const origin = start.current
+    if (!origin) return
     start.current = null
     cancelAnimationFrame(dragFrame.current)
     dragFrame.current = 0
-    const x = dragNow.current.x
+    const x = origin.horizontal ? dragNow.current.x : 0
     if (Math.abs(x) > 62) act(x > 0)
     else { dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
-    <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
+    <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'pan-y' }}>
       {photoItems[photo]?.type === 'video' ? <video key={photoItems[photo].key} className="swipe-media-video" draggable="false" src={mediaPub(photoItems[photo].path)} muted playsInline loop autoPlay preload="metadata" aria-label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photoItems.length - 1, v + 1))}/>
@@ -1642,7 +1656,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
         {editTab === 'basic' && <>
         <label>ชื่อที่อยากให้เรียก<input required maxLength={40} value={f.display_name} onChange={set('display_name')} /></label>
-        <div className="nm-intent-editor"><strong>ตอนนี้กำลังมองหาอะไร?</strong><p>เลือกได้หนึ่งอย่าง เปลี่ยนได้ทุกเมื่อ และจะแสดงบนโปรไฟล์ของคุณ</p><div className="nm-intent-options">{RELATIONSHIP_INTENTS.map(item => <button type="button" key={item.id} className={f.relationship_intent === item.id ? 'selected' : ''} aria-pressed={f.relationship_intent === item.id} onClick={() => setF(old => ({ ...old, relationship_intent: old.relationship_intent === item.id ? '' : item.id }))}>{item.label}</button>)}</div></div>
+        <div className="nm-intent-editor"><strong>ตอนนี้กำลังมองหาอะไร?</strong><p>เลือกได้หนึ่งอย่าง เปลี่ยนได้ทุกเมื่อ และจะแสดงบนโปรไฟล์ของคุณ</p><div className="nm-intent-options">{RELATIONSHIP_INTENTS.map((item, index) => <button type="button" key={item.id} style={{'--intent-index':index}} className={'intent-' + item.id + (f.relationship_intent === item.id ? ' selected' : '')} aria-pressed={f.relationship_intent === item.id} onClick={() => setF(old => ({ ...old, relationship_intent: old.relationship_intent === item.id ? '' : item.id }))}><span className="nm-intent-emoji" aria-hidden="true">{(['💗','🫧','🌷','✨'][index])}</span><span>{item.label}</span>{f.relationship_intent === item.id && <span className="nm-intent-check" aria-hidden="true">✓</span>}</button>)}</div></div>
         <div className="form-row"><label>วันเกิด (ต้องอายุ 18+)<input type="date" required value={f.birth_date} onChange={set('birth_date')} /></label><label>เพศ<select value={f.gender} onChange={set('gender')}>{Object.entries(GENDERS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label></div>
         </>}
         {editTab === 'campus' && <>
@@ -2435,6 +2449,24 @@ const loadMatches = useCallback(async () => {
   }, [discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify])
   useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
   useEffect(() => { if (profile) { loadMatches(); loadPeople() } }, [profile, loadMatches, loadPeople])
+  // Public Premium status for swipe cards: only a boolean is returned by the RPC.
+  const premiumCandidateKey = (people || []).map(p => p.id).filter(Boolean).join('|')
+  useEffect(() => {
+    if (!premiumCandidateKey) return
+    let active = true
+    const ids = premiumCandidateKey.split('|').slice(0, 40)
+    Promise.all(ids.map(async id => {
+      try {
+        const { data, error } = await supabase.rpc('is_profile_premium', { p_profile_id: id })
+        return error ? null : [id, data === true]
+      } catch { return null }
+    })).then(results => {
+      if (!active) return
+      const status = new Map(results.filter(Boolean))
+      setPeople(current => (current || []).map(person => status.has(person.id) ? { ...person, is_premium: status.get(person.id) } : person))
+    })
+    return () => { active = false }
+  }, [premiumCandidateKey])
   // Only expose verified account IDs, never private university email addresses.
   useEffect(() => {
     if (!userId || !people?.length) { setVerifiedCampusIds([]); return }
@@ -2645,7 +2677,7 @@ const loadMatches = useCallback(async () => {
           {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(visibleDetail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
           <button type="button" className="detail-bottom-close" onClick={() => setDetail(null)}>← กลับไปหน้าปัด</button>
           <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>, document.body)}
-      {reportTarget && <div className="modal-backdrop nm-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>}
+      {reportTarget && createPortal(<div className="modal-backdrop nm-dialog-backdrop nm-report-portal" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>, document.body)}
       {guideOpen && <div className="modal-backdrop nm-dialog-backdrop" role="presentation"><div className="nm-dialog nm-guide" role="dialog" aria-modal="true" aria-labelledby="nm-guide-title"><button className="nm-dialog-close" type="button" onClick={closeGuide} aria-label="ปิดคู่มือ"><X size={20}/></button><div className="nm-dialog-eyebrow"><Sparkles size={16}/> WELCOME TO NISIT MATCH</div><div className="nm-guide-counter">{guideStep + 1} / 5</div><div className="nm-guide-illustration">{guideStep === 0 ? <Heart size={46}/> : guideStep === 1 ? <MessageCircle size={46}/> : guideStep === 2 ? <GraduationCap size={46}/> : guideStep === 3 ? <ShieldCheck size={46}/> : <GraduationCap size={46}/>}</div><h2 id="nm-guide-title">{['เริ่มค้นหาคนที่ใช่','แมตช์แล้วเริ่มคุยกัน','ยืนยันสถานะนักศึกษา','พื้นที่ปลอดภัยสำหรับทุกคน','เพิ่ม NISIT MATCH ลงหน้าจอโฮม'][guideStep]}</h2><p>{['ปัดขวาเมื่อถูกใจ ปัดซ้ายเพื่อข้าม หรือแตะโปรไฟล์เพื่อทำความรู้จักเพิ่มเติม','เมื่อคุณและอีกฝ่ายกดถูกใจตรงกัน จะเกิด Match และสามารถเริ่มแชตได้','ยืนยันอีเมลมหาวิทยาลัยเพื่อแสดงเครื่องหมายยืนยันบนโปรไฟล์ โดยไม่เปิดเผยอีเมลของคุณ','หากพบโปรไฟล์ปลอม การคุกคาม หรือข้อความไม่เหมาะสม สามารถรายงานหรือบล็อกผู้ใช้ได้','iPhone: เปิดเว็บใน Safari > แชร์ > เพิ่มไปยังหน้าจอโฮม > เพิ่ม  |  Android: เปิดใน Chrome > เมนู ⋮ > ติดตั้งแอป หรือ เพิ่มลงในหน้าจอหลัก'][guideStep]}</p><div className="nm-guide-dots">{[0,1,2,3,4].map(i => <span key={i} className={i === guideStep ? 'active' : ''}/>)}</div><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={guideStep === 0 ? closeGuide : () => setGuideStep(x => x - 1)}>{guideStep === 0 ? 'ข้าม' : 'ย้อนกลับ'}</button><button type="button" className="btn btn-pink" onClick={guideStep === 4 ? closeGuide : () => setGuideStep(x => x + 1)}>{guideStep === 3 ? 'เริ่มใช้งาน' : 'ถัดไป'} <ArrowRight size={16}/></button></div></div></div>}
       {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog"><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
       {Toast}

@@ -2425,3 +2425,61 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .hangout-map-actions-v96>a{display:inline-flex!important;align-items:center!important;gap:6px!important;flex:none!important;color:#ff9dce!important;font-weight:800!important;text-decoration:none!important}
 @media(max-width:600px){.hangout-map-overlay-v96{padding:0!important;align-items:stretch!important}.hangout-map-modal-v96{width:100%!important;height:var(--nm-visual-height,100dvh)!important;max-height:var(--nm-visual-height,100dvh)!important;border-radius:0!important;border-left:0!important;border-right:0!important;border-top:0!important;border-bottom:0!important}.hangout-map-modal-v96>header{padding:calc(10px + env(safe-area-inset-top)) 12px 10px!important;min-height:calc(62px + env(safe-area-inset-top))!important}.hangout-map-actions-v96{padding:9px 12px calc(9px + env(safe-area-inset-bottom))!important;min-height:calc(46px + env(safe-area-inset-bottom))!important}.hangout-map-actions-v96>span{max-width:45%;line-height:1.35!important}}
 @media(prefers-reduced-motion:reduce){.hangout-map-overlay-v96{backdrop-filter:none!important}}
+
+/* v97: scroll-friendly discovery page with axis-aware swipe gestures */
+html:has(.app-shell.home-swipe-locked),
+body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-behavior:none}
+.app-shell.home-swipe-locked{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;overscroll-behavior:none}
+.app-shell.home-swipe-locked .main-area{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;overscroll-behavior:none}
+.app-shell.home-swipe-locked .page-content{height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));min-height:0;max-height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;box-sizing:border-box;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+.app-shell.home-swipe-locked .page-content>.swipe-stage{touch-action:pan-y;overscroll-behavior-y:contain}
+.app-shell.home-swipe-locked .swipe-stage .swipe-stack{touch-action:pan-y;overscroll-behavior-y:contain}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front{touch-action:pan-y!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:contain;cursor:grab}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front img,.app-shell.home-swipe-locked .swipe-stage .swipe-front video,.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-tap{touch-action:pan-y!important;-webkit-user-drag:none}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{touch-action:pan-y}
+@media(max-width:700px){.app-shell.home-swipe-locked .page-content{padding-top:8px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(320px,54dvh,520px);max-height:none;min-height:280px}.app-shell.home-swipe-locked .swipe-stage .swipe-controls{margin-top:8px}}
+@media(max-height:700px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(280px,48dvh,430px);min-height:250px}.app-shell.home-swipe-locked .swipe-stage .swipe-controls{margin-top:6px}}
+
+/* v97: Discovery preferences editor matches Hangout's midnight-indigo UI */
+.pref-overlay{background:rgba(5,7,16,.76)!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important}
+.pref-sheet{color:#f4f3ff!important;background:linear-gradient(155deg,#191c2d 0%,#131522 70%,#181629 100%)!important;border:1px solid rgba(183,173,255,.22)!important;box-shadow:0 28px 100px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.05)!important}
+.pref-header{border-bottom:1px solid rgba(255,255,255,.09)!important}
+.pref-header-copy h1,.pref-section-heading h2,.pref-mode-text strong,.pref-gender-grid .pref-pill{color:#f5f2ff!important}
+.pref-header-copy p,.pref-section-heading p,.pref-mode-text small,.pref-range-row label,.pref-footer>span{color:#b5b4ce!important}
+.pref-eyebrow,.pref-index{color:#c3a6ff!important}
+.pref-close{color:#f4f2ff!important;background:#292b40!important;border:1px solid rgba(255,255,255,.12)!important}
+.pref-section{border-bottom-color:rgba(255,255,255,.09)!important}
+.pref-pill,.pref-mode{color:#e9e7fb!important;background:#202337!important;border:1px solid rgba(255,255,255,.09)!important}
+.pref-pill.is-active,.pref-mode.is-active{background:linear-gradient(135deg,rgba(148,112,255,.22),rgba(87,104,208,.16))!important;border-color:#a78bfa!important;box-shadow:0 0 0 1px rgba(167,139,250,.12),0 8px 24px rgba(93,75,180,.12)!important}
+.pref-radio{border-color:#9187bd!important}.pref-mode.is-active .pref-radio{border-color:#b7a2ff!important}.pref-radio>span{background:#b7a2ff!important}
+.pref-value,.pref-extra-head b{color:#d5c5ff!important}
+.pref-extra,.pref-footer{background:rgba(255,255,255,.035)!important;border-top-color:rgba(255,255,255,.08)!important}
+.pref-range{accent-color:#a78bfa!important}
+.pref-range::-webkit-slider-thumb{background:#f5f0ff!important;border-color:#a78bfa!important;box-shadow:0 2px 12px rgba(167,139,250,.35)!important}
+.pref-next,.pref-save,.pref-footer button[type="submit"]{background:linear-gradient(135deg,#9b87ff,#7268df)!important;color:#fff!important;box-shadow:0 8px 24px rgba(112,96,220,.25)!important}
+.pref-content{scrollbar-color:#514a79 transparent!important}
+@media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .page-content{scroll-behavior:auto!important}.pref-sheet,.pref-overlay{animation:none!important}}
+
+/* v97.1: playful, individually colored relationship-intent chips */
+.nm-intent-options{align-items:stretch;gap:10px}
+.nm-intent-options button{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:10px 14px;border-radius:16px;font-weight:750;letter-spacing:-.01em;box-shadow:0 5px 15px rgba(5,8,24,.10);transition:transform .22s cubic-bezier(.2,.9,.25,1.3),box-shadow .22s,border-color .22s,background .22s;animation:nm-intent-bob 3.1s ease-in-out infinite;animation-delay:calc(var(--intent-index,0) * -0.43s);overflow:hidden}
+.nm-intent-options button:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.12;background:linear-gradient(125deg,#fff,transparent 62%);pointer-events:none}
+.nm-intent-options button:hover{transform:translateY(-3px) rotate(-1deg);box-shadow:0 10px 23px rgba(5,8,24,.2)}
+.nm-intent-options button:active{transform:translateY(1px) scale(.96)}
+.nm-intent-options .nm-intent-emoji{display:inline-grid;place-items:center;font-size:17px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.15));transition:transform .25s}
+.nm-intent-options button:hover .nm-intent-emoji,.nm-intent-options button.selected .nm-intent-emoji{transform:rotate(-12deg) scale(1.18)}
+.nm-intent-options .nm-intent-check{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,.24);font-size:12px;font-weight:900}
+.nm-intent-options .intent-serious{color:#ffdbe9;background:linear-gradient(135deg,rgba(226,74,139,.22),rgba(158,54,117,.12));border-color:rgba(255,123,179,.42)}
+.nm-intent-options .intent-getting_to_know{color:#d9f5ff;background:linear-gradient(135deg,rgba(58,171,222,.22),rgba(82,103,201,.13));border-color:rgba(100,207,255,.4)}
+.nm-intent-options .intent-friends{color:#d9ffe8;background:linear-gradient(135deg,rgba(47,192,132,.22),rgba(52,147,116,.12));border-color:rgba(102,239,177,.38)}
+.nm-intent-options .intent-unsure{color:#f0e2ff;background:linear-gradient(135deg,rgba(164,111,255,.24),rgba(210,118,236,.12));border-color:rgba(197,151,255,.42)}
+.nm-intent-options .intent-serious.selected{background:linear-gradient(135deg,#e94f96,#b83d83);color:#fff;border-color:#ff9bc8;box-shadow:0 8px 24px rgba(224,65,143,.28)}
+.nm-intent-options .intent-getting_to_know.selected{background:linear-gradient(135deg,#269ed3,#5668d9);color:#fff;border-color:#8edfff;box-shadow:0 8px 24px rgba(61,153,226,.28)}
+.nm-intent-options .intent-friends.selected{background:linear-gradient(135deg,#22a875,#3c9c9b);color:#fff;border-color:#91f4c8;box-shadow:0 8px 24px rgba(40,183,131,.25)}
+.nm-intent-options .intent-unsure.selected{background:linear-gradient(135deg,#8d63e9,#c05bc7);color:#fff;border-color:#e0b9ff;box-shadow:0 8px 24px rgba(158,96,225,.27)}
+.nm-intent-options button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@keyframes nm-intent-bob{0%,100%{translate:0 0}50%{translate:0 -3px}}
+.nm-report-portal{position:fixed!important;inset:0!important;width:100vw!important;width:100dvw!important;height:100vh!important;height:100dvh!important;z-index:2147483600!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))!important;box-sizing:border-box!important;background:rgba(4,7,18,.8)!important;backdrop-filter:blur(9px)!important;-webkit-backdrop-filter:blur(9px)!important}
+.nm-report-portal .nm-dialog{flex:0 1 460px;max-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overscroll-behavior:contain;box-sizing:border-box}
+@media(max-width:600px){.nm-intent-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.nm-intent-options button{width:100%;min-width:0;padding:10px 8px;font-size:.82rem}.nm-report-portal{align-items:center!important;padding-left:12px!important;padding-right:12px!important}.nm-report-portal .nm-dialog{width:100%;padding:25px 19px;border-radius:22px}}
+@media(prefers-reduced-motion:reduce){.nm-intent-options button,.nm-intent-options .nm-intent-emoji{animation:none!important;transition:none!important}.nm-intent-options button:hover,.nm-intent-options button:active{transform:none!important}}
