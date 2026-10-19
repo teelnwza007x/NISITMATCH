@@ -273,7 +273,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
-      {photoItems[photo]?.type === 'video' ? <video key={photoItems[photo].key} className="swipe-media-video" draggable="false" src={mediaPub(photoItems[photo].path)} muted playsInline loop autoPlay preload="auto" onCanPlay={e => { e.currentTarget.muted = true; const play = e.currentTarget.play(); if (play?.catch) play.catch(() => {}) }} aria-label={`วิดีโอของ ${person.display_name}`} /> : <div className="swipe-photo-frame" style={{ '--swipe-photo-bg': `url("${pub(photoItems[photo]?.path) || ph(person.display_name)}")` }}><img className="swipe-photo-main" draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} /></div>}
+      {photoItems[photo]?.type === 'video' ? <video key={photoItems[photo].key} className="swipe-media-video" draggable="false" src={mediaPub(photoItems[photo].path)} muted playsInline loop autoPlay preload="auto" onCanPlay={e => { e.currentTarget.muted = true; const play = e.currentTarget.play(); if (play?.catch) play.catch(() => {}) }} aria-label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
       <button type="button" className={'swipe-more-trigger ' + (showSwipeMenu ? 'active' : '')} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setShowSwipeMenu(v => !v) }} aria-label="ตัวเลือกโปรไฟล์" aria-expanded={showSwipeMenu} title="ตัวเลือกเพิ่มเติม"><MoreHorizontal size={22}/></button>
       {showSwipeMenu && <div className="swipe-more-menu swipe-more-menu-card" role="menu" aria-label="ตัวเลือกโปรไฟล์" onPointerDown={e => e.stopPropagation()}><div className="swipe-more-heading">จัดการโปรไฟล์</div><button type="button" role="menuitem" onClick={e => { e.stopPropagation(); setShowSwipeMenu(false); onOpen(person) }}><UserRound size={16}/><span><b>ดูโปรไฟล์</b><small>อ่านรายละเอียดเพิ่มเติม</small></span></button><button type="button" role="menuitem" disabled={busy || !canUndo} onClick={e => { e.stopPropagation(); setShowSwipeMenu(false); onUndo() }}><Undo2 size={16}/><span><b>ย้อนกลับการปัด</b><small>{canUndo ? 'กลับไปยังโปรไฟล์ก่อนหน้า' : 'ยังไม่มีรายการให้ย้อนกลับ'}</small></span></button><div className="swipe-more-divider"/><button type="button" role="menuitem" className="danger" onClick={e => { e.stopPropagation(); setShowSwipeMenu(false); onReport(person) }}><Flag size={16}/><span><b>รายงานโปรไฟล์</b><small>แจ้งปัญหาให้ทีมงานตรวจสอบ</small></span></button></div>}
@@ -2139,6 +2139,21 @@ const mapsSearchUrl = (name, area='') => `https://www.google.com/maps/search/?ap
 const mapsEmbedUrl = (name, area='') => `https://www.google.com/maps?q=${encodeURIComponent([name,area].filter(Boolean).join(' '))}&output=embed`
 
 function HangoutPage({ user, profile, notify, onJoinedHangout }) {
+  const [campusVerification, setCampusVerification] = useState(null)
+  const [campusVerificationLoading, setCampusVerificationLoading] = useState(true)
+  const isCampusVerified = campusVerification?.status === 'verified'
+  useEffect(() => {
+    let active = true
+    setCampusVerificationLoading(true)
+    supabase.from('student_verifications').select('status,university_id,verified_email').eq('user_id', user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return
+        setCampusVerification(error ? null : (data || { status: 'unverified' }))
+        setCampusVerificationLoading(false)
+      })
+      .catch(() => { if (active) { setCampusVerification(null); setCampusVerificationLoading(false) } })
+    return () => { active = false }
+  }, [user.id])
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -2168,14 +2183,15 @@ function HangoutPage({ user, profile, notify, onJoinedHangout }) {
   const filteredVenues = HANGOUT_VENUES.filter(v => `${v.name} ${v.area} ${v.address}`.toLowerCase().includes(venueQuery.trim().toLowerCase()))
   const chooseVenue = venue => { setForm(old => ({...old, venue:venue.name, city:venue.city})); setVenueQuery(venue.name); setShowVenuePicker(false) }
   const refresh = useCallback(async () => {
+    if (!isCampusVerified) { setEvents([]); setJoined([]); setCounts({}); setLoading(false); return }
     const {data,error} = await supabase.from('hangout_events').select('id,creator_id,title,venue,city,starts_at,capacity,description,created_at,status').eq('status','open').gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true}).limit(40)
     if (error) { setLoading(false); if (!String(error.message||'').includes('does not exist')) notify('โหลด Hangout ไม่สำเร็จ: '+error.message+' · ตรวจว่าได้รัน SQL v81 แล้ว'); return }
     const list=data||[]; setEvents(list); setLoading(false)
     const {data:mine,error:mineError} = await supabase.from('hangout_rsvps').select('event_id').eq('user_id',user.id)
     if (!mineError) setJoined((mine||[]).map(x=>x.event_id))
     if(list.length){ const {data:rsvps,error:rsvpError}=await supabase.from('hangout_rsvps').select('event_id'); if(!rsvpError){const c={}; (rsvps||[]).forEach(x=>c[x.event_id]=(c[x.event_id]||0)+1); setCounts(c)} }
-  },[user.id,notify])
-  useEffect(()=>{refresh(); const timer=setInterval(refresh,20000); return ()=>clearInterval(timer)},[refresh])
+  },[user.id,notify,isCampusVerified])
+  useEffect(()=>{if (!campusVerificationLoading && isCampusVerified) { refresh(); const timer=setInterval(refresh,20000); return ()=>clearInterval(timer) } else if (!campusVerificationLoading) { setLoading(false); setEvents([]) }},[refresh,campusVerificationLoading,isCampusVerified])
   useEffect(() => {
     try {
       const pendingId = sessionStorage.getItem(`nisit-pending-hangout-chat:${user.id}`)
@@ -2235,6 +2251,8 @@ function HangoutPage({ user, profile, notify, onJoinedHangout }) {
     if(error)return notify('ส่งข้อความไม่สำเร็จ: '+error.message)
     setChatMessages(old=>old.some(m=>m.id===data.id)?old:[...old,data]); setChatDraft('')
   }
+  if (campusVerificationLoading) return <div className="v76-page"><div className="page-center"><span className="spin"/><p>กำลังตรวจสอบการยืนยันอีเมลมหาวิทยาลัย…</p></div></div>
+  if (!isCampusVerified) return <div className="v76-page hangout-verification-required"><Heading kicker="CAMPUS VERIFIED ONLY" title="Hangout สำหรับนิสิต/นักศึกษาที่ยืนยันแล้ว" sub="เพื่อความปลอดภัย การดูนัด สร้างนัด เข้าร่วม และแชท Hangout ต้องยืนยันอีเมลมหาวิทยาลัยก่อน"/><section className="v76-hangout-safety"><ShieldCheck size={22}/><span><b>ต้องยืนยันอีเมลมหาวิทยาลัยก่อน</b><small>บัญชีนี้ยังไม่พบสถานะยืนยันที่สำเร็จ ไปที่โปรไฟล์หรือการตั้งค่าเพื่อยืนยันอีเมลมหาวิทยาลัย แล้วกลับมาที่ Hangout อีกครั้ง</small></span></section><button type="button" className="v76-primary-cta" onClick={()=>notify('ไปที่ โปรไฟล์ > ยืนยันอีเมลมหาวิทยาลัย เพื่อดำเนินการให้เสร็จสมบูรณ์')}><ShieldCheck size={17}/> วิธีการยืนยันอีเมลมหาวิทยาลัย <ArrowRight size={17}/></button></div>
   return <div className="v76-page"><Heading kicker="MEET IRL" title="Hangout กับคนใหม่ ๆ" sub="นัดเจอกันในพื้นที่สาธารณะ ดูจำนวนผู้เข้าร่วม คุยกันในห้องกลุ่ม และเปิดแผนที่ได้จากในเว็บ"><button className="btn btn-pink" onClick={()=>setShowCreate(v=>!v)}><CalendarDays size={17}/> สร้าง Hangout</button></Heading>
     <div className="v76-hangout-safety"><ShieldCheck size={19}/><span><b>เจอกันอย่างปลอดภัย</b><small>เลือกสถานที่สาธารณะ แจ้งเพื่อนที่ไว้ใจ และอย่าโอนเงินให้คนที่เพิ่งรู้จัก</small></span></div>
     {showCreate&&<form className="v76-hangout-form" onSubmit={create}><div className="v76-form-heading"><h2>สร้างนัด Hangout</h2><button type="button" className="icon-btn" onClick={()=>setShowCreate(false)}><X size={19}/></button></div><label>ชื่อนัด<input required maxLength="70" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="เช่น หลังเลิกเรียนไปนั่งชิลกัน"/></label>
