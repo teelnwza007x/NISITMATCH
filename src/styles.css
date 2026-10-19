@@ -2516,3 +2516,33 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .swipe-more-menu button svg{flex-shrink:0;color:#8567a4}
 @media(max-width:600px){.swipe-action-area{margin-top:11px}.swipe-action-area .swipe-controls{gap:13px;padding:6px 9px}.swipe-action-area .swipe-control{width:43px;height:43px;flex-basis:43px}.swipe-action-area .swipe-control.accept{width:54px;height:54px;flex-basis:54px}.swipe-more-menu{right:0}}
 @media(prefers-reduced-motion:reduce){.swipe-action-area .swipe-control{transition:none!important}}
+
+
+/* v101: focused swipe controls, floating overflow menu, no page scroll, full-image framing */
+.app-shell.home-swipe-locked .page-content{overflow:hidden!important;overflow-y:hidden!important;overscroll-behavior:none!important;touch-action:none!important;scrollbar-width:none!important}
+.app-shell.home-swipe-locked .page-content::-webkit-scrollbar{display:none!important}
+.app-shell.home-swipe-locked .page-content>.swipe-stage,.app-shell.home-swipe-locked .swipe-stage,.app-shell.home-swipe-locked .swipe-stage .swipe-stack,.app-shell.home-swipe-locked .swipe-stage .swipe-front,.app-shell.home-swipe-locked .swipe-stage .swipe-front img,.app-shell.home-swipe-locked .swipe-stage .swipe-front video,.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-tap{touch-action:none!important;overscroll-behavior:none!important}
+.swipe-stage .swipe-card>img,.swipe-stage .swipe-card>.swipe-media-video{object-fit:contain!important;object-position:center center!important;background:radial-gradient(ellipse at center,#30283a 0%,#17131f 78%)!important}
+.swipe-more-trigger{position:absolute;z-index:12;top:25px;right:14px;width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.34);border-radius:15px;color:#fff;background:rgba(24,20,37,.48);box-shadow:0 8px 24px rgba(10,7,20,.2),inset 0 1px rgba(255,255,255,.2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);cursor:pointer;transition:transform .22s ease,background .22s ease,border-color .22s ease}
+.swipe-more-trigger:hover,.swipe-more-trigger.active{transform:scale(1.06);background:rgba(44,34,61,.88);border-color:rgba(255,255,255,.58)}
+.swipe-more-menu-card{position:absolute;z-index:14;top:75px;right:12px;bottom:auto;width:min(255px,calc(100% - 24px));padding:9px;border:1px solid rgba(255,255,255,.17);border-radius:21px;background:linear-gradient(145deg,rgba(33,28,47,.97),rgba(20,18,31,.96));color:#fbf8ff;box-shadow:0 24px 64px rgba(5,3,13,.42),inset 0 1px rgba(255,255,255,.08);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);animation:nm-swipe-menu-in .2s cubic-bezier(.2,1.2,.3,1) both}
+.swipe-more-heading{padding:7px 9px 10px;color:#b9adc9;font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase}
+.swipe-more-menu-card button{display:flex;align-items:center;gap:11px;width:100%;min-height:52px;padding:9px 10px;border:0;border-radius:13px;background:transparent;color:#f6f0fc;text-align:left;cursor:pointer;transition:background .16s ease,transform .16s ease}
+.swipe-more-menu-card button:hover:not(:disabled){background:rgba(255,255,255,.09);transform:translateX(2px)}
+.swipe-more-menu-card button>svg{flex:none;color:#d6b8f5}
+.swipe-more-menu-card button span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.swipe-more-menu-card button b{font-size:12px;font-weight:750}
+.swipe-more-menu-card button small{font-size:10px;line-height:1.4;color:#b4a9c4}
+.swipe-more-menu-card button:disabled{opacity:.38;cursor:not-allowed}
+.swipe-more-menu-card button.danger>svg,.swipe-more-menu-card button.danger b{color:#ff9bad}
+.swipe-more-divider{height:1px;margin:5px 7px;background:rgba(255,255,255,.1)}
+@keyframes nm-swipe-menu-in{from{opacity:0;transform:translate3d(0,-5px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+.swipe-action-area .swipe-controls{gap:clamp(20px,5vw,34px);padding:8px 14px}
+.swipe-action-area .swipe-control{animation:nm-swipe-button-bob 2.8s ease-in-out infinite;will-change:transform}
+.swipe-action-area .swipe-control.accept{animation-delay:-.8s;box-shadow:0 10px 30px rgba(237,72,149,.3),0 0 0 0 rgba(237,72,149,.12),inset 0 1px rgba(255,255,255,.65)}
+.swipe-action-area .swipe-control.reject{animation-delay:-1.5s}
+.swipe-action-area .swipe-control.super{animation-delay:-.25s}
+.swipe-action-area .swipe-control:active:not(:disabled){animation:none;transform:scale(.92)}
+@keyframes nm-swipe-button-bob{0%,100%{translate:0 0}50%{translate:0 -3px}}
+@media(max-width:600px){.swipe-more-trigger{top:23px;right:11px;width:39px;height:39px;border-radius:14px}.swipe-more-menu-card{top:69px;right:9px;width:min(245px,calc(100% - 18px))}.swipe-action-area .swipe-controls{gap:24px}}
+@media(prefers-reduced-motion:reduce){.swipe-more-menu-card,.swipe-action-area .swipe-control{animation:none!important;transition:none!important}}
