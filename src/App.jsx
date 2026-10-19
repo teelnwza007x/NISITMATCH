@@ -215,11 +215,15 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   }
   const down = (e) => {
     if (busyRef.current || (e.pointerType === 'mouse' && e.button !== 0)) return
+    if (e.cancelable) e.preventDefault()
     start.current = { x: e.clientX, y: e.clientY }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
   const move = (e) => {
     if (!start.current || busyRef.current) return
+    // Keep the card gesture in control on touch screens so the page doesn't
+    // scroll underneath the deck while the user is trying to swipe.
+    if (e.cancelable) e.preventDefault()
     dragNow.current = { x: e.clientX - start.current.x, y: e.clientY - start.current.y }
     if (!dragFrame.current) dragFrame.current = requestAnimationFrame(() => {
       dragFrame.current = 0
