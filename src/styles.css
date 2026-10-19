@@ -2301,3 +2301,29 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
   .hangout-map-actions-v90 a { flex: 0 1 auto !important; font-size: 10px !important; padding: 8px !important; }
   .hangout-campus-grid { grid-template-columns: 1fr !important; }
 }
+
+/* v93: profile opened from Hangout must escape chat stacking contexts and sit above every overlay. */
+.modal-backdrop.detail-backdrop.hangout-member-profile-portal {
+  position: fixed !important; inset: 0 !important; z-index: 2147483500 !important;
+  isolation: isolate; box-sizing: border-box; padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+  overflow: hidden !important; display: flex; align-items: center; justify-content: center;
+  pointer-events: auto !important; touch-action: manipulation;
+}
+.modal-backdrop.detail-backdrop.hangout-member-profile-portal .detail-modal {
+  position: relative; z-index: 1; max-height: calc(var(--nm-visual-height, 100dvh) - 20px) !important;
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px) !important;
+  overflow-x: hidden !important; overflow-y: auto !important; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+}
+.modal-backdrop.detail-backdrop.hangout-member-profile-portal .detail-close-btn { position: sticky !important; float: right; top: 8px !important; margin-bottom: -44px; right: auto !important; z-index: 20 !important; }
+.detail-gallery.v58-swipe-gallery { touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
+.detail-gallery.v58-swipe-gallery > .detail-cover { pointer-events: auto; }
+.detail-body .detail-campus-line { align-items: flex-start !important; }
+.detail-modal .detail-no-song { display:flex; align-items:center; gap:10px; margin:10px 0 14px; padding:12px; border:1px solid rgba(185,160,238,.2); border-radius:13px; background:rgba(255,255,255,.035); color:#d9c9e8; }
+.detail-no-song > span { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.detail-no-song b { font-size:12px; }
+.detail-no-song small { font-size:10px; opacity:.7; }
+@media (max-width:600px) {
+ .modal-backdrop.detail-backdrop.hangout-member-profile-portal { padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); }
+ .modal-backdrop.detail-backdrop.hangout-member-profile-portal .detail-modal { max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px) !important; }
+}
