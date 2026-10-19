@@ -2618,3 +2618,16 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
  .app-shell.home-swipe-locked .swipe-stage .swipe-hint{display:none;}
 }
 @media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .swipe-action-area .swipe-control{animation:none!important;will-change:auto!important;}}
+
+/* Hangout chat: keyboard-safe layout and realtime typing feedback */
+.nm-message-hangout-overlay{position:fixed!important;bottom:auto!important;overflow:hidden!important;box-sizing:border-box!important}
+.nm-message-hangout-chat{height:100%!important;max-height:100%!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+.nm-message-hangout-list{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain}
+.nm-message-hangout-chat .hangout-chat-compose{position:relative!important;bottom:auto!important;transform:none!important;flex-shrink:0!important;z-index:2!important}
+.hangout-typing-indicator{display:flex;align-items:center;gap:8px;padding:6px 15px 9px;color:var(--text-muted,#b9b1c8);font-size:12px;flex-shrink:0}
+.hangout-typing-dots{display:inline-flex;align-items:center;gap:3px}
+.hangout-typing-dots i{display:block;width:5px;height:5px;border-radius:50%;background:var(--accent,#f17bb8);animation:hangout-typing-bounce 1s ease-in-out infinite}
+.hangout-typing-dots i:nth-child(2){animation-delay:.15s}.hangout-typing-dots i:nth-child(3){animation-delay:.3s}
+@keyframes hangout-typing-bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+@media(prefers-reduced-motion:reduce){.hangout-typing-dots i{animation:none}}
+@media(max-width:600px){.nm-message-hangout-chat{height:100%!important;max-height:100%!important}.nm-message-hangout-chat .hangout-chat-compose{padding-bottom:max(8px,env(safe-area-inset-bottom))!important}}
