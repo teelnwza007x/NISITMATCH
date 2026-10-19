@@ -148,6 +148,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
   const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null)
+  const [cardVideos, setCardVideos] = useState([])
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
   const dragFrame = useRef(0)
@@ -177,6 +178,17 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
     paint(0, 0)
   }, [person?.id, paint])
   const photos = person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : []
+  useEffect(() => {
+    let active = true
+    setCardVideos([])
+    setPhoto(0)
+    if (!person?.id) return () => { active = false }
+    supabase.from('profile_media').select('id,media_type,storage_path').eq('profile_id', person.id).eq('media_type', 'video').order('created_at', { ascending: true })
+      .then(({ data, error }) => { if (active && !error) setCardVideos((data || []).map(item => ({ type: 'video', path: item.storage_path, key: item.id }))) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [person?.id])
+  const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos]
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
@@ -243,9 +255,9 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
-      <img draggable="false" src={pub(photos[photo]) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />
-      <div className="swipe-photo-bars">{(photos.length ? photos : [null]).map((_, i) => <span key={i} className={i === photo ? 'active' : ''}/>)}</div>
-      <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photos.length - 1, v + 1))}/>
+      {photoItems[photo]?.type === 'video' ? <video key={photoItems[photo].key} className="swipe-media-video" draggable="false" src={mediaPub(photoItems[photo].path)} muted playsInline loop autoPlay preload="metadata" aria-label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
+      <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
+      <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photoItems.length - 1, v + 1))}/>
       <div className="swipe-feedback yes" ref={yesRef} aria-hidden="true">
         <span className="swipe-feedback-spark spark-one"/><span className="swipe-feedback-spark spark-two"/><span className="swipe-feedback-spark spark-three"/>
         <span className="swipe-feedback-icon"><Heart size={25} fill="currentColor" strokeWidth={1.8}/></span><span className="swipe-feedback-label">LIKE</span><span className="swipe-feedback-caption">ชอบคนนี้</span>
@@ -1298,19 +1310,23 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     if (!mainPhoto && photos.length === 0 && newPhotos.length === 0) setMainPhoto(key)
     setCropQueue(q => q.slice(1))
   }
-  const addPhotos = (files) => {
+  // รูปและวิดีโอใช้พื้นที่แกลเลอรีร่วมกันได้สูงสุด 6 รายการ
+  const mediaSlotCount = photos.length + newPhotos.length + cropQueue.length + profileVideos.length + newVideos.length
+  const addMedia = files => {
     const incoming = Array.from(files || [])
-    const valid = incoming.filter(f => f.type.startsWith('image/') && f.size <= 10e6)
-    if (valid.length !== incoming.length) notify('รองรับรูปภาพขนาดไม่เกิน 10MB ก่อนครอป')
-    const slots = Math.max(0, 6 - photos.length - newPhotos.length - cropQueue.length)
-    setCropQueue(q => [...q, ...valid.slice(0, slots)])
-  }
-  const addVideos = files => {
-    const incoming = Array.from(files || [])
-    const valid = incoming.filter(file => file.type.startsWith('video/') && file.size <= 25 * 1024 * 1024)
-    if (valid.length !== incoming.length) notify('วิดีโอควรเป็น MP4/MOV และขนาดไม่เกิน 25MB ต่อไฟล์')
-    const accepted = valid.slice(0, Math.max(0, 3 - profileVideos.length - newVideos.length))
-    setNewVideos(old => [...old, ...accepted.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file) }))])
+    const slots = Math.max(0, 6 - mediaSlotCount)
+    const accepted = incoming.slice(0, slots)
+    if (incoming.length > slots) notify('โปรไฟล์เพิ่มรูปและวิดีโอรวมกันได้สูงสุด 6 รายการ')
+    const images = accepted.filter(file => file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name))
+    const videos = accepted.filter(file => file.type.startsWith('video/'))
+    const validImages = images.filter(file => file.size <= 10 * 1024 * 1024)
+    const validVideos = videos.filter(file => file.size <= 25 * 1024 * 1024)
+    if (validImages.length !== images.length) notify('รูปภาพต้องมีขนาดไม่เกิน 10MB')
+    if (validVideos.length !== videos.length) notify('วิดีโอ/Live Photo ต้องมีขนาดไม่เกิน 25MB ต่อไฟล์')
+    const recognized = validImages.length + validVideos.length
+    if (recognized < accepted.length) notify('รองรับรูปภาพหรือวิดีโอเท่านั้น')
+    setCropQueue(q => [...q, ...validImages])
+    setNewVideos(old => [...old, ...validVideos.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file) }))])
   }
   const removeNewVideo = key => setNewVideos(old => old.filter(item => { if (item.key === key) URL.revokeObjectURL(item.url); return item.key !== key }))
   const removeExistingVideo = async item => {
@@ -1366,9 +1382,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
   const toggle = (i) => setF({ ...f, interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i].slice(0, 12) })
-  const selfPreviewPhotos = [...photos.map(path => ({ key: path, url: pub(path) })), ...newPhotos.map(item => ({ key: item.key, url: item.url }))]
+  const selfPreviewPhotos = [...photos.map(path => ({ key: path, url: pub(path), type: 'image' })), ...newPhotos.map(item => ({ key: item.key, url: item.url, type: 'image' })), ...profileVideos.map(item => ({ key: item.id, url: mediaPub(item.storage_path), type: 'video' })), ...newVideos.map(item => ({ key: item.key, url: item.url, type: 'video' }))]
   const orderedSelfPhotos = [...selfPreviewPhotos.filter(item => item.key === mainPhoto), ...selfPreviewPhotos.filter(item => item.key !== mainPhoto)]
   const selfPreviewImage = orderedSelfPhotos[selfPreviewIndex]?.url || ph(f.display_name)
+  const selfPreviewCurrent = orderedSelfPhotos[selfPreviewIndex]
   useViewportScrollLock(selfPreviewOpen)
   const selfTouchStart = useRef(null)
   useEffect(() => {
@@ -1392,11 +1409,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       <div className="nm-edit-workspace">
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
-        <div className="photo-editor"><b>รูปโปรไฟล์ ({photos.length + newPhotos.length}/6)</b><p>แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key)})), ...newPhotos].map(item => <div className="photo-tile" key={item.key}><img src={item.url} alt="รูปโปรไฟล์"/><button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button><button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button></div>)}{photos.length + newPhotos.length < 6 && <label className="photo-add"><Camera size={21}/><span>เพิ่มรูป</span><input type="file" accept="image/*" multiple onChange={e => {addPhotos(e.target.files); e.target.value = ''}} /></label>}</div></div>
-        <div className="v76-media-section"><div className="v76-media-heading"><div><b><Video size={17}/> Live Photo / วิดีโอโปรไฟล์</b><p>อัปโหลดคลิปสั้นเพื่อให้โปรไฟล์มีชีวิตชีวา รองรับสูงสุด 3 คลิป</p></div><span>{profileVideos.length + newVideos.length}/3</span></div>
-          <div className="v76-video-grid">{profileVideos.map(item => <div className="v76-video-tile" key={item.id}><video src={mediaPub(item.storage_path)} muted playsInline controls preload="metadata"/><button type="button" onClick={() => removeExistingVideo(item)} aria-label="ลบวิดีโอ">×</button></div>)}{newVideos.map(item => <div className="v76-video-tile" key={item.key}><video src={item.url} muted playsInline controls preload="metadata"/><button type="button" onClick={() => removeNewVideo(item.key)} aria-label="ลบวิดีโอ">×</button></div>)}{profileVideos.length + newVideos.length < 3 && <label className="v76-video-add"><Video size={22}/><span>เพิ่มคลิป</span><input type="file" accept="video/mp4,video/quicktime,video/webm" multiple onChange={e => {addVideos(e.target.files);e.target.value=''}}/></label>}</div>
-          <small>หมายเหตุ: Live Photo จาก iPhone จะแสดงเป็นคลิปวิดีโอสั้น ไม่ใช่ไฟล์ Live Photo แบบจับคู่ HEIC/MOV โดยตรง</small>
-        </div>
+        <div className="photo-editor"><b>รูปและวิดีโอโปรไฟล์ ({mediaSlotCount}/6)</b><p>รูปภาพและวิดีโอใช้ 6 ช่องร่วมกัน · แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key), type: 'image'})), ...newPhotos.map(item => ({...item, type: 'image'})), ...profileVideos.map(item => ({key: item.id, url: mediaPub(item.storage_path), type: 'video', existing: item})), ...newVideos.map(item => ({...item, type: 'video'}))].map(item => <div className="photo-tile v83-media-tile" key={item.key}>{item.type === 'video' ? <video src={item.url} muted playsInline controls preload="metadata" aria-label="วิดีโอโปรไฟล์"/> : <img src={item.url} alt="รูปโปรไฟล์" onError={e => { if (/\.(heic|heif)(?:$|\?)/i.test(item.url)) e.currentTarget.alt = 'ไฟล์ HEIC อาจต้องเลือกส่งเป็นวิดีโอ Live Photo หรือแปลงเป็น JPG'; }} />}{item.type === 'image' && <button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button>}{item.type === 'video' ? <button type="button" className="photo-remove" onClick={() => item.existing ? removeExistingVideo(item.existing) : removeNewVideo(item.key)} title="ลบวิดีโอ">×</button> : <button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button>}</div>)}{mediaSlotCount < 6 && <label className="photo-add v83-media-add"><Camera size={21}/><Video size={20}/><span>เพิ่มรูป / วิดีโอ</span><input type="file" accept="image/*,video/*,.heic,.heif" multiple onChange={e => {addMedia(e.target.files); e.target.value = ''}} /></label>}</div><small className="v83-media-note">รองรับรูปภาพและวิดีโอสั้น รวมกันไม่เกิน 6 รายการ · Live Photo บน iPhone ให้เลือกส่งออกเป็นวิดีโอ/Most Compatible หากเลือกแล้วไม่แสดงตัวอย่าง</small></div>
       </section>}
       <form className="form-panel nm-tab-form" onSubmit={save} noValidate>
         {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
@@ -1433,8 +1446,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
       <div className="detail-modal nm-self-preview-modal" role="dialog" aria-modal="true" aria-label="ตัวอย่างโปรไฟล์ของฉัน">
         <button type="button" className="modal-close detail-close-btn" onClick={() => setSelfPreviewOpen(false)} aria-label="ปิดตัวอย่างโปรไฟล์"><X size={21}/></button>
         <div className="nm-self-preview-label"><Eye size={15}/> ตัวอย่างโปรไฟล์ของคุณ</div>
-        <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { selfTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (selfTouchStart.current === null || orderedSelfPhotos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? selfTouchStart.current) - selfTouchStart.current; selfTouchStart.current = null; if (Math.abs(diff) > 45) setSelfPreviewIndex(i => (i + (diff < 0 ? 1 : orderedSelfPhotos.length - 1)) % orderedSelfPhotos.length) }}><img key={selfPreviewImage} className="detail-cover v64-photo-fade" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>
-          {orderedSelfPhotos.length > 1 && <><button type="button" className="gallery-prev" onClick={() => setSelfPreviewIndex(i => (i - 1 + orderedSelfPhotos.length) % orderedSelfPhotos.length)} aria-label="รูปก่อนหน้า">‹</button><button type="button" className="gallery-next" onClick={() => setSelfPreviewIndex(i => (i + 1) % orderedSelfPhotos.length)} aria-label="รูปถัดไป">›</button><div className="gallery-count">{selfPreviewIndex + 1} / {orderedSelfPhotos.length}</div><div className="gallery-thumbnails">{orderedSelfPhotos.map((item,i) => <button type="button" key={item.key} className={i === selfPreviewIndex ? 'active' : ''} onClick={() => setSelfPreviewIndex(i)} aria-label={`ดูรูปที่ ${i+1}`}><img src={item.url} alt=""/></button>)}</div></>}
+        <div className="detail-gallery v58-swipe-gallery" onTouchStart={e => { selfTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (selfTouchStart.current === null || orderedSelfPhotos.length < 2) return; const diff = (e.changedTouches[0]?.clientX ?? selfTouchStart.current) - selfTouchStart.current; selfTouchStart.current = null; if (Math.abs(diff) > 45) setSelfPreviewIndex(i => (i + (diff < 0 ? 1 : orderedSelfPhotos.length - 1)) % orderedSelfPhotos.length) }}>{selfPreviewCurrent?.type === 'video' ? <video key={selfPreviewCurrent.key} className="detail-cover v64-photo-fade" src={selfPreviewCurrent.url} controls playsInline loop autoPlay muted preload="metadata" aria-label="วิดีโอโปรไฟล์ของฉัน"/> : <img key={selfPreviewImage} className="detail-cover v64-photo-fade" src={selfPreviewImage} alt="รูปโปรไฟล์ของฉัน" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(f.display_name) }}/>}
+          {orderedSelfPhotos.length > 1 && <><button type="button" className="gallery-prev" onClick={() => setSelfPreviewIndex(i => (i - 1 + orderedSelfPhotos.length) % orderedSelfPhotos.length)} aria-label="สื่อก่อนหน้า">‹</button><button type="button" className="gallery-next" onClick={() => setSelfPreviewIndex(i => (i + 1) % orderedSelfPhotos.length)} aria-label="สื่อถัดไป">›</button><div className="gallery-count">{selfPreviewIndex + 1} / {orderedSelfPhotos.length}</div><div className="gallery-thumbnails">{orderedSelfPhotos.map((item,i) => <button type="button" key={item.key} className={i === selfPreviewIndex ? 'active' : ''} onClick={() => setSelfPreviewIndex(i)} aria-label={`ดูสื่อที่ ${i+1}`}>{item.type === 'video' ? <span className="v76-video-thumb"><Video size={18}/></span> : <img src={item.url} alt=""/>}</button>)}</div></>}
         </div>
         <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>
           <p><GraduationCap size={15}/>{uniName(f.uni) || 'มหาวิทยาลัย'}{f.faculty ? ` · ${f.faculty}` : ''}</p>

@@ -1892,3 +1892,14 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 @keyframes hangout-safety-twinkle{0%,100%{opacity:.45;transform:scale(.8) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(18deg)}}
 @media(max-width:600px){.v76-hangout-safety{padding:14px;gap:11px;border-radius:15px!important}.v76-hangout-safety>svg{width:35px;height:35px;padding:8px}.v76-hangout-safety b{flex-wrap:wrap;font-size:12px}.v76-hangout-safety small{font-size:10px;padding-right:2px}.v76-hangout-safety:after{right:11px;top:7px}}
 @media(prefers-reduced-motion:reduce){.v76-hangout-safety,.v76-hangout-safety:before,.v76-hangout-safety:after,.v76-hangout-safety>svg{animation:none!important}}
+
+/* v83: profile photos and videos share one six-item gallery */
+.v83-media-tile img,.v83-media-tile video{display:block;width:100%;height:100%;object-fit:cover}
+.v83-media-tile video{background:#130f1d}
+.v83-media-tile:has(video){background:#130f1d}
+.v83-media-add{background:linear-gradient(145deg,#191526,#302040 55%,#44213d);border-color:#a96bb5;color:#f5a7d1;transition:transform .2s,box-shadow .2s,border-color .2s}
+.v83-media-add:hover{transform:translateY(-3px);border-color:#ff78b8;box-shadow:0 10px 24px #d94f9b25}
+.v83-media-note{display:block;margin-top:10px;color:var(--muted,#a69ab3);font-size:11px;line-height:1.6}
+.nm-self-preview-modal .detail-gallery video{object-fit:cover}
+@media(prefers-reduced-motion:reduce){.v83-media-add{transition:none!important}}
+.swipe-card>.swipe-media-video{width:100%;height:100%;object-fit:cover;pointer-events:none;background:#160f20}
