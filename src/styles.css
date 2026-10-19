@@ -2546,3 +2546,33 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 @keyframes nm-swipe-button-bob{0%,100%{translate:0 0}50%{translate:0 -3px}}
 @media(max-width:600px){.swipe-more-trigger{top:23px;right:11px;width:39px;height:39px;border-radius:14px}.swipe-more-menu-card{top:69px;right:9px;width:min(245px,calc(100% - 18px))}.swipe-action-area .swipe-controls{gap:24px}}
 @media(prefers-reduced-motion:reduce){.swipe-more-menu-card,.swipe-action-area .swipe-control{animation:none!important;transition:none!important}}
+
+
+/* v102 UX hardening layered on the v101 source: Tinder-like photo deck and reliable photo taps. */
+.app-shell.home-swipe-locked .page-content>.welcome-row .section-kicker:empty{display:none!important}
+.app-shell.home-swipe-locked .page-content>.welcome-row .section-kicker:empty+h1{margin-top:0!important}
+.app-shell.home-swipe-locked .page-content>.swipe-stage{width:min(100%,430px)!important;max-width:430px!important;margin:6px auto 0!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-stack{width:100%!important;height:min(66dvh,620px)!important;min-height:300px!important;max-height:620px!important;aspect-ratio:3/4;position:relative}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front{overflow:hidden!important;border-radius:25px!important;background:#17131f!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front>img,.app-shell.home-swipe-locked .swipe-stage .swipe-front>.swipe-media-video{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important;background:#17131f!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-tap{appearance:none!important;-webkit-appearance:none!important;display:block!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;opacity:1!important;touch-action:manipulation!important;pointer-events:auto!important;z-index:8!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-tap.left{left:0!important;width:42%!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-tap.right{right:0!important;width:42%!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-tap:disabled{pointer-events:none!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-info{pointer-events:none!important}
+.message-hangout-room-meta{display:block!important;margin-top:3px;color:#b6a9c8!important;font-size:10px!important;line-height:1.35!important}
+.hangout-typing-indicator{display:flex;align-items:center;gap:8px;align-self:flex-start;flex:0 0 auto;margin:2px 12px 8px;padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(255,255,255,.055);color:#bdb2ce;font-size:11px}
+.hangout-typing-dots{display:flex;align-items:center;gap:3px;height:12px}
+.hangout-typing-dots i{display:block;width:5px;height:5px;border-radius:50%;background:#ff9acb;animation:hangout-typing-bounce .85s ease-in-out infinite}
+.hangout-typing-dots i:nth-child(2){animation-delay:.12s}.hangout-typing-dots i:nth-child(3){animation-delay:.24s}
+@keyframes hangout-typing-bounce{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}
+.nm-message-hangout-chat .hangout-chat-compose input:not([type=file]){font-size:16px!important;line-height:1.2!important;scroll-margin-block:0!important;touch-action:manipulation!important}
+.nm-message-hangout-chat{display:flex!important;flex-direction:column!important;overflow:hidden!important;min-height:0!important}
+.nm-message-hangout-chat .nm-message-hangout-list{flex:1 1 0!important;min-height:0!important;overscroll-behavior:contain!important}
+.nm-message-hangout-chat .hangout-chat-compose{flex-shrink:0!important;position:relative!important;transform:none!important;margin-top:auto!important;padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
+@media(max-width:700px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:min(61dvh,560px)!important;min-height:270px!important}.app-shell.home-swipe-locked .page-content>.swipe-stage{margin-top:2px!important}.app-shell.home-swipe-locked .swipe-stage .swipe-tap{bottom:145px!important}}
+@media(max-height:700px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:48dvh!important;min-height:250px!important}}
+@media(prefers-reduced-motion:reduce){.hangout-typing-dots i{animation:none!important}}
+
+.v102-event-creator-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:-3px 0 8px;color:#aaa0bf;font-size:11px;line-height:1.4}.v102-event-creator-meta b{color:#e9d7ff;font-weight:750}
+.hangout-chat-modal .hangout-chat-compose input:not([type=file]){font-size:16px!important;line-height:1.2!important;touch-action:manipulation!important}
