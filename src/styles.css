@@ -1938,3 +1938,24 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
  .message-hangout-rooms{padding:10px 8px 12px}
 }
 @media(prefers-reduced-motion:reduce){.message-hangout-room{transition:none}}
+
+/* v85: Hangout group chat inside Messages, with a fixed mobile viewport and readable member names. */
+.nm-message-hangout-overlay{position:fixed!important;inset:0!important;width:100vw!important;width:100dvw!important;height:100vh!important;height:100dvh!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;overflow:hidden!important;overscroll-behavior:none!important;z-index:100500!important}
+.nm-message-hangout-chat{width:min(700px,100%)!important;height:min(780px,100dvh)!important;max-height:100dvh!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border-radius:18px!important}
+.nm-message-hangout-chat header{flex:0 0 auto!important;padding:14px 16px!important;padding-top:max(14px,env(safe-area-inset-top))!important}
+.nm-message-hangout-chat header>div{min-width:0!important;flex:1!important}
+.nm-message-hangout-chat header small{white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.4!important}
+.nm-message-hangout-list{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:14px!important;touch-action:pan-y!important}
+.nm-message-hangout-chat .hangout-chat-compose{flex:0 0 auto!important;display:flex!important;align-items:center!important;padding:10px 12px calc(10px + env(safe-area-inset-bottom))!important;gap:8px!important}
+.nm-message-hangout-chat .hangout-chat-compose input{width:0!important;min-width:0!important;flex:1 1 auto!important;font-size:16px!important;line-height:1.35!important;transform:none!important;zoom:1!important;touch-action:manipulation!important}
+.nm-message-hangout-chat .hangout-chat-compose button{flex:0 0 42px!important}
+.nm-message-hangout-chat .hangout-chat-bubble small{display:block!important;margin-bottom:4px!important;color:#ffadd2!important;font-size:11px!important;font-weight:800!important}
+.nm-message-hangout-chat .hangout-chat-bubble p{overflow-wrap:anywhere!important;white-space:pre-wrap!important}
+@media(max-width:600px){
+ .nm-message-hangout-overlay{align-items:stretch!important;justify-content:stretch!important}
+ .nm-message-hangout-chat{width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;border:0!important}
+ .nm-message-hangout-chat header{padding:calc(12px + env(safe-area-inset-top)) 12px 11px!important}
+ .nm-message-hangout-list{padding:11px 10px!important}
+ .nm-message-hangout-chat .hangout-chat-compose{padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important}
+}
+@supports(height:100svh){@media(max-width:600px){.nm-message-hangout-chat{height:100svh!important;max-height:100svh!important}}}

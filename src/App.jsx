@@ -414,13 +414,83 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       const { data: memberships, error } = await supabase.from("hangout_rsvps").select("event_id").eq("user_id", me)
       if (error || !memberships?.length) { if (alive) setHangoutRooms([]); return }
       const ids = [...new Set(memberships.map(x => x.event_id))]
-      const { data } = await supabase.from("hangout_events").select("id,title,venue,city,starts_at,status,capacity").in("id", ids).eq("status", "open").order("starts_at", { ascending: false }).limit(30)
+      const { data } = await supabase.from("hangout_events").select("id,title,venue,city,starts_at,status,capacity").in("id", ids).order("starts_at", { ascending: false }).limit(30)
       if (alive) setHangoutRooms(data || [])
     }
     loadHangoutRooms()
     const poll = setInterval(loadHangoutRooms, 20000)
     return () => { alive = false; clearInterval(poll) }
   }, [me])
+  const [hangoutChatEvent, setHangoutChatEvent] = useState(null)
+  const [hangoutChatMessages, setHangoutChatMessages] = useState([])
+  const [hangoutChatNames, setHangoutChatNames] = useState({})
+  const [hangoutChatMembers, setHangoutChatMembers] = useState([])
+  const [hangoutChatDraft, setHangoutChatDraft] = useState('')
+  const [hangoutChatBusy, setHangoutChatBusy] = useState(false)
+  const loadHangoutChat = useCallback(async (eventOrId) => {
+    const event = typeof eventOrId === 'string' ? hangoutRooms.find(x => x.id === eventOrId) : eventOrId
+    if (!event) { notify('ไม่พบห้อง Hangout นี้ในรายการข้อความ'); return }
+    setHangoutChatEvent(event); setHangoutChatMessages([]); setHangoutChatDraft('')
+    const { data, error } = await supabase.from('hangout_messages').select('id,event_id,user_id,body,created_at').eq('event_id', event.id).order('created_at', { ascending: true }).limit(200)
+    if (error) { notify('เปิดแชทกลุ่มไม่ได้: ' + error.message + ' · ตรวจว่าได้รัน SQL v81 แล้ว'); return }
+    const rows = data || []; setHangoutChatMessages(rows)
+    const { data: rsvps } = await supabase.from('hangout_rsvps').select('user_id').eq('event_id', event.id)
+    const memberIds = [...new Set((rsvps || []).map(x => x.user_id).concat([event.creator_id, me]).filter(Boolean))]
+    setHangoutChatMembers(memberIds)
+    const ids = [...new Set(rows.map(x => x.user_id).concat(memberIds))]
+    if (ids.length) {
+      const { data: profiles } = await supabase.from('profiles').select('id,display_name,avatar_path').in('id', ids)
+      const names = {}; (profiles || []).forEach(x => { names[x.id] = x.display_name || 'สมาชิก' }); setHangoutChatNames(old => ({ ...old, ...names }))
+    }
+  }, [hangoutRooms, me, notify])
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem(`nisit-pending-hangout-chat:${me}`)
+      if (pending && hangoutRooms.length) { sessionStorage.removeItem(`nisit-pending-hangout-chat:${me}`); loadHangoutChat(pending) }
+    } catch {}
+  }, [hangoutRooms, me, loadHangoutChat])
+  useEffect(() => {
+    if (!hangoutChatEvent) return
+    const channel = supabase.channel('messages-hangout-' + hangoutChatEvent.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hangout_messages', filter: `event_id=eq.${hangoutChatEvent.id}` }, async payload => {
+        const m = payload.new
+        setHangoutChatMessages(old => old.some(x => x.id === m.id) ? old : [...old, m])
+        if (!hangoutChatNames[m.user_id]) {
+          const { data } = await supabase.from('profiles').select('id,display_name').eq('id', m.user_id).maybeSingle()
+          if (data) setHangoutChatNames(old => ({ ...old, [data.id]: data.display_name || 'สมาชิก' }))
+        }
+      }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [hangoutChatEvent?.id, hangoutChatNames])
+  useEffect(() => {
+    if (!hangoutChatEvent) return
+    const channel = supabase.channel('hangout-members-' + hangoutChatEvent.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hangout_rsvps', filter: `event_id=eq.${hangoutChatEvent.id}` }, async payload => {
+        const uid = payload.new.user_id
+        setHangoutChatMembers(old => old.includes(uid) ? old : [...old, uid])
+        const { data } = await supabase.from('profiles').select('id,display_name').eq('id', uid).maybeSingle()
+        if (data) setHangoutChatNames(old => ({ ...old, [uid]: data.display_name || 'สมาชิก' }))
+      }).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [hangoutChatEvent?.id])
+  useEffect(() => {
+    if (!hangoutChatEvent) return
+    const root = document.documentElement, body = document.body
+    const prev = { ro: root.style.overflow, bo: body.style.overflow, rs: root.style.overscrollBehavior, bs: body.style.overscrollBehavior }
+    root.style.overflow = 'hidden'; body.style.overflow = 'hidden'; root.style.overscrollBehavior = 'none'; body.style.overscrollBehavior = 'none'
+    const onKey = e => { if (e.key === 'Escape') setHangoutChatEvent(null) }
+    window.addEventListener('keydown', onKey)
+    return () => { root.style.overflow = prev.ro; body.style.overflow = prev.bo; root.style.overscrollBehavior = prev.rs; body.style.overscrollBehavior = prev.bs; window.removeEventListener('keydown', onKey) }
+  }, [!!hangoutChatEvent])
+  const sendHangoutChat = async e => {
+    e.preventDefault(); const body = hangoutChatDraft.trim()
+    if (!body || !hangoutChatEvent || hangoutChatBusy) return
+    setHangoutChatBusy(true)
+    const { data, error } = await supabase.from('hangout_messages').insert({ event_id: hangoutChatEvent.id, user_id: me, body }).select('id,event_id,user_id,body,created_at').single()
+    setHangoutChatBusy(false)
+    if (error) { notify('ส่งข้อความไม่สำเร็จ: ' + error.message); return }
+    setHangoutChatMessages(old => old.some(x => x.id === data.id) ? old : [...old, data]); setHangoutChatNames(old => ({ ...old, [me]: old[me] || 'คุณ' })); setHangoutChatDraft('')
+  }
   const [selectedId, setSelectedId] = useState(() => {
     try { return sessionStorage.getItem(`nisit-active-chat:${me}`) || null } catch { return null }
   })
@@ -886,7 +956,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
     {sel ? createPortal(<div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
-        {!!hangoutRooms.length && <section className="message-hangout-rooms"><div className="message-hangout-heading"><CalendarDays size={15}/> ห้อง Hangout <span>{hangoutRooms.length}</span></div>{hangoutRooms.map(room => <button type="button" key={room.id} className="message-hangout-room" onClick={() => onOpenHangoutChat?.(room.id)}><span className="message-hangout-room-icon"><Users size={17}/></span><span><b>{room.title}</b><small>{room.venue} · {room.status === "open" ? "เปิดอยู่" : "ปิดแล้ว"}</small></span><MessageCircle size={15}/></button>)}</section>}
+        {!!hangoutRooms.length && <section className="message-hangout-rooms"><div className="message-hangout-heading"><CalendarDays size={15}/> ห้อง Hangout <span>{hangoutRooms.length}</span></div>{hangoutRooms.map(room => <button type="button" key={room.id} className="message-hangout-room" onClick={() => loadHangoutChat(room)}><span className="message-hangout-room-icon"><Users size={17}/></span><span><b>{room.title}</b><small>{room.venue} · {room.status === "open" ? "เปิดอยู่" : "ปิดแล้ว"}</small></span><MessageCircle size={15}/></button>)}</section>}
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
           const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
@@ -945,7 +1015,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       </> : <div className="chat-placeholder"><MessageCircle/><h3>บทสนทนาของคุณ</h3><p>เลือก Match เพื่อเริ่มพูดคุย</p></div>}</div>
     </div>, document.body) : <div className={"chat-layout chat-theme-" + chatTheme + " chat-inbox-open"}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
-        {!!hangoutRooms.length && <section className="message-hangout-rooms"><div className="message-hangout-heading"><CalendarDays size={15}/> ห้อง Hangout <span>{hangoutRooms.length}</span></div>{hangoutRooms.map(room => <button type="button" key={room.id} className="message-hangout-room" onClick={() => onOpenHangoutChat?.(room.id)}><span className="message-hangout-room-icon"><Users size={17}/></span><span><b>{room.title}</b><small>{room.venue} · {room.status === "open" ? "เปิดอยู่" : "ปิดแล้ว"}</small></span><MessageCircle size={15}/></button>)}</section>}
+        {!!hangoutRooms.length && <section className="message-hangout-rooms"><div className="message-hangout-heading"><CalendarDays size={15}/> ห้อง Hangout <span>{hangoutRooms.length}</span></div>{hangoutRooms.map(room => <button type="button" key={room.id} className="message-hangout-room" onClick={() => loadHangoutChat(room)}><span className="message-hangout-room-icon"><Users size={17}/></span><span><b>{room.title}</b><small>{room.venue} · {room.status === "open" ? "เปิดอยู่" : "ปิดแล้ว"}</small></span><MessageCircle size={15}/></button>)}</section>}
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
           const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
@@ -954,6 +1024,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
     </div>}
+    {hangoutChatEvent && createPortal(<div className="hangout-overlay nm-message-hangout-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setHangoutChatEvent(null) }}><section className="hangout-chat-modal nm-message-hangout-chat" role="dialog" aria-modal="true" aria-label={`แชทกลุ่ม ${hangoutChatEvent.title}`}><header><div><b><Users size={18}/> {hangoutChatEvent.title}</b><small>{hangoutChatEvent.venue} · สมาชิก {hangoutChatMembers.map(id => hangoutChatNames[id] || (id === me ? 'คุณ' : 'กำลังโหลดชื่อ')).join('、') || 'กำลังโหลดสมาชิก'}</small></div><button type="button" className="icon-btn" onClick={() => setHangoutChatEvent(null)} aria-label="ปิดแชท"><X size={20}/></button></header><div className="hangout-chat-messages nm-message-hangout-list">{hangoutChatMessages.length ? hangoutChatMessages.map(m => <div key={m.id} className={'hangout-chat-bubble'+(m.user_id===me?' mine':'')}><small>{m.user_id===me ? 'คุณ' : (hangoutChatNames[m.user_id] || 'กำลังโหลดชื่อ…')}</small><p>{m.body}</p><time>{new Date(m.created_at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</time></div>) : <div className="hangout-chat-empty"><MessageCircle size={25}/><b>เริ่มคุยกับคนในนัดนี้</b><span>ชื่อผู้ส่งจะแสดงเหนือข้อความ</span></div>}</div><form className="hangout-chat-compose" onSubmit={sendHangoutChat}><input value={hangoutChatDraft} onChange={e=>setHangoutChatDraft(e.target.value)} placeholder="พิมพ์ข้อความถึงสมาชิก..." aria-label="พิมพ์ข้อความแชทกลุ่ม" maxLength={1500} autoComplete="off"/><button type="submit" disabled={hangoutChatBusy||!hangoutChatDraft.trim()} aria-label="ส่งข้อความ"><Send size={18}/></button></form></section></div>, document.body)}
   </>)
 }
 
@@ -1805,7 +1876,7 @@ const mapsSearchUrl = (name, area='') => `https://www.google.com/maps/search/?ap
 
 const mapsEmbedUrl = (name, area='') => `https://www.google.com/maps?q=${encodeURIComponent([name,area].filter(Boolean).join(' '))}&output=embed`
 
-function HangoutPage({ user, profile, notify }) {
+function HangoutPage({ user, profile, notify, onJoinedHangout }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -1849,7 +1920,7 @@ function HangoutPage({ user, profile, notify }) {
   }
   const rsvp = async event => {
     if(joined.includes(event.id)) { const {error}=await supabase.from('hangout_rsvps').delete().eq('event_id',event.id).eq('user_id',user.id); if(error) return notify('ยกเลิกการเข้าร่วมไม่สำเร็จ: '+error.message); setJoined(old=>old.filter(x=>x!==event.id)); setCounts(old=>({...old,[event.id]:Math.max(0,(old[event.id]||0)-1)})); notify('ยกเลิกการเข้าร่วมแล้ว'); return }
-    const {error}=await supabase.from('hangout_rsvps').insert({event_id:event.id,user_id:user.id}); if(error) return notify(error.code==='23505'?'คุณเข้าร่วมกิจกรรมนี้แล้ว':`เข้าร่วมไม่สำเร็จ: ${error.message}`); setJoined(old=>[...old,event.id]); setCounts(old=>({...old,[event.id]:(old[event.id]||0)+1})); notify('เข้าร่วม Hangout แล้ว · เปิดแชทกลุ่มให้แล้ว'); loadChat(event)
+    const {error}=await supabase.from('hangout_rsvps').insert({event_id:event.id,user_id:user.id}); if(error) return notify(error.code==='23505'?'คุณเข้าร่วมกิจกรรมนี้แล้ว':`เข้าร่วมไม่สำเร็จ: ${error.message}`); setJoined(old=>[...old,event.id]); setCounts(old=>({...old,[event.id]:(old[event.id]||0)+1})); notify('เข้าร่วม Hangout แล้ว · เปิดแชทกลุ่มในข้อความ'); if (onJoinedHangout) onJoinedHangout(event.id); else loadChat(event)
   }
   const closeEvent = async event => {
     if(!window.confirm('ปิดห้อง Hangout นี้ใช่ไหม? คนอื่นจะเข้าร่วมใหม่ไม่ได้ และห้องจะหายจากรายการเปิด')) return
@@ -2266,9 +2337,9 @@ const loadMatches = useCallback(async () => {
           </>}
           {view === 'likes' && <PremiumListPage kind="likes" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
           {view === 'visitors' && <PremiumListPage kind="visitors" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
-          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} />}
+          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} onJoinedHangout={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
           {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
-          {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={loadUnreadMessages} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('hangout') }} />}
+          {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={loadUnreadMessages} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}
