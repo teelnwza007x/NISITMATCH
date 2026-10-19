@@ -2238,3 +2238,66 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .nm-message-hangout-chat .hangout-read-receipts svg{color:#85c8ff;flex:0 0 auto}
 .nm-message-hangout-chat .hangout-read-receipts button{max-width:100px;padding:2px 5px;border:1px solid rgba(133,200,255,.22);border-radius:999px;background:rgba(133,200,255,.09);color:#b7ddff;font:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;touch-action:manipulation}
 .nm-message-hangout-chat .hangout-chat-bubble.mine .hangout-read-receipts{justify-content:flex-end}
+
+/* v92: Hangout map uses the actual viewport bounds; campus picker is a clearer card grid. */
+.hangout-map-overlay-v90 {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  box-sizing: border-box !important;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)) !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  z-index: 2147483000 !important;
+}
+.hangout-map-modal-v90 {
+  box-sizing: border-box !important;
+  width: min(620px, 100%) !important;
+  height: min(760px, calc(100vh - 20px)) !important;
+  height: min(760px, calc(100dvh - 20px)) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+.hangout-map-modal-v90 header { min-width: 0 !important; }
+.hangout-map-modal-v90 header > div { overflow: hidden !important; }
+.hangout-map-modal-v90 header .icon-btn { position: relative !important; z-index: 2147483001 !important; }
+.hangout-map-modal-v90 iframe { min-width: 0 !important; min-height: 0 !important; max-width: 100% !important; }
+.hangout-map-actions-v90 { min-width: 0 !important; box-sizing: border-box !important; flex-wrap: wrap !important; }
+.hangout-map-actions-v90 a { max-width: 100% !important; white-space: normal !important; }
+.hangout-campus-discovery { margin-top: 12px !important; border: 1px solid rgba(145,125,255,.2) !important; border-radius: 15px !important; background: linear-gradient(145deg,rgba(126,93,255,.09),rgba(255,255,255,.025)) !important; }
+.hangout-campus-discovery summary { padding: 13px !important; gap: 10px !important; }
+.hangout-campus-discovery summary:after { display: none !important; }
+.campus-discovery-title { display: flex !important; align-items: center !important; gap: 10px !important; min-width: 0 !important; }
+.campus-discovery-title > svg { flex: 0 0 auto !important; color: #ffabd3 !important; }
+.campus-discovery-title > span { display: flex !important; flex-direction: column !important; gap: 3px !important; }
+.campus-discovery-title b { color: #f8f3ff !important; font-size: 12px !important; }
+.campus-discovery-title small { color: #aaa6bc !important; font-size: 10px !important; font-weight: 400 !important; }
+.campus-discovery-count { flex: 0 0 auto !important; margin-left: auto !important; padding: 5px 8px !important; border-radius: 999px !important; color: #ffabd3 !important; background: rgba(255,139,195,.09) !important; font-size: 10px !important; }
+.hangout-campus-grid { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; padding: 0 10px 10px !important; }
+.hangout-campus-grid button { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 9px !important; min-width: 0 !important; min-height: 57px !important; padding: 9px !important; border: 1px solid rgba(255,255,255,.09) !important; border-radius: 12px !important; background: rgba(12,14,27,.55) !important; text-align: left !important; }
+.hangout-campus-grid button > svg { flex: 0 0 auto !important; margin-left: auto !important; color: #ffabd3 !important; }
+.campus-card-icon { display: grid !important; place-items: center !important; flex: 0 0 34px !important; width: 34px !important; height: 34px !important; border-radius: 10px !important; background: linear-gradient(145deg,rgba(255,139,195,.14),rgba(145,125,255,.17)) !important; font-size: 16px !important; }
+.campus-card-copy { display: flex !important; flex-direction: column !important; gap: 3px !important; min-width: 0 !important; }
+.campus-card-copy b { color: #f3edf9 !important; font-size: 10px !important; line-height: 1.35 !important; overflow-wrap: anywhere !important; }
+.campus-card-copy small { color: #aaa6bc !important; font-size: 9px !important; }
+@media (max-width: 600px) {
+  .hangout-map-overlay-v90 { padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)) !important; }
+  .hangout-map-modal-v90 { width: 100% !important; height: min(720px, calc(100vh - 12px)) !important; height: min(720px, calc(100dvh - 12px)) !important; max-height: 100% !important; border-radius: 14px !important; }
+  .hangout-map-modal-v90 header { padding: 8px 8px 8px 11px !important; }
+  .hangout-map-modal-v90 header b { font-size: 13px !important; }
+  .hangout-map-modal-v90 header small { font-size: 10px !important; }
+  .hangout-map-modal-v90 header .icon-btn { flex-basis: 42px !important; width: 42px !important; min-width: 42px !important; height: 42px !important; min-height: 42px !important; }
+  .hangout-map-actions-v90 { padding: 8px 10px calc(8px + env(safe-area-inset-bottom)) !important; }
+  .hangout-map-actions-v90 span { flex: 1 1 120px !important; }
+  .hangout-map-actions-v90 a { flex: 0 1 auto !important; font-size: 10px !important; padding: 8px !important; }
+  .hangout-campus-grid { grid-template-columns: 1fr !important; }
+}
