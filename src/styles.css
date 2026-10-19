@@ -1875,3 +1875,20 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .hangout-chat-compose button{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border:0;border-radius:12px;background:linear-gradient(135deg,#e45da6,#8d6bfa);color:#fff;cursor:pointer}
 .hangout-chat-compose button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:600px){.hangout-overlay{padding:9px}.hangout-map-modal,.hangout-chat-modal{border-radius:16px;max-height:92dvh}.hangout-map-modal iframe{height:55dvh}.hangout-chat-modal{height:88dvh}.hangout-card-actions button{font-size:11px;padding:8px 9px}}
+
+/* v82 Hangout safety banner: playful motion, same midnight/pink campus theme */
+.v76-hangout-safety{position:relative;isolation:isolate;overflow:hidden;gap:14px;margin-bottom:20px;padding:17px 18px;border:1px solid rgba(255,126,191,.27)!important;border-radius:18px!important;background:linear-gradient(112deg,rgba(63,29,65,.92),rgba(31,31,58,.96) 52%,rgba(25,39,66,.94))!important;color:#ffe9f5!important;box-shadow:0 12px 32px rgba(0,0,0,.18),0 0 28px rgba(216,85,164,.07),inset 0 1px rgba(255,255,255,.06)!important;animation:hangout-safety-float 4.2s ease-in-out infinite;transition:border-color .25s,box-shadow .25s,transform .25s}
+.v76-hangout-safety:before{content:"";position:absolute;z-index:-1;inset:-40% auto -40% -35%;width:32%;transform:rotate(18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);animation:hangout-safety-shimmer 6.5s ease-in-out infinite;pointer-events:none}
+.v76-hangout-safety:after{content:"✦";position:absolute;right:18px;top:10px;color:#ff9ccc;font-size:13px;text-shadow:0 0 12px rgba(255,117,187,.75);animation:hangout-safety-twinkle 2.8s ease-in-out infinite;pointer-events:none}
+.v76-hangout-safety>svg{flex:0 0 auto;width:39px;height:39px;padding:9px;border:1px solid rgba(255,148,202,.24);border-radius:13px;background:linear-gradient(145deg,rgba(255,112,183,.2),rgba(151,116,255,.19));color:#ff9dce;filter:drop-shadow(0 0 8px rgba(245,92,165,.18));animation:hangout-safety-icon 3.2s ease-in-out infinite}
+.v76-hangout-safety span{position:relative;z-index:1;gap:4px;min-width:0}
+.v76-hangout-safety b{display:flex;align-items:center;gap:7px;color:#fff0f8!important;font-size:13px;letter-spacing:.1px}
+.v76-hangout-safety b:after{content:"SAFETY FIRST";display:inline-flex;align-items:center;padding:3px 6px;border:1px solid rgba(255,145,200,.22);border-radius:999px;background:rgba(255,133,191,.09);color:#ffabd3;font:700 8px/1 Inter,sans-serif;letter-spacing:.65px}
+.v76-hangout-safety small{color:#c5b5d2!important;font-size:11px;line-height:1.65}
+.v76-hangout-safety:hover{transform:translateY(-2px);border-color:rgba(255,126,191,.48)!important;box-shadow:0 16px 36px rgba(0,0,0,.23),0 0 30px rgba(216,85,164,.12),inset 0 1px rgba(255,255,255,.08)!important}
+@keyframes hangout-safety-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes hangout-safety-icon{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-3px) rotate(-4deg)}65%{transform:translateY(0) rotate(3deg)}}
+@keyframes hangout-safety-shimmer{0%,65%{left:-35%;opacity:0}72%{opacity:1}88%,100%{left:115%;opacity:0}}
+@keyframes hangout-safety-twinkle{0%,100%{opacity:.45;transform:scale(.8) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(18deg)}}
+@media(max-width:600px){.v76-hangout-safety{padding:14px;gap:11px;border-radius:15px!important}.v76-hangout-safety>svg{width:35px;height:35px;padding:8px}.v76-hangout-safety b{flex-wrap:wrap;font-size:12px}.v76-hangout-safety small{font-size:10px;padding-right:2px}.v76-hangout-safety:after{right:11px;top:7px}}
+@media(prefers-reduced-motion:reduce){.v76-hangout-safety,.v76-hangout-safety:before,.v76-hangout-safety:after,.v76-hangout-safety>svg{animation:none!important}}
