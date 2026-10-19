@@ -1571,8 +1571,13 @@ if (typeof document !== 'undefined') {
 }
 
 
+const VERIFIED_CAMPUS_DOMAINS = {
+  spu: { name: 'มหาวิทยาลัยศรีปทุม', domains: ['spumail.net'] },
+  bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net', 'bu.ac.th'] },
+}
+
 function CampusEmailVerification({ user }) {
-  const [verification, setVerification] = useState('unverified')
+  const [verification, setVerification] = useState(null)
   const [campusEmail, setCampusEmail] = useState('')
   const [campusCode, setCampusCode] = useState('')
   const [campusUniversity, setCampusUniversity] = useState('')
@@ -1581,51 +1586,62 @@ function CampusEmailVerification({ user }) {
   const [verifyMessage, setVerifyMessage] = useState('')
   useEffect(() => {
     let active = true
-    supabase.from('student_verifications').select('status').eq('user_id', user.id).maybeSingle()
-      .then(({ data, error }) => { if (active && !error) setVerification(data?.status || 'unverified') })
-      .catch(() => {})
+    supabase.from('student_verifications').select('status,university_id,verified_email,email_domain').eq('user_id', user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active || error) return
+        setVerification(data || { status: 'unverified' })
+        if (data?.university_id) setCampusUniversity(data.university_id)
+        if (data?.verified_email) setCampusEmail(data.verified_email)
+      })
+      .catch(() => { if (active) setVerification({ status: 'unverified' }) })
     return () => { active = false }
   }, [user.id])
+  const isVerified = verification?.status === 'verified'
+  const selectedCampus = VERIFIED_CAMPUS_DOMAINS[campusUniversity]
+  const allowedDomains = selectedCampus?.domains || []
   const requestVerification = async (action) => {
     if (verifyBusy) return
     const email = campusEmail.trim().toLowerCase()
-    if (!campusUniversity) return setVerifyMessage('กรุณาเลือกมหาวิทยาลัย')
+    if (isVerified) return setVerifyMessage('ยืนยันแล้ว ไม่สามารถเปลี่ยนมหาวิทยาลัยหรืออีเมลที่ใช้ยืนยันได้')
+    if (!campusUniversity || !selectedCampus) return setVerifyMessage('กรุณาเลือกมหาวิทยาลัยที่รองรับการยืนยัน')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setVerifyMessage('กรุณากรอกอีเมลมหาวิทยาลัยที่ถูกต้อง')
+    const domain = email.split('@')[1]
+    if (!allowedDomains.includes(domain)) return setVerifyMessage(`มหาวิทยาลัยนี้รองรับเฉพาะ ${allowedDomains.map(x => '@' + x).join(' หรือ ')}`)
     if (action === 'verify' && !/^\d{6}$/.test(campusCode.trim())) return setVerifyMessage('กรุณากรอกรหัส 6 หลัก')
     setVerifyBusy(true); setVerifyMessage('')
     try {
       const {data, error} = await supabase.functions.invoke('student-email-otp', {body: {action, university_id: campusUniversity, email, code: campusCode.trim()}})
       if (error || !data?.ok) throw new Error(data?.error || error?.message || 'ไม่สามารถดำเนินการได้')
-      if (action === 'request_domain') { setVerifyMessage(data?.message || 'รับคำขอแล้ว กรุณารอการตรวจสอบโดเมน'); return }
-      if (action === 'send') { setVerifyStep('code'); setVerifyMessage('ส่งรหัส 6 หลักแล้ว กรุณาตรวจกล่องจดหมายและจดหมายขยะ (Spam / Junk) ของอีเมลมหาวิทยาลัย') }
-      else { setVerification('verified'); setVerifyMessage('ยืนยันอีเมลมหาวิทยาลัยสำเร็จ'); setCampusCode('') }
+      if (action === 'send') { setVerifyStep('code'); setVerifyMessage('ส่งรหัส 6 หลักแล้ว กรุณาตรวจกล่องจดหมายและ Spam / Junk') }
+      else {
+        setVerification({ status: 'verified', university_id: campusUniversity, verified_email: email, email_domain: domain })
+        setCampusCode('')
+        setVerifyMessage('ยืนยันสำเร็จ! มหาวิทยาลัยและอีเมลนี้ถูกล็อกกับบัญชีนี้แล้ว')
+      }
     } catch (err) { setVerifyMessage(err?.message || 'เกิดข้อผิดพลาด') }
     finally { setVerifyBusy(false) }
   }
-  return (<>    <section className="v26-settings-section v27-verification" aria-label="ยืนยันนักศึกษา">
-      <span className="theme-kicker">STUDENT VERIFICATION</span>
-      <h3>ยืนยันอีเมลมหาวิทยาลัย</h3>
-      <p>ใช้ Gmail เข้าสู่ระบบได้เหมือนเดิม เพิ่มอีเมลมหาวิทยาลัยเพื่อรับรหัสยืนยันแยกต่างหาก</p>
-      <div className="v26-verify-row">{verification === 'verified' ? <span className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/>ยืนยันอีเมลมหาวิทยาลัยแล้ว</span> : <span className="v26-status">ยังไม่ยืนยันอีเมลมหาวิทยาลัย</span>}</div>
-      {verification === 'verified' && <p className="v27-verify-success" role="status"><ShieldCheck size={18}/> บัญชีนี้ผ่านการยืนยันความเป็นเจ้าของอีเมลมหาวิทยาลัยแล้ว</p>}
-      {verification !== 'verified' && <div className="v27-verify-form">
-        <label htmlFor="v27-campus">มหาวิทยาลัย / สถาบันอุดมศึกษา</label>
-        <select id="v27-campus" value={campusUniversity} onChange={e => {setCampusUniversity(e.target.value); setVerifyStep('email'); setVerifyMessage('')}}>
-          <option value="">เลือกมหาวิทยาลัย</option>
-          {UNIVERSITIES.filter((u,i,a)=>a.findIndex(x=>x.name===u.name)===i).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
-        </select>
-        <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย (ไม่ใช่อีเมลล็อกอิน)</label>
-        <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder="student@university.ac.th" value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyStep('email')}} />
-        {verifyStep === 'code' && <p className="v27-spam-hint" role="note">หากไม่พบรหัสยืนยัน กรุณาตรวจโฟลเดอร์จดหมายขยะ (Spam / Junk) และรอสักครู่ก่อนกดส่งรหัสอีกครั้ง</p>}
-        {verifyStep === 'code' && <><label htmlFor="v27-campus-code">รหัสยืนยัน 6 หลัก</label><input id="v27-campus-code" type="text" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" placeholder="000000" value={campusCode} onChange={e=>setCampusCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></>}
-        <button type="button" className="btn btn-pink" disabled={verifyBusy} onClick={()=>requestVerification(verifyStep === 'code' ? 'verify' : 'send')}>{verifyBusy ? 'กำลังดำเนินการ...' : verifyStep === 'code' ? 'ยืนยันรหัส' : 'ส่งรหัสไปยังอีเมลมหาวิทยาลัย'}</button>
-        {verifyStep === 'code' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('send')}>ส่งรหัสอีกครั้ง</button>}
-        {verifyMessage && <p className="v27-verify-message" role="status">{verifyMessage}</p>}
-        <p className="v27-verify-note">ถ้ายังไม่รองรับโดเมนอีเมลของสถาบัน สามารถส่งคำขอเพิ่มได้ ผู้ดูแลจะตรวจสอบก่อนเปิดใช้ OTP และป้ายยืนยัน</p>
-        {verifyStep === 'email' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('request_domain')}>ไม่พบโดเมนของฉัน — ขอเพิ่มโดเมน</button>}
-      </div>}
-    </section>
-  </>)
+  return <section className="v26-settings-section v27-verification" aria-label="ยืนยันนักศึกษา">
+    <span className="theme-kicker">STUDENT VERIFICATION</span>
+    <h3>ยืนยันอีเมลมหาวิทยาลัย</h3>
+    <p>เพื่อป้องกันการใช้สิทธิ์ซ้ำ อีเมลที่ยืนยันสำเร็จจะใช้ได้เพียงบัญชีเดียว และเปลี่ยนมหาวิทยาลัยที่ยืนยันไม่ได้</p>
+    <div className="v26-verify-row">{isVerified ? <span className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/> ยืนยันแล้ว · ล็อกมหาวิทยาลัย</span> : <span className="v26-status">ยังไม่ยืนยันอีเมลมหาวิทยาลัย</span>}</div>
+    {isVerified ? <div className="v27-verify-success" role="status"><ShieldCheck size={18}/><div><b>{VERIFIED_CAMPUS_DOMAINS[verification.university_id]?.name || uniName(verification.university_id)}</b><p>อีเมลยืนยัน: {verification.verified_email || `*@${verification.email_domain}`}</p><small>มหาวิทยาลัยและอีเมลยืนยันนี้เปลี่ยนไม่ได้ หากมีปัญหาให้ติดต่อผู้ดูแล</small></div></div> : <div className="v27-verify-form">
+      <label htmlFor="v27-campus">เลือกมหาวิทยาลัยที่ต้องการยืนยัน</label>
+      <select id="v27-campus" value={campusUniversity} onChange={e => {setCampusUniversity(e.target.value); setCampusEmail(''); setVerifyStep('email'); setCampusCode(''); setVerifyMessage('')}}>
+        <option value="">เลือกมหาวิทยาลัย</option>
+        {Object.entries(VERIFIED_CAMPUS_DOMAINS).map(([id, campus]) => <option key={id} value={id}>{campus.name}</option>)}
+      </select>
+      {selectedCampus && <p className="v27-domain-hint">รองรับเฉพาะโดเมน: <b>{allowedDomains.map(x => '@' + x).join(' · ')}</b></p>}
+      <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย</label>
+      <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder={campusUniversity === 'spu' ? 'ชื่อผู้ใช้@spumail.net' : campusUniversity === 'bu' ? 'ชื่อผู้ใช้@bumail.net หรือ @bu.ac.th' : 'เลือกมหาวิทยาลัยก่อน'} value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyMessage('')}} disabled={!selectedCampus || verifyStep === 'code'} />
+      {verifyStep === 'code' && <><p className="v27-spam-hint" role="note">หากไม่พบรหัส กรุณาตรวจ Spam / Junk ก่อนขอรหัสใหม่</p><label htmlFor="v27-campus-code">รหัสยืนยัน 6 หลัก</label><input id="v27-campus-code" type="text" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" placeholder="000000" value={campusCode} onChange={e=>setCampusCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></>}
+      <button type="button" className="btn btn-pink" disabled={verifyBusy || !selectedCampus} onClick={()=>requestVerification(verifyStep === 'code' ? 'verify' : 'send')}>{verifyBusy ? 'กำลังดำเนินการ...' : verifyStep === 'code' ? 'ยืนยันรหัสและล็อกมหาวิทยาลัย' : 'ส่งรหัสไปยังอีเมลมหาวิทยาลัย'}</button>
+      {verifyStep === 'code' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('send')}>ส่งรหัสอีกครั้ง</button>}
+      {verifyMessage && <p className="v27-verify-message" role="status">{verifyMessage}</p>}
+      <p className="v27-verify-note">ตอนนี้แสดงเฉพาะมหาวิทยาลัยที่กำหนดโดเมนอีเมลชัดเจนแล้ว เมื่อมีโดเมนอื่นที่ตรวจสอบได้จะเพิ่มเข้ารายการภายหลัง</p>
+    </div>}
+  </section>
 }
 
 function SettingsPage({ user, notify }) {

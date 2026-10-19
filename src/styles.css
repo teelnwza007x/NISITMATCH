@@ -1959,3 +1959,10 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
  .nm-message-hangout-chat .hangout-chat-compose{padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important}
 }
 @supports(height:100svh){@media(max-width:600px){.nm-message-hangout-chat{height:100svh!important;max-height:100svh!important}}}
+
+/* v86 campus verification domain guidance */
+.v27-domain-hint{margin:0 0 12px;padding:10px 12px;border:1px solid rgba(221,100,167,.24);border-radius:10px;background:rgba(221,100,167,.07);color:var(--text-muted,#a8afc1);font-size:.82rem;line-height:1.6}
+.v27-domain-hint b{color:var(--accent,#f17bb8);overflow-wrap:anywhere}
+.v27-verification .v27-verify-success{display:flex;align-items:flex-start;gap:10px;padding:13px;border-radius:12px;border:1px solid rgba(92,205,157,.23);background:rgba(92,205,157,.07)}
+.v27-verification .v27-verify-success p{margin:5px 0;font-size:.85rem;overflow-wrap:anywhere}
+.v27-verification .v27-verify-success small{display:block;opacity:.7;line-height:1.5}

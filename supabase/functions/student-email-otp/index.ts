@@ -17,6 +17,10 @@ Deno.serve(async req => {
   if(!['send','verify','request_domain'].includes(action)||typeof university_id!=='string'||typeof email!=='string') return reply({error:'ข้อมูลไม่ถูกต้อง'},400)
   const mail=email.trim().toLowerCase(), domain=mail.split('@')[1]
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return reply({error:'อีเมลไม่ถูกต้อง'},400)
+  // A verified university and address are immutable for this account.
+  const {data:locked,error:lockError}=await db.from('student_verifications').select('status,university_id,verified_email').eq('user_id',user.id).maybeSingle()
+  if(lockError) throw lockError
+  if(locked?.status==='verified') return reply({error:'บัญชีนี้ยืนยันแล้ว ไม่สามารถเปลี่ยนมหาวิทยาลัยหรืออีเมลยืนยันได้'},409)
   if(action==='request_domain') {
    // Request is not verification: never issue a badge or OTP for an unapproved domain.
    const {data:existing,error:lookupError}=await db.from('student_domain_requests').select('requested_at').eq('user_id',user.id).eq('university_id',university_id).eq('domain',domain).maybeSingle()
@@ -27,7 +31,16 @@ Deno.serve(async req => {
    return reply({ok:true,pending:true,message:'รับคำขอเพิ่มโดเมนแล้ว ผู้ดูแลต้องตรวจสอบก่อนเปิดใช้ OTP'})
   }
   const {data:allowed}=await db.from('student_email_domains').select('domain').eq('domain',domain).eq('university_id',university_id).eq('enabled',true).maybeSingle()
-  if(!allowed) return reply({error:'ยังไม่รองรับโดเมนอีเมลนี้สำหรับมหาวิทยาลัยที่เลือก กรุณาติดต่อผู้ดูแล'},400)
+  if(!allowed) return reply({error:'โดเมนอีเมลนี้ไม่อยู่ในรายการที่รองรับสำหรับมหาวิทยาลัยที่เลือก'},400)
+  // One verified mailbox may belong to only one account.
+  const {data:usedEmail,error:usedEmailError}=await db.from('student_verifications').select('user_id').ilike('verified_email',mail).eq('status','verified').neq('user_id',user.id).maybeSingle()
+  if(usedEmailError) throw usedEmailError
+  if(usedEmail) return reply({error:'อีเมลมหาวิทยาลัยนี้ถูกใช้ยืนยันกับบัญชีอื่นแล้ว ใช้ซ้ำไม่ได้'},409)
+  if(locked && locked.status !== 'verified' && locked.university_id && locked.university_id !== university_id) {
+   // Once a verification attempt has begun, keep the selected campus stable for that pending attempt.
+   const {data:challenge}=await db.from('student_email_otp_challenges').select('user_id').eq('user_id',user.id).maybeSingle()
+   if(challenge) return reply({error:'มีคำขอยืนยันค้างอยู่ กรุณาใช้มหาวิทยาลัยเดิมจนกว่าคำขอนี้จะหมดอายุ'},409)
+  }
   const now=Date.now()
   const {data:old}=await db.from('student_email_otp_challenges').select('*').eq('user_id',user.id).maybeSingle()
   if(action==='send') {
