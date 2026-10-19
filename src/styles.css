@@ -2686,3 +2686,21 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
  .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:5px}
  .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{max-height:51%;padding:40px 14px 12px}
 }
+
+/* v109: consistent full-bleed Tinder portrait media for every source aspect ratio.
+   Cover fills the same card viewport without stretching; overflow is cropped. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-card{overflow:hidden}
+.app-shell.home-swipe-locked .swipe-stage .swipe-card>img,
+.app-shell.home-swipe-locked .swipe-stage .swipe-card>.swipe-media-video,
+.app-shell.home-swipe-locked .swipe-stage .swipe-card .swipe-behind-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  object-fit:cover!important;
+  object-position:center 35%!important;
+  background-color:#17131f!important;
+}
