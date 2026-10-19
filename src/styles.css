@@ -2224,3 +2224,17 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .hangout-campus-discovery[open] summary:after { content: '−'; }
 .hangout-campus-discovery summary span { margin-left: auto; color: #aaa6bc; font-size: 10px; font-weight: 500; }
 .hangout-campus-discovery > div { padding: 0 10px 10px; }
+
+/* v91 Hangout: compact tappable member list and per-message read receipts */
+.nm-message-hangout-chat .hangout-chat-header-main{min-width:0;flex:1}
+.nm-message-hangout-chat .hangout-member-chips{display:flex;align-items:center;gap:6px;overflow-x:auto;max-width:100%;padding:6px 1px 4px;overscroll-behavior-x:contain;scrollbar-width:none}
+.nm-message-hangout-chat .hangout-member-chips::-webkit-scrollbar{display:none}
+.nm-message-hangout-chat .hangout-member-chip{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;max-width:132px;padding:4px 8px 4px 4px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.055);color:inherit;font:inherit;font-size:11px;cursor:pointer;touch-action:manipulation}
+.nm-message-hangout-chat .hangout-member-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm-message-hangout-chat .hangout-member-avatar{width:25px;height:25px;flex:0 0 25px;object-fit:cover;border-radius:50%}
+.nm-message-hangout-chat .hangout-chat-header-main>small{display:block;max-width:100%;overflow-wrap:anywhere}
+.nm-message-hangout-chat .hangout-message-sender{display:block;margin:0 0 4px;padding:0;border:0;background:transparent;color:#ffadd2;font-size:11px;font-weight:800;text-align:left;cursor:pointer;touch-action:manipulation}
+.nm-message-hangout-chat .hangout-read-receipts{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:5px;color:rgba(255,255,255,.68);font-size:10px;line-height:1.25}
+.nm-message-hangout-chat .hangout-read-receipts svg{color:#85c8ff;flex:0 0 auto}
+.nm-message-hangout-chat .hangout-read-receipts button{max-width:100px;padding:2px 5px;border:1px solid rgba(133,200,255,.22);border-radius:999px;background:rgba(133,200,255,.09);color:#b7ddff;font:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;touch-action:manipulation}
+.nm-message-hangout-chat .hangout-chat-bubble.mine .hangout-read-receipts{justify-content:flex-end}
