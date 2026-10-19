@@ -1431,14 +1431,16 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding }) {
     const slots = Math.max(0, 6 - mediaSlotCount)
     const accepted = incoming.slice(0, slots)
     if (incoming.length > slots) notify('โปรไฟล์เพิ่มรูปและวิดีโอรวมกันได้สูงสุด 6 รายการ')
-    const images = accepted.filter(file => file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name))
+    const heicFiles = accepted.filter(file => /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type))
+    const images = accepted.filter(file => file.type.startsWith('image/') && !heicFiles.includes(file))
     const videos = accepted.filter(file => file.type.startsWith('video/'))
     const validImages = images.filter(file => file.size <= 10 * 1024 * 1024)
     const validVideos = videos.filter(file => file.size <= 25 * 1024 * 1024)
+    if (heicFiles.length) notify('ไฟล์ HEIC/Live Photo จาก iPhone บางเบราว์เซอร์อ่านไม่ได้: เปิดรูปใน Photos แล้วเลือก Export/บันทึกเป็นวิดีโอ หรือแปลงภาพเป็น JPG ก่อนเพิ่ม')
     if (validImages.length !== images.length) notify('รูปภาพต้องมีขนาดไม่เกิน 10MB')
     if (validVideos.length !== videos.length) notify('วิดีโอ/Live Photo ต้องมีขนาดไม่เกิน 25MB ต่อไฟล์')
-    const recognized = validImages.length + validVideos.length
-    if (recognized < accepted.length) notify('รองรับรูปภาพหรือวิดีโอเท่านั้น')
+    const recognized = validImages.length + validVideos.length + heicFiles.length
+    if (recognized < accepted.length) notify('รองรับรูป JPG/PNG/WebP หรือวิดีโอ MP4/MOV/WebM เท่านั้น')
     setCropQueue(q => [...q, ...validImages])
     setNewVideos(old => [...old, ...validVideos.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file) }))])
   }
@@ -1598,9 +1600,20 @@ if (typeof document !== 'undefined') {
 }
 
 
+// Student mailbox domains checked against official university IT/email pages.
+// Mailbox access verifies control of an institutional mailbox, not enrollment status by itself.
 const VERIFIED_CAMPUS_DOMAINS = {
-  spu: { name: 'มหาวิทยาลัยศรีปทุม', domains: ['spumail.net'] },
-  bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net', 'bu.ac.th'] },
+  kmitl: { name: 'สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง', domains: ['kmitl.ac.th'] },
+  ku: { name: 'มหาวิทยาลัยเกษตรศาสตร์', domains: ['ku.th', 'live.ku.th'] },
+  chula: { name: 'จุฬาลงกรณ์มหาวิทยาลัย', domains: ['student.chula.ac.th'] },
+  tu: { name: 'มหาวิทยาลัยธรรมศาสตร์', domains: ['dome.tu.ac.th'] },
+  kmutt: { name: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี', domains: ['mail.kmutt.ac.th'] },
+  kmutnb: { name: 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ', domains: ['email.kmutnb.ac.th'] },
+  buu: { name: 'มหาวิทยาลัยบูรพา', domains: ['go.buu.ac.th', 'my.buu.ac.th'] },
+  swu: { name: 'มหาวิทยาลัยศรีนครินทรวิโรฒ', domains: ['g.swu.ac.th'] },
+  su: { name: 'มหาวิทยาลัยศิลปากร', domains: ['su.ac.th', 'silpakorn.edu'] },
+  spu: { name: 'มหาวิทยาลัยศรีปทุม', domains: ['spumail.net', 'spulive.net'] },
+  bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net'] },
 }
 
 function CampusEmailVerification({ user }) {
@@ -1661,7 +1674,7 @@ function CampusEmailVerification({ user }) {
       </select>
       {selectedCampus && <p className="v27-domain-hint">รองรับเฉพาะโดเมน: <b>{allowedDomains.map(x => '@' + x).join(' · ')}</b></p>}
       <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย</label>
-      <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder={campusUniversity === 'spu' ? 'ชื่อผู้ใช้@spumail.net' : campusUniversity === 'bu' ? 'ชื่อผู้ใช้@bumail.net หรือ @bu.ac.th' : 'เลือกมหาวิทยาลัยก่อน'} value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyMessage('')}} disabled={!selectedCampus || verifyStep === 'code'} />
+      <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder={selectedCampus ? selectedCampus.domains.map(d => `ชื่อผู้ใช้@${d}`).join(' หรือ ') : 'เลือกมหาวิทยาลัยก่อน'} value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyMessage('')}} disabled={!selectedCampus || verifyStep === 'code'} />
       {verifyStep === 'code' && <><p className="v27-spam-hint" role="note">หากไม่พบรหัส กรุณาตรวจ Spam / Junk ก่อนขอรหัสใหม่</p><label htmlFor="v27-campus-code">รหัสยืนยัน 6 หลัก</label><input id="v27-campus-code" type="text" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" placeholder="000000" value={campusCode} onChange={e=>setCampusCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></>}
       <button type="button" className="btn btn-pink" disabled={verifyBusy || !selectedCampus} onClick={()=>requestVerification(verifyStep === 'code' ? 'verify' : 'send')}>{verifyBusy ? 'กำลังดำเนินการ...' : verifyStep === 'code' ? 'ยืนยันรหัสและล็อกมหาวิทยาลัย' : 'ส่งรหัสไปยังอีเมลมหาวิทยาลัย'}</button>
       {verifyStep === 'code' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('send')}>ส่งรหัสอีกครั้ง</button>}

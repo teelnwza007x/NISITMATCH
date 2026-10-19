@@ -2092,3 +2092,12 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
   .hangout-overlay { animation: none !important; }
   .message-hangout-room { transition: none !important; }
 }
+
+
+/* v88: crop interaction should follow the pointer immediately on touch and desktop */
+.v60-crop-preview { touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; }
+.v60-crop-preview img { transition: none !important; will-change: transform; }
+.v60-crop-dialog { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.v60-crop-backdrop { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+.v60-crop-preview img { -webkit-user-drag: none; pointer-events: none; }
+@media (max-width: 600px) { .v60-crop-preview { width: min(82vw, 320px); margin: 12px auto; } .v60-crop-dialog { width: min(100%, 440px); } }
