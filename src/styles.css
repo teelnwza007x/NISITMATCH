@@ -2118,3 +2118,109 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .nm-message-hangout-chat .hangout-closed-notice{flex:0 0 auto;padding:13px 16px calc(13px + env(safe-area-inset-bottom));text-align:center;color:var(--text-muted,#a8afc1);font-size:13px;border-top:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035)}
 .nm-message-hangout-chat .chat-upload-status{flex:0 0 auto;text-align:center;padding:5px 10px;font-size:12px;color:var(--text-muted,#a8afc1)}
 @media(max-width:600px){.nm-message-hangout-chat{height:var(--nm-visual-height,100dvh)!important;max-height:var(--nm-visual-height,100dvh)!important}.nm-message-hangout-chat .hangout-chat-compose{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}}
+
+/* v90: compact map dialog, stable close control, and less cluttered venue discovery */
+.hangout-map-overlay-v90 {
+  position: fixed !important;
+  inset: var(--nm-visual-top, 0px) 0 auto 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: var(--nm-visual-height, 100dvh) !important;
+  max-height: var(--nm-visual-height, 100dvh) !important;
+  padding: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+  z-index: 100600 !important;
+}
+.hangout-map-modal-v90 {
+  position: relative !important;
+  width: min(620px, calc(100vw - 24px)) !important;
+  height: min(74dvh, 660px) !important;
+  max-height: calc(var(--nm-visual-height, 100dvh) - 24px) !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  overflow: hidden !important;
+  border-radius: 20px !important;
+  touch-action: auto !important;
+}
+.hangout-map-modal-v90 header {
+  position: relative !important;
+  z-index: 20 !important;
+  min-height: 64px !important;
+  padding: 10px 12px 10px 16px !important;
+  flex: 0 0 auto !important;
+  background: #171927 !important;
+}
+.hangout-map-modal-v90 header > div { min-width: 0 !important; flex: 1 1 auto !important; }
+.hangout-map-modal-v90 header small { white-space: normal !important; overflow-wrap: anywhere !important; line-height: 1.35 !important; }
+.hangout-map-modal-v90 header .icon-btn {
+  position: relative !important;
+  z-index: 30 !important;
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,.09) !important;
+}
+.hangout-map-modal-v90 iframe {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border: 0 !important;
+  touch-action: auto !important;
+}
+.hangout-map-actions-v90 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: #171927;
+}
+.hangout-map-actions-v90 span { min-width: 0; color: #aaa6bc; font-size: 10px; line-height: 1.4; }
+.hangout-map-actions-v90 a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; border: 1px solid rgba(255,139,195,.25); border-radius: 10px; padding: 9px 10px; color: #ffabd3; text-decoration: none; font-size: 11px; font-weight: 750; }
+.hangout-campus-discovery { margin-top: 10px; padding: 11px; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; background: rgba(255,255,255,.025); }
+.hangout-campus-discovery > span { display: block; margin-bottom: 8px; color: #aaa6bc; font-size: 11px; font-weight: 750; }
+.hangout-campus-discovery > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.hangout-campus-discovery button { display: flex; align-items: center; justify-content: space-between; gap: 5px; min-width: 0; border: 1px solid rgba(255,255,255,.09); border-radius: 9px; padding: 8px 9px; background: rgba(255,255,255,.035); color: #e8e2f1; font: inherit; font-size: 10px; text-align: left; cursor: pointer; touch-action: manipulation; }
+.hangout-campus-discovery button:hover { border-color: rgba(255,139,195,.35); background: rgba(255,139,195,.08); }
+.hangout-campus-discovery button svg { flex: 0 0 auto; color: #ffabd3; }
+.hangout-venue-results { max-height: min(58dvh,520px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.hangout-venue-option { min-width: 0; }
+.hangout-venue-info { min-width: 0; }
+.hangout-venue-info b,.hangout-venue-info small { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .hangout-map-overlay-v90 { padding: 10px !important; align-items: center !important; justify-content: center !important; }
+  .hangout-map-modal-v90 { width: min(94vw, 520px) !important; height: min(78dvh, 620px) !important; max-height: calc(var(--nm-visual-height, 100dvh) - 20px) !important; border-radius: 17px !important; border: 1px solid rgba(255,255,255,.15) !important; }
+  .hangout-map-modal-v90 header { padding: 9px 10px 9px 13px !important; }
+  .hangout-map-actions-v90 { align-items: flex-start; padding: 9px 10px calc(9px + env(safe-area-inset-bottom)); }
+  .hangout-map-actions-v90 span { padding-top: 5px; }
+  .hangout-map-actions-v90 a { max-width: 46%; white-space: nowrap; }
+  .hangout-campus-discovery > div { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hangout-map-overlay-v90 { animation: none !important; }
+}
+.hangout-campus-discovery { margin-top: 10px; padding: 0 !important; overflow: hidden; }
+.hangout-campus-discovery summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px; list-style: none; cursor: pointer; color: #e8e2f1; font-size: 11px; font-weight: 750; touch-action: manipulation; }
+.hangout-campus-discovery summary::-webkit-details-marker { display: none; }
+.hangout-campus-discovery summary:after { content: '+'; color: #ffabd3; font-size: 17px; line-height: 1; }
+.hangout-campus-discovery[open] summary:after { content: '−'; }
+.hangout-campus-discovery summary span { margin-left: auto; color: #aaa6bc; font-size: 10px; font-weight: 500; }
+.hangout-campus-discovery > div { padding: 0 10px 10px; }
