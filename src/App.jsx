@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal } from 'lucide-react'
 import { supabase } from './supabase'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
@@ -150,7 +150,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
 }
 
 function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
-  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null)
+  const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [showSwipeMenu, setShowSwipeMenu] = useState(false)
   const [cardVideos, setCardVideos] = useState([])
   const start = useRef(null)
   const dragNow = useRef({ x: 0, y: 0 })
@@ -176,6 +176,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   useLayoutEffect(() => {
     setPhoto(0)
     setSuperBurst(false)
+    setShowSwipeMenu(false)
     start.current = null
     dragNow.current = { x: 0, y: 0 }
     paint(0, 0)
@@ -292,7 +293,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <div className="nm-superburst-star"><Star size={68} strokeWidth={1.7} fill="currentColor"/></div>
         <div className="nm-superburst-title">SUPER LIKE</div><div className="nm-superburst-caption">ส่งความพิเศษไปแล้ว</div>
       </div>}
-    </article>{swipeBurst && createPortal(<div className={'v64-swipe-burst v76-swipe-burst-overlay ' + swipeBurst} aria-hidden="true"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={64}/> : <X size={70}/>}</div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span>{Array.from({length:10},(_,i)=><i key={i} style={{'--i':i}}/>)}</div>, document.body)}</div><div className="swipe-controls"><button className="swipe-control undo" disabled={busy || !canUndo} onClick={onUndo} title="ย้อนกลับการปัดล่าสุด" aria-label="ย้อนกลับ"><Undo2 size={20}/></button><button disabled={busy} className="swipe-control reject" onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={25}/></button><button className="swipe-control info" onClick={() => onOpen(person)} aria-label="ดูโปรไฟล์" title="ดูโปรไฟล์"><UserRound size={20}/></button><button disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={27} fill="currentColor"/></button><button disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={21}/></button><button className="swipe-control report" onClick={() => onReport(person)} aria-label="รายงาน" title="รายงาน"><Flag size={17}/></button></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
+    </article>{swipeBurst && createPortal(<div className={'v64-swipe-burst v76-swipe-burst-overlay ' + swipeBurst} aria-hidden="true"><div className="v64-swipe-burst-icon">{swipeBurst === 'like' ? <Heart fill="currentColor" size={64}/> : <X size={70}/>}</div><span>{swipeBurst === 'like' ? 'LIKE' : 'PASS'}</span>{Array.from({length:10},(_,i)=><i key={i} style={{'--i':i}}/>)}</div>, document.body)}</div><div className="swipe-action-area">{showSwipeMenu && <div className="swipe-more-menu" role="menu" aria-label="ตัวเลือกเพิ่มเติม"><button type="button" role="menuitem" onClick={() => { setShowSwipeMenu(false); onOpen(person) }}><UserRound size={16}/> ดูโปรไฟล์</button><button type="button" role="menuitem" disabled={busy || !canUndo} onClick={() => { setShowSwipeMenu(false); onUndo() }}><Undo2 size={16}/> ย้อนกลับการปัด</button><button type="button" role="menuitem" onClick={() => { setShowSwipeMenu(false); onReport(person) }}><Flag size={16}/> รายงานโปรไฟล์</button></div>}<div className="swipe-controls"><button type="button" className="swipe-control reject" disabled={busy} onClick={() => act(false)} aria-label="ข้าม" title="ข้าม"><X size={23}/></button><button type="button" disabled={busy} className="swipe-control accept" onClick={() => act(true)} aria-label="ถูกใจ" title="ถูกใจ"><Heart size={26} fill="currentColor"/></button><button type="button" disabled={busy} className="swipe-control super" onClick={doSuperLike} aria-label="Super Like" title="Super Like (สูงสุด 3 ครั้งต่อวัน)"><Star size={20}/></button><button type="button" className={'swipe-control more ' + (showSwipeMenu ? 'active' : '')} onClick={() => setShowSwipeMenu(v => !v)} aria-label="ตัวเลือกเพิ่มเติม" aria-expanded={showSwipeMenu} title="ตัวเลือกเพิ่มเติม"><MoreHorizontal size={22}/></button></div></div><p className="swipe-hint">← ปัดซ้ายเพื่อข้าม · ปัดขวาเพื่อถูกใจ →</p></div>
 }
 
 function CampusVerifiedBadge({ universityId }) {

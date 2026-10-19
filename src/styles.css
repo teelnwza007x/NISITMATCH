@@ -2499,3 +2499,20 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .nm-campus-lock-card p{grid-column:1/-1;margin:2px 0 0;padding-top:10px;border-top:1px solid rgba(124,221,190,.13);font-size:10px;line-height:1.7;color:#91a9a9}
 .v83-media-note{line-height:1.8}
 @media(prefers-reduced-motion:reduce){.nm-campus-verified{animation:none}}
+
+
+/* v100: simplify swipe actions — three primary actions + one overflow menu */
+.swipe-action-area{position:relative;display:flex;justify-content:center;max-width:100%;margin:14px auto 0}
+.swipe-action-area .swipe-controls{gap:15px;margin:0;padding:7px 10px;align-items:center}
+.swipe-action-area .swipe-control{width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center}
+.swipe-action-area .swipe-control.accept{width:58px;height:58px;flex-basis:58px;border-radius:50%}
+.swipe-action-area .swipe-control.super{background:#f0eaff;color:#7755d8;border-color:#e0d5ff}
+.swipe-action-area .swipe-control.more{background:#f6f3f8;color:#6f6578;border-color:#e8e0eb}
+.swipe-action-area .swipe-control.more.active{background:#e9e0f4;color:#61448c}
+.swipe-more-menu{position:absolute;right:0;bottom:calc(100% + 9px);z-index:20;width:190px;padding:6px;border:1px solid rgba(228,214,233,.95);border-radius:16px;background:rgba(255,255,255,.97);box-shadow:0 12px 34px rgba(43,25,55,.2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.swipe-more-menu button{width:100%;display:flex;align-items:center;gap:10px;padding:11px 10px;border:0;border-radius:10px;background:transparent;color:#42374a;text-align:left;font-size:12px;cursor:pointer}
+.swipe-more-menu button:hover:not(:disabled){background:#f5edf8}
+.swipe-more-menu button:disabled{opacity:.4;cursor:not-allowed}
+.swipe-more-menu button svg{flex-shrink:0;color:#8567a4}
+@media(max-width:600px){.swipe-action-area{margin-top:11px}.swipe-action-area .swipe-controls{gap:13px;padding:6px 9px}.swipe-action-area .swipe-control{width:43px;height:43px;flex-basis:43px}.swipe-action-area .swipe-control.accept{width:54px;height:54px;flex-basis:54px}.swipe-more-menu{right:0}}
+@media(prefers-reduced-motion:reduce){.swipe-action-area .swipe-control{transition:none!important}}
