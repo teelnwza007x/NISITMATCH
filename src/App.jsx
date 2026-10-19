@@ -316,7 +316,7 @@ function PersonCard({ p, onLike, onSkip, onOpen, onReport, verifiedIds = [] }) {
 }
 
 function Heading({ kicker, title, sub, children }) {
-  return <div className="welcome-row"><div><div className="section-kicker">{kicker}</div><h1>{title} <span>♥</span></h1><p>{sub}</p></div>{children}</div>
+  return <div className="welcome-row"><div><div className="section-kicker">{kicker}</div><h1>{title}</h1><p>{sub}</p></div>{children}</div>
 }
 
 
