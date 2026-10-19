@@ -2653,3 +2653,22 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 }
 @media(max-width:390px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:auto;max-height:none}.app-shell.home-swipe-locked .welcome-row p{font-size:9px}}
 @media(max-height:700px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:auto;max-height:none;min-height:0}.app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:5px}}
+
+/* v107: Tinder-like profile details: university and music must remain reachable. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{
+  box-sizing:border-box;max-height:min(78%,440px);overflow-y:auto;overflow-x:hidden;
+  overscroll-behavior:contain;scrollbar-width:thin;touch-action:pan-y;
+  padding-top:55px;padding-bottom:15px;pointer-events:auto;
+  background:linear-gradient(to bottom,transparent,rgba(12,10,25,.72) 32%,rgba(12,10,25,.97) 100%);
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>p{
+  max-height:none;overflow:visible;display:flex;align-items:flex-start;gap:7px;
+  white-space:normal;overflow-wrap:anywhere;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>p svg{flex-shrink:0;margin-top:1px}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info .tags{max-height:none;overflow:visible;flex-wrap:wrap}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song{width:100%;max-width:300px;pointer-events:auto}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{max-height:75%;padding:55px 15px 14px}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>p{font-size:12px;line-height:1.45}
+}
