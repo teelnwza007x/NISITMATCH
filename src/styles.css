@@ -2547,32 +2547,74 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 @media(max-width:600px){.swipe-more-trigger{top:23px;right:11px;width:39px;height:39px;border-radius:14px}.swipe-more-menu-card{top:69px;right:9px;width:min(245px,calc(100% - 18px))}.swipe-action-area .swipe-controls{gap:24px}}
 @media(prefers-reduced-motion:reduce){.swipe-more-menu-card,.swipe-action-area .swipe-control{animation:none!important;transition:none!important}}
 
-
-/* v102 UX hardening layered on the v101 source: Tinder-like photo deck and reliable photo taps. */
-.app-shell.home-swipe-locked .page-content>.welcome-row .section-kicker:empty{display:none!important}
-.app-shell.home-swipe-locked .page-content>.welcome-row .section-kicker:empty+h1{margin-top:0!important}
-.app-shell.home-swipe-locked .page-content>.swipe-stage{width:min(100%,430px)!important;max-width:430px!important;margin:6px auto 0!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-stack{width:100%!important;height:min(66dvh,620px)!important;min-height:300px!important;max-height:620px!important;aspect-ratio:3/4;position:relative}
-.app-shell.home-swipe-locked .swipe-stage .swipe-front{overflow:hidden!important;border-radius:25px!important;background:#17131f!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-front>img,.app-shell.home-swipe-locked .swipe-stage .swipe-front>.swipe-media-video{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important;background:#17131f!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-tap{appearance:none!important;-webkit-appearance:none!important;display:block!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;opacity:1!important;touch-action:manipulation!important;pointer-events:auto!important;z-index:8!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-tap.left{left:0!important;width:42%!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-tap.right{right:0!important;width:42%!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-tap:disabled{pointer-events:none!important}
-.app-shell.home-swipe-locked .swipe-stage .swipe-info{pointer-events:none!important}
-.message-hangout-room-meta{display:block!important;margin-top:3px;color:#b6a9c8!important;font-size:10px!important;line-height:1.35!important}
-.hangout-typing-indicator{display:flex;align-items:center;gap:8px;align-self:flex-start;flex:0 0 auto;margin:2px 12px 8px;padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:rgba(255,255,255,.055);color:#bdb2ce;font-size:11px}
-.hangout-typing-dots{display:flex;align-items:center;gap:3px;height:12px}
-.hangout-typing-dots i{display:block;width:5px;height:5px;border-radius:50%;background:#ff9acb;animation:hangout-typing-bounce .85s ease-in-out infinite}
-.hangout-typing-dots i:nth-child(2){animation-delay:.12s}.hangout-typing-dots i:nth-child(3){animation-delay:.24s}
-@keyframes hangout-typing-bounce{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}
-.nm-message-hangout-chat .hangout-chat-compose input:not([type=file]){font-size:16px!important;line-height:1.2!important;scroll-margin-block:0!important;touch-action:manipulation!important}
-.nm-message-hangout-chat{display:flex!important;flex-direction:column!important;overflow:hidden!important;min-height:0!important}
-.nm-message-hangout-chat .nm-message-hangout-list{flex:1 1 0!important;min-height:0!important;overscroll-behavior:contain!important}
-.nm-message-hangout-chat .hangout-chat-compose{flex-shrink:0!important;position:relative!important;transform:none!important;margin-top:auto!important;padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
-@media(max-width:700px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:min(61dvh,560px)!important;min-height:270px!important}.app-shell.home-swipe-locked .page-content>.swipe-stage{margin-top:2px!important}.app-shell.home-swipe-locked .swipe-stage .swipe-tap{bottom:145px!important}}
-@media(max-height:700px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:48dvh!important;min-height:250px!important}}
-@media(prefers-reduced-motion:reduce){.hangout-typing-dots i{animation:none!important}}
-
-.v102-event-creator-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:-3px 0 8px;color:#aaa0bf;font-size:11px;line-height:1.4}.v102-event-creator-meta b{color:#e9d7ff;font-weight:750}
-.hangout-chat-modal .hangout-chat-compose input:not([type=file]){font-size:16px!important;line-height:1.2!important;touch-action:manipulation!important}
+/* v104: mobile swipe layout stabilization — keep the deck, actions and bottom navigation separated. */
+.app-shell.home-swipe-locked{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;}
+.app-shell.home-swipe-locked .main-area{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;padding-bottom:0;box-sizing:border-box;}
+.app-shell.home-swipe-locked .page-content{height:100dvh;min-height:0;max-height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:clamp(10px,1.8vh,18px) clamp(12px,2.5vw,28px) 12px;overflow:hidden!important;}
+.app-shell.home-swipe-locked .page-content>.welcome-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;max-width:760px;margin:0 auto 8px;min-width:0;}
+.app-shell.home-swipe-locked .welcome-row>div:first-child{min-width:0;flex:1;}
+.app-shell.home-swipe-locked .welcome-row .section-kicker{display:none!important;}
+.app-shell.home-swipe-locked .welcome-row h1{margin:0;font-size:clamp(18px,2.4vw,25px);line-height:1.2;letter-spacing:-.035em;overflow-wrap:anywhere;}
+.app-shell.home-swipe-locked .welcome-row p{margin:4px 0 0;font-size:clamp(11px,1.3vw,13px);line-height:1.4;max-width:54ch;}
+.app-shell.home-swipe-locked .welcome-row h1 span{white-space:nowrap;}
+.app-shell.home-swipe-locked .welcome-row .v76-home-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto;min-width:0;}
+.app-shell.home-swipe-locked .welcome-row .v76-home-actions .btn{min-height:36px;padding:7px 10px;font-size:11px;white-space:nowrap;}
+.app-shell.home-swipe-locked .page-content>.result-meta{width:100%;max-width:760px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 auto 6px;padding:0 2px;font-size:10px;line-height:1.35;}
+.app-shell.home-swipe-locked .page-content>.nearby-fallback-note{width:100%;max-width:760px;margin:0 auto 5px;font-size:10px;line-height:1.4;}
+.app-shell.home-swipe-locked .page-content>.swipe-stage{flex:1 1 auto;min-height:0;width:min(100%,440px);max-width:440px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;margin:0 auto;overflow:visible;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-stack{flex:0 1 auto;width:100%;height:clamp(250px,57dvh,570px);max-height:57dvh;min-height:0;flex-shrink:1;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front{overflow:hidden;isolation:isolate;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{max-height:58%;overflow:hidden;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area{flex:0 0 auto;margin:7px auto 0;padding:0;max-width:100%;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{gap:clamp(16px,4vw,28px);padding:4px 10px;margin:0;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{width:43px;height:43px;flex-basis:43px;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.accept{width:53px;height:53px;flex-basis:53px;}
+.app-shell.home-swipe-locked .swipe-stage .swipe-hint{flex:0 0 auto;margin:3px 0 0;font-size:10px;line-height:1.3;text-align:center;}
+.app-shell.home-swipe-locked .swipe-more-trigger{top:max(10px,env(safe-area-inset-top,0px));right:10px;width:38px;height:38px;border-radius:13px;z-index:15;}
+.app-shell.home-swipe-locked .swipe-more-menu-card{top:calc(max(10px,env(safe-area-inset-top,0px)) + 46px);right:8px;z-index:25;max-height:calc(100% - 70px);overflow-y:auto;overscroll-behavior:contain;}
+.app-shell.home-swipe-locked .page-content>.matches-heading,.app-shell.home-swipe-locked .page-content>.empty-state.compact,.app-shell.home-swipe-locked .page-content>.app-footer{display:none!important;}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .main-area{padding-bottom:0!important;}
+ .app-shell.home-swipe-locked .page-content{height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));padding:calc(7px + env(safe-area-inset-top,0px)) 10px 5px;}
+ .app-shell.home-swipe-locked .page-content>.welcome-row{align-items:flex-start;gap:8px;margin-bottom:6px;}
+ .app-shell.home-swipe-locked .welcome-row h1{font-size:clamp(17px,4.6vw,21px);line-height:1.22;}
+ .app-shell.home-swipe-locked .welcome-row p{font-size:10px;line-height:1.35;margin-top:3px;max-width:36ch;}
+ .app-shell.home-swipe-locked .welcome-row .v76-home-actions{gap:5px;}
+ .app-shell.home-swipe-locked .welcome-row .v76-home-actions .btn{min-height:32px;padding:6px 7px;font-size:10px;gap:4px;border-radius:10px;}
+ .app-shell.home-swipe-locked .welcome-row .v76-home-actions .btn svg{width:13px;height:13px;}
+ .app-shell.home-swipe-locked .page-content>.result-meta{font-size:9px;margin-bottom:5px;}
+ .app-shell.home-swipe-locked .swipe-stage{width:min(100%,390px);}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(230px,43dvh,390px);max-height:43dvh;min-height:0;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{padding:70px 15px 13px;max-height:54%;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info h2{font-size:clamp(19px,5.6vw,25px);line-height:1.18;overflow-wrap:anywhere;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info p{font-size:11px;line-height:1.35;margin:4px 0;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info .tags{gap:4px;margin-top:5px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info .tag{font-size:9px;padding:4px 6px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{top:10px;left:10px;padding:5px 8px;font-size:9px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:5px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{gap:clamp(18px,6vw,27px);padding:3px 8px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{width:41px;height:41px;flex-basis:41px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.accept{width:50px;height:50px;flex-basis:50px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-hint{font-size:9px;margin-top:2px;}
+ .app-shell.home-swipe-locked .swipe-more-trigger{top:10px;right:9px;width:36px;height:36px;}
+ .app-shell.home-swipe-locked .swipe-more-menu-card{top:52px;right:7px;width:min(235px,calc(100% - 14px));padding:7px;border-radius:16px;}
+ .app-shell.home-swipe-locked .swipe-more-menu-card button{min-height:44px;padding:8px;}
+}
+@media(max-width:390px){
+ .app-shell.home-swipe-locked .page-content{padding-inline:8px;}
+ .app-shell.home-swipe-locked .page-content>.welcome-row{gap:5px;}
+ .app-shell.home-swipe-locked .welcome-row h1{font-size:16px;}
+ .app-shell.home-swipe-locked .welcome-row p{font-size:9px;}
+ .app-shell.home-swipe-locked .welcome-row .v76-home-actions .btn{padding-inline:5px;font-size:9px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(220px,40dvh,340px);max-height:40dvh;}
+}
+@media(max-height:700px){
+ .app-shell.home-swipe-locked .page-content{padding-top:5px;}
+ .app-shell.home-swipe-locked .page-content>.welcome-row{margin-bottom:4px;}
+ .app-shell.home-swipe-locked .welcome-row p{display:none;}
+ .app-shell.home-swipe-locked .page-content>.result-meta{margin-bottom:3px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(210px,39dvh,300px);max-height:39dvh;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:3px;}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-hint{display:none;}
+}
+@media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .swipe-action-area .swipe-control{animation:none!important;will-change:auto!important;}}

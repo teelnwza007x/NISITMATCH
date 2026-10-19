@@ -9,3 +9,6 @@ Nisit Match — Music Profile + Chat Smooth Scroll
 
 ติดตั้ง: สำรองโปรเจกต์เดิม แล้วนำ src/App.jsx และ src/styles.css ไปแทนในโปรเจกต์เดิม จากนั้น npm run build
 ไม่ต้องรัน SQL ใหม่
+
+
+V103: Hangout เปิดให้เฉพาะบัญชีที่ยืนยันอีเมลมหาวิทยาลัยแล้ว ดู V103_HANGOUT_VERIFIED_EMAIL_ONLY_TH.md และรัน supabase/V103_HANGOUT_VERIFIED_EMAIL_ONLY.sql ใน Supabase ก่อนใช้งานจริง.
