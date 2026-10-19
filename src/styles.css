@@ -2483,3 +2483,19 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .nm-report-portal .nm-dialog{flex:0 1 460px;max-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overscroll-behavior:contain;box-sizing:border-box}
 @media(max-width:600px){.nm-intent-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.nm-intent-options button{width:100%;min-width:0;padding:10px 8px;font-size:.82rem}.nm-report-portal{align-items:center!important;padding-left:12px!important;padding-right:12px!important}.nm-report-portal .nm-dialog{width:100%;padding:25px 19px;border-radius:22px}}
 @media(prefers-reduced-motion:reduce){.nm-intent-options button,.nm-intent-options .nm-intent-emoji{animation:none!important;transition:none!important}.nm-intent-options button:hover,.nm-intent-options button:active{transform:none!important}}
+
+/* v98: minimal campus verification badge + locked verified-campus card */
+.nm-campus-verified{display:inline-flex;align-items:center;gap:5px;width:fit-content;max-width:100%;padding:4px 8px;border:1px solid rgba(124,221,190,.22);border-radius:999px;background:rgba(87,196,158,.09);color:#a8ead2;font-size:10px;font-weight:600;line-height:1.2;letter-spacing:.05px;animation:nm-campus-appear .24s ease-out both}
+.nm-campus-verified svg{flex:none;color:#83dfbd}
+.swipe-info .nm-campus-verified{margin:3px 0 5px;background:rgba(87,196,158,.11);color:#b3f1dc}
+.person-image .nm-campus-verified{position:absolute;top:12px;left:12px;z-index:3;background:rgba(10,23,30,.78);backdrop-filter:blur(10px);border-color:rgba(124,221,190,.28)}
+.detail-body .nm-campus-verified{margin:4px 0 10px}
+.nm-campus-lock-card{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;padding:15px;border:1px solid rgba(124,221,190,.2);border-radius:16px;background:linear-gradient(135deg,rgba(87,196,158,.09),rgba(127,111,245,.06));color:#eaf5f3}
+.nm-campus-lock-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;background:rgba(87,196,158,.12);color:#9de7cd}
+.nm-campus-lock-card>span:nth-child(2){display:flex;flex-direction:column;gap:4px;min-width:0}
+.nm-campus-lock-card b{font-size:12px;font-weight:650;line-height:1.6}
+.nm-campus-lock-card small{font-size:10px;color:#9dc9bd;line-height:1.5}
+.nm-campus-lock-status{font-size:9px;letter-spacing:1px;font-weight:700;color:#a8ead2;border:1px solid rgba(124,221,190,.24);background:rgba(87,196,158,.08);border-radius:999px;padding:5px 7px}
+.nm-campus-lock-card p{grid-column:1/-1;margin:2px 0 0;padding-top:10px;border-top:1px solid rgba(124,221,190,.13);font-size:10px;line-height:1.7;color:#91a9a9}
+.v83-media-note{line-height:1.8}
+@media(prefers-reduced-motion:reduce){.nm-campus-verified{animation:none}}

@@ -269,7 +269,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'pan-y' }}>
-      {photoItems[photo]?.type === 'video' ? <video key={photoItems[photo].key} className="swipe-media-video" draggable="false" src={mediaPub(photoItems[photo].path)} muted playsInline loop autoPlay preload="metadata" aria-label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
+      {photoItems[photo]?.type === 'video' ? <video key={photoItems[photo].key} className="swipe-media-video" draggable="false" src={mediaPub(photoItems[photo].path)} muted playsInline loop autoPlay preload="auto" onCanPlay={e => { e.currentTarget.muted = true; const play = e.currentTarget.play(); if (play?.catch) play.catch(() => {}) }} aria-label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
       <div className="swipe-tap left" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.max(0, v - 1))}/><div className="swipe-tap right" onPointerDown={e => e.stopPropagation()} onClick={() => setPhoto(v => Math.min(photoItems.length - 1, v + 1))}/>
       <div className="swipe-feedback yes" ref={yesRef} aria-hidden="true">
@@ -293,7 +293,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
 }
 
 function CampusVerifiedBadge() {
-  return <span className="nm-campus-verified" title="ยืนยันความเป็นเจ้าของอีเมลมหาวิทยาลัยแล้ว"><ShieldCheck size={15} strokeWidth={2.2}/><span>ยืนยันอีเมลมหาวิทยาลัยแล้ว</span></span>
+  return <span className="nm-campus-verified" title="ยืนยันอีเมลมหาวิทยาลัยแล้ว" aria-label="ยืนยันอีเมลมหาวิทยาลัยแล้ว"><ShieldCheck size={13} strokeWidth={2.4}/><span>นิสิตยืนยันแล้ว</span></span>
 }
 
 function PersonCard({ p, onLike, onSkip, onOpen, onReport, verifiedIds = [] }) {
@@ -1476,11 +1476,23 @@ const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_da
 
 function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium = false }) {
   const [profileEmailVerified, setProfileEmailVerified] = useState(false)
+  const [profileVerificationLoaded, setProfileVerificationLoaded] = useState(false)
+  const [verifiedUniversityId, setVerifiedUniversityId] = useState('')
   useEffect(() => {
     let alive = true
-    supabase.from('student_verifications').select('status').eq('user_id', user.id).maybeSingle()
-      .then(({ data, error }) => { if (alive && !error) setProfileEmailVerified(data?.status === 'verified') })
-      .catch(() => {})
+    setProfileVerificationLoaded(false)
+    supabase.from('student_verifications').select('status,university_id').eq('user_id', user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive) return
+        if (!error) {
+          const verified = data?.status === 'verified'
+          setProfileEmailVerified(verified)
+          setVerifiedUniversityId(verified ? (data?.university_id || '') : '')
+          if (verified && data?.university_id) setF(old => ({ ...old, uni: data.university_id }))
+        }
+        setProfileVerificationLoaded(true)
+      })
+      .catch(() => { if (alive) setProfileVerificationLoaded(true) })
     return () => { alive = false }
   }, [user.id])
   useEffect(() => {
@@ -1553,21 +1565,36 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const mediaSlotCount = photos.length + newPhotos.length + cropQueue.length + profileVideos.length + newVideos.length
   const addMedia = files => {
     const incoming = Array.from(files || [])
+    if (!incoming.length) return
+    const extOf = file => (file.name.split('.').pop() || '').toLowerCase()
+    const isHeic = file => /^(heic|heif)$/.test(extOf(file)) || /image\/(heic|heif)/i.test(file.type)
+    const isVideo = file => file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|quicktime)$/i.test(file.name)
+    const isImage = file => file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif|bmp)$/i.test(file.name)
+    const videos = incoming.filter(isVideo)
+    const heics = incoming.filter(isHeic)
+    // iPhone Live Photos commonly arrive as a still image plus a paired .MOV.
+    // The MOV carries the motion and is the reliable browser-playable representation;
+    // don't upload the HEIC as a broken static image in browsers without HEIC decoding.
+    const base = file => file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[-_ ](edited|edit|1)$/,'')
+    const pairedHeics = heics.filter(still => videos.some(video => base(video) === base(still)))
+    const images = incoming.filter(isImage).filter(file => !heics.includes(file))
+    const standaloneHeics = heics.filter(file => !pairedHeics.includes(file))
+    const requestedSlots = images.length + videos.length + standaloneHeics.length
+    const unsupported = incoming.filter(file => !isVideo(file) && !isImage(file) && !isHeic(file))
     const slots = Math.max(0, 6 - mediaSlotCount)
-    const accepted = incoming.slice(0, slots)
-    if (incoming.length > slots) notify('โปรไฟล์เพิ่มรูปและวิดีโอรวมกันได้สูงสุด 6 รายการ')
-    const heicFiles = accepted.filter(file => /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type))
-    const images = accepted.filter(file => file.type.startsWith('image/') && !heicFiles.includes(file))
-    const videos = accepted.filter(file => file.type.startsWith('video/'))
-    const validImages = images.filter(file => file.size <= 10 * 1024 * 1024)
-    const validVideos = videos.filter(file => file.size <= 25 * 1024 * 1024)
-    if (heicFiles.length) notify('ไฟล์ HEIC/Live Photo จาก iPhone บางเบราว์เซอร์อ่านไม่ได้: เปิดรูปใน Photos แล้วเลือก Export/บันทึกเป็นวิดีโอ หรือแปลงภาพเป็น JPG ก่อนเพิ่ม')
-    if (validImages.length !== images.length) notify('รูปภาพต้องมีขนาดไม่เกิน 10MB')
-    if (validVideos.length !== videos.length) notify('วิดีโอ/Live Photo ต้องมีขนาดไม่เกิน 25MB ต่อไฟล์')
-    const recognized = validImages.length + validVideos.length + heicFiles.length
-    if (recognized < accepted.length) notify('รองรับรูป JPG/PNG/WebP หรือวิดีโอ MP4/MOV/WebM เท่านั้น')
+    if (requestedSlots > slots) notify(`เพิ่มสื่อได้อีก ${slots} รายการ (รวมสูงสุด 6 รายการ)`)
+    // Prefer the paired MOV when a Live Photo pair is selected; it represents one gallery item.
+    const acceptedVideos = videos.slice(0, Math.max(0, slots - Math.min(images.length, slots)))
+    const acceptedImages = images.slice(0, Math.max(0, slots - acceptedVideos.length))
+    const validImages = acceptedImages.filter(file => file.size <= 10 * 1024 * 1024)
+    const validVideos = acceptedVideos.filter(file => file.size <= 25 * 1024 * 1024)
+    if (validImages.length !== acceptedImages.length) notify('รูปภาพต้องมีขนาดไม่เกิน 10MB')
+    if (validVideos.length !== acceptedVideos.length) notify('วิดีโอ/Live Photo ต้องมีขนาดไม่เกิน 25MB ต่อไฟล์')
+    if (standaloneHeics.length) notify('พบภาพ HEIC ที่ไม่มีวิดีโอ Live Photo คู่กัน กรุณาเลือกทั้งภาพและไฟล์ .MOV คู่กัน หรือแปลงภาพเป็น JPG')
+    if (unsupported.length) notify('มีไฟล์ที่ไม่รองรับบางรายการ · ใช้ JPG/PNG/WebP หรือวิดีโอ MP4/MOV/M4V/WebM')
+    if (pairedHeics.length) notify(`ตรวจพบ Live Photo จาก iPhone ${pairedHeics.length} ชุด · ใช้ไฟล์ MOV ให้เล่นวนอัตโนมัติ`)
     setCropQueue(q => [...q, ...validImages])
-    setNewVideos(old => [...old, ...validVideos.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file) }))])
+    setNewVideos(old => [...old, ...validVideos.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file), livePhoto: pairedHeics.some(still => base(still) === base(file)) }))])
   }
   const removeNewVideo = key => setNewVideos(old => old.filter(item => { if (item.key === key) URL.revokeObjectURL(item.url); return item.key !== key }))
   const removeExistingVideo = async item => {
@@ -1584,7 +1611,9 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   }
   const save = async (e) => {
     e.preventDefault()
-    const u = UNIVERSITIES.find((x) => x.id === f.uni)
+    if (!profileVerificationLoaded) return notify('กำลังตรวจสอบสถานะอีเมลมหาวิทยาลัย กรุณารอสักครู่')
+    const lockedUniversityId = profileEmailVerified && verifiedUniversityId ? verifiedUniversityId : ''
+    const u = UNIVERSITIES.find((x) => x.id === (lockedUniversityId || f.uni))
     if (!f.display_name.trim()) { setEditTab('basic'); return notify('กรุณากรอกชื่อที่อยากให้เรียก') }
     if (!u) { setEditTab('campus'); return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ') }
     if (!f.birth_date || ageOf(f.birth_date) < 18) { setEditTab('basic'); return notify('ต้องมีอายุอย่างน้อย 18 ปี') }
@@ -1601,7 +1630,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     }
     const avatar_path = keyMap[mainPhoto] || mainPhoto || uploaded[0] || null
     const photo_paths = [...new Set(uploaded)].slice(0, 6)
-    const payload = { display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: u.id, faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
+    const payload = { display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
@@ -1609,7 +1638,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     for (const item of newVideos) {
       const ext = (item.file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '')
       const path = `${user.id}/clip-${crypto.randomUUID()}.${ext}`
-      const { error: videoUploadError } = await supabase.storage.from('profile-media').upload(path, item.file, { contentType: item.file.type, upsert: false })
+      const { error: videoUploadError } = await supabase.storage.from('profile-media').upload(path, item.file, { contentType: item.file.type || ({mov:'video/quicktime',mp4:'video/mp4',m4v:'video/x-m4v',webm:'video/webm'}[ext] || 'application/octet-stream'), upsert: false })
       if (videoUploadError) { setBusy(false); return notify(`อัปโหลดวิดีโอไม่สำเร็จ: ${videoUploadError.message} · ตรวจว่ารัน SQL v76 แล้ว`) }
       const { data: mediaRow, error: mediaError } = await supabase.from('profile_media').insert({ profile_id: user.id, media_type: 'video', storage_path: path }).select('id,media_type,storage_path,created_at').single()
       if (mediaError) { setBusy(false); return notify(`บันทึกวิดีโอไม่สำเร็จ: ${mediaError.message}`) }
@@ -1650,7 +1679,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       <div className="nm-edit-workspace">
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
-        <div className="photo-editor"><b>รูปและวิดีโอโปรไฟล์ ({mediaSlotCount}/6)</b><p>รูปภาพและวิดีโอใช้ 6 ช่องร่วมกัน · แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key), type: 'image'})), ...newPhotos.map(item => ({...item, type: 'image'})), ...profileVideos.map(item => ({key: item.id, url: mediaPub(item.storage_path), type: 'video', existing: item})), ...newVideos.map(item => ({...item, type: 'video'}))].map(item => <div className="photo-tile v83-media-tile" key={item.key}>{item.type === 'video' ? <video src={item.url} muted playsInline controls preload="metadata" aria-label="วิดีโอโปรไฟล์"/> : <img src={item.url} alt="รูปโปรไฟล์" onError={e => { if (/\.(heic|heif)(?:$|\?)/i.test(item.url)) e.currentTarget.alt = 'ไฟล์ HEIC อาจต้องเลือกส่งเป็นวิดีโอ Live Photo หรือแปลงเป็น JPG'; }} />}{item.type === 'image' && <button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button>}{item.type === 'video' ? <button type="button" className="photo-remove" onClick={() => item.existing ? removeExistingVideo(item.existing) : removeNewVideo(item.key)} title="ลบวิดีโอ">×</button> : <button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button>}</div>)}{mediaSlotCount < 6 && <label className="photo-add v83-media-add"><Camera size={21}/><Video size={20}/><span>เพิ่มรูป / วิดีโอ</span><input type="file" accept="image/*,video/*,.heic,.heif" multiple onChange={e => {addMedia(e.target.files); e.target.value = ''}} /></label>}</div><small className="v83-media-note">รองรับรูปภาพและวิดีโอสั้น รวมกันไม่เกิน 6 รายการ · Live Photo บน iPhone ให้เลือกส่งออกเป็นวิดีโอ/Most Compatible หากเลือกแล้วไม่แสดงตัวอย่าง</small></div>
+        <div className="photo-editor"><b>รูปและวิดีโอโปรไฟล์ ({mediaSlotCount}/6)</b><p>รูปภาพและวิดีโอใช้ 6 ช่องร่วมกัน · แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key), type: 'image'})), ...newPhotos.map(item => ({...item, type: 'image'})), ...profileVideos.map(item => ({key: item.id, url: mediaPub(item.storage_path), type: 'video', existing: item})), ...newVideos.map(item => ({...item, type: 'video'}))].map(item => <div className="photo-tile v83-media-tile" key={item.key}>{item.type === 'video' ? <video src={item.url} muted playsInline controls preload="metadata" aria-label="วิดีโอโปรไฟล์"/> : <img src={item.url} alt="รูปโปรไฟล์" onError={e => { if (/\.(heic|heif)(?:$|\?)/i.test(item.url)) e.currentTarget.alt = 'ไฟล์ HEIC อาจต้องเลือกส่งเป็นวิดีโอ Live Photo หรือแปลงเป็น JPG'; }} />}{item.type === 'image' && <button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button>}{item.type === 'video' ? <button type="button" className="photo-remove" onClick={() => item.existing ? removeExistingVideo(item.existing) : removeNewVideo(item.key)} title="ลบวิดีโอ">×</button> : <button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button>}</div>)}{mediaSlotCount < 6 && <label className="photo-add v83-media-add"><Camera size={21}/><Video size={20}/><span>เพิ่มรูป / วิดีโอ</span><input type="file" accept="image/*,video/*,.heic,.heif" multiple onChange={e => {addMedia(e.target.files); e.target.value = ''}} /></label>}</div><small className="v83-media-note">รองรับรูปและวิดีโอรวม 6 รายการ · Live Photo: เลือกไฟล์ภาพ HEIC และไฟล์ MOV คู่กัน (ชื่อไฟล์เดียวกัน) ระบบจะใช้ MOV เล่นวนอัตโนมัติ · วิดีโอจะเล่นเองเมื่อเปิดดูรายการนั้น</small></div>
       </section>}
       <form className="form-panel nm-tab-form" onSubmit={save} noValidate>
         {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
@@ -1662,12 +1691,14 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         {editTab === 'campus' && <>
         <section className="choice-section" aria-label="เลือกมหาวิทยาลัย">
           <div className="choice-heading"><div><span className="choice-step">STEP 01 · CAMPUS</span><h3>เรียนอยู่ที่ไหน? <span>✦</span></h3><p>เลือกมหาวิทยาลัยเพื่อเจอคนในคอมมูนิตี้เดียวกัน</p></div><span className="choice-count">{UNIVERSITIES.length}+ สถาบัน</span></div>
+          {profileEmailVerified ? <div className="nm-campus-lock-card"><span className="nm-campus-lock-icon"><ShieldCheck size={18}/></span><span><b>{uniName(verifiedUniversityId || f.uni)}</b><small>ยืนยันแล้ว · ล็อกมหาวิทยาลัยกับบัญชีนี้</small></span><span className="nm-campus-lock-status">LOCKED</span><p>เพื่อป้องกันการสวมสิทธิ์ มหาวิทยาลัยจะเปลี่ยนไม่ได้หลังยืนยันอีเมล หากข้อมูลไม่ถูกต้องให้ติดต่อผู้ดูแล</p></div> : <>
           <div className="uni-search"><Search size={17}/><input aria-label="ค้นหามหาวิทยาลัย" placeholder="พิมพ์ชื่อมหาวิทยาลัย..." value={uniQuery} onChange={(e) => setUniQuery(e.target.value)} /><span>{filteredUniversities.length} รายการ</span></div>
           <div className="choice-tabs">{['ทั้งหมด','รัฐ','เอกชน'].map((t) => <button type="button" key={t} className={uniType === t ? 'active' : ''} onClick={() => setUniType(t)}>{t === 'ทั้งหมด' ? 'ทุกสถาบัน' : t === 'รัฐ' ? 'มหาวิทยาลัยรัฐ' : 'มหาวิทยาลัยเอกชน'}</button>)}</div>
           <div className="university-grid">{filteredUniversities.map((u) => <button type="button" key={u.id} className={'university-option ' + (f.uni === u.id ? 'selected' : '')} onClick={() => setF(old => ({ ...old, uni: u.id }))}><span className="uni-symbol"><GraduationCap size={19}/></span><span className="uni-option-copy"><b>{u.name}</b><small>{u.type || 'สถาบันอุดมศึกษา'}</small></span><span className="uni-check">{f.uni === u.id ? <Check size={16}/> : <ArrowRight size={14}/>}</span></button>)}</div>
           {!filteredUniversities.length && <div className="choice-empty">ไม่พบชื่อมหาวิทยาลัย ลองค้นหาด้วยคำสั้น ๆ อีกครั้ง</div>}
           {!f.uni && <small className="choice-hint">เลือกมหาวิทยาลัย 1 แห่งเพื่อไปต่อ</small>}
           {f.uni && <div className="selected-campus"><Check size={15}/> เลือกแล้ว: <b>{uniName(f.uni)}</b></div>}
+          </>}
         </section>
         <section className="choice-section faculty-section" aria-label="เลือกคณะ">
           <div className="choice-heading"><div><span className="choice-step">STEP 02 · YOUR FIELD</span><h3>สนใจสายไหน? <span>✦</span></h3><p>เลือกคณะที่ใกล้กับตัวคุณที่สุด</p></div></div>
@@ -1932,7 +1963,7 @@ function ProfileGallery({ person }) {
     if (next?.type === 'image') { const image = new Image(); image.src = pub(next.path) }
   }, [index, person?.id, items.length])
   return <div className="detail-gallery v58-swipe-gallery" onPointerDown={e => { if (e.pointerType === 'mouse' || e.pointerType === 'touch' || e.pointerType === 'pen') touchStart.current = e.clientX }} onPointerUp={e => { if (touchStart.current === null || items.length < 2) return; const diff = e.clientX - touchStart.current; touchStart.current = null; if (Math.abs(diff) > 45) setIndex(i => (i + (diff < 0 ? 1 : items.length - 1)) % items.length) }} onPointerCancel={() => { touchStart.current = null }}>
-    {current?.type === 'video' ? <video className="detail-cover v64-photo-fade" src={mediaPub(current.path)} controls playsInline loop autoPlay muted preload="metadata" aria-label={`วิดีโอของ ${person?.display_name || 'สมาชิก'}`} /> : <img className="detail-cover v64-photo-fade" src={pub(current?.path) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />}
+    {current?.type === 'video' ? <video className="detail-cover v64-photo-fade" src={mediaPub(current.path)} playsInline loop autoPlay muted preload="auto" onCanPlay={e => { e.currentTarget.muted = true; const play = e.currentTarget.play(); if (play?.catch) play.catch(() => {}) }} aria-label={`วิดีโอของ ${person?.display_name || 'สมาชิก'}`} /> : <img className="detail-cover v64-photo-fade" src={pub(current?.path) || ph(person?.display_name)} alt={`รูปของ ${person?.display_name || 'สมาชิก'}`} onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person?.display_name) }} />}
     {items.length > 1 && <>
       <button type="button" className="gallery-prev" onClick={() => setIndex(i => (i - 1 + items.length) % items.length)} aria-label="สื่อก่อนหน้า">‹</button>
       <button type="button" className="gallery-next" onClick={() => setIndex(i => (i + 1) % items.length)} aria-label="สื่อถัดไป">›</button>
