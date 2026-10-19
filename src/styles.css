@@ -1841,3 +1841,37 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 @media(max-width:850px){.bottom-nav{gap:1px;padding-left:3px;padding-right:3px}.bottom-nav-item{font-size:9px!important;gap:3px;padding:6px 0 4px;min-width:0}.bottom-nav-item .bottom-icon{width:35px;height:30px;display:grid;place-items:center;border-radius:11px}.bottom-nav-item .bottom-icon svg{width:19px;height:19px}.page-content{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))!important}.sidebar{height:100dvh;overflow-y:auto;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
 @media(max-width:370px){.bottom-nav-item{font-size:8px!important}.bottom-nav-item .bottom-icon{width:30px}.bottom-nav-item .bottom-icon svg{width:18px;height:18px}}
 @media(prefers-reduced-motion:reduce){.v76-page,.v76-premium-hero,.v76-premium-orb,.v76-event-card,.v76-person-row{animation:none!important}}
+
+/* v81 Hangout: in-app map, room actions, participant count and group chat */
+.hangout-venue-search>button{display:grid;place-items:center;border:0;background:transparent;color:#ff8bc3;padding:6px;cursor:pointer}
+.hangout-venue-actions>span{display:grid;place-items:center;padding:5px;color:#ff8bc3;cursor:pointer}
+.hangout-selected-venue button{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(255,139,195,.3);background:rgba(255,139,195,.08);color:#ff9bce;border-radius:9px;padding:6px 9px;font-size:11px;cursor:pointer}
+.v76-event-map-link{border:0;background:transparent;padding:0;cursor:pointer}
+.hangout-card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.08)}
+.hangout-card-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,139,195,.25);background:rgba(255,139,195,.08);color:#ffc0df;border-radius:11px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer;transition:transform .18s,border-color .18s}
+.hangout-card-actions button:hover{transform:translateY(-1px);border-color:#ff8bc3}
+.hangout-card-actions .hangout-close-btn{border-color:rgba(255,111,125,.25);background:rgba(255,111,125,.08);color:#ffabb2}
+.hangout-overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(5,7,15,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:nm-card-in .16s ease both}
+.hangout-map-modal,.hangout-chat-modal{display:flex;flex-direction:column;width:min(760px,100%);max-height:min(88dvh,850px);overflow:hidden;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:linear-gradient(145deg,#1c1e2d,#10121e);color:#f8f4fc;box-shadow:0 28px 90px rgba(0,0,0,.48)}
+.hangout-map-modal header,.hangout-chat-modal header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px;border-bottom:1px solid rgba(255,255,255,.09)}
+.hangout-map-modal header>div,.hangout-chat-modal header>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.hangout-map-modal header b,.hangout-chat-modal header b{display:flex;align-items:center;gap:8px;font-size:15px;color:#fff}
+.hangout-map-modal header b svg,.hangout-chat-modal header b svg{color:#ff8bc3;flex-shrink:0}
+.hangout-map-modal header small,.hangout-chat-modal header small{font-size:11px;color:#aaa6bc;overflow-wrap:anywhere}
+.hangout-map-modal iframe{display:block;width:100%;height:min(60dvh,560px);border:0;background:#171827}
+.hangout-map-modal>p{margin:0;padding:11px 15px;color:#aaa6bc;font-size:11px;line-height:1.5}
+.hangout-chat-modal{width:min(620px,100%);height:min(760px,88dvh)}
+.hangout-chat-messages{display:flex;flex:1;flex-direction:column;gap:11px;overflow-y:auto;padding:17px;background:radial-gradient(ellipse at top right,rgba(157,91,176,.09),transparent 55%)}
+.hangout-chat-bubble{align-self:flex-start;max-width:85%;padding:9px 11px;border:1px solid rgba(255,255,255,.09);border-radius:13px 13px 13px 4px;background:#252637;overflow-wrap:anywhere}
+.hangout-chat-bubble.mine{align-self:flex-end;border-color:rgba(255,139,195,.25);border-radius:13px 13px 4px 13px;background:linear-gradient(140deg,rgba(132,52,105,.48),rgba(75,61,126,.4))}
+.hangout-chat-bubble small{display:block;color:#ffabd4;font-size:10px;font-weight:750;margin-bottom:3px}
+.hangout-chat-bubble p{margin:0;color:#f6f3fa;font-size:13px;white-space:pre-wrap;line-height:1.5}
+.hangout-chat-bubble time{display:block;margin-top:4px;color:#a9a5b9;font-size:9px;text-align:right}
+.hangout-chat-empty{display:flex;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:9px;text-align:center;color:#aaa6bc;font-size:12px}
+.hangout-chat-empty svg{color:#ff8bc3}.hangout-chat-empty b{color:#f8f4fc;font-size:14px}
+.hangout-chat-compose{display:flex;align-items:center;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,.09);background:rgba(8,10,18,.45)}
+.hangout-chat-compose input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.13)!important;border-radius:12px!important;background:rgba(255,255,255,.05)!important;color:#fff!important;padding:11px 12px!important;outline:none}
+.hangout-chat-compose input:focus{border-color:#d765aa!important;box-shadow:0 0 0 3px rgba(215,101,170,.13)}
+.hangout-chat-compose button{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border:0;border-radius:12px;background:linear-gradient(135deg,#e45da6,#8d6bfa);color:#fff;cursor:pointer}
+.hangout-chat-compose button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:600px){.hangout-overlay{padding:9px}.hangout-map-modal,.hangout-chat-modal{border-radius:16px;max-height:92dvh}.hangout-map-modal iframe{height:55dvh}.hangout-chat-modal{height:88dvh}.hangout-card-actions button{font-size:11px;padding:8px 9px}}
