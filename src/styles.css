@@ -2327,3 +2327,47 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
  .modal-backdrop.detail-backdrop.hangout-member-profile-portal { padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); }
  .modal-backdrop.detail-backdrop.hangout-member-profile-portal .detail-modal { max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px) !important; }
 }
+
+/* v94: Keep the swipe/discovery screen fixed to the viewport. Vertical scrolling
+   is disabled only while Home is active; other pages retain normal scrolling. */
+html:has(.app-shell.home-swipe-locked),
+body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-behavior:none}
+.app-shell.home-swipe-locked{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;overscroll-behavior:none}
+.app-shell.home-swipe-locked .main-area{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;overscroll-behavior:none}
+.app-shell.home-swipe-locked .page-content{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;overscroll-behavior:none;box-sizing:border-box;padding-bottom:12px}
+.app-shell.home-swipe-locked .page-content>.matches-heading,
+.app-shell.home-swipe-locked .page-content>.empty-state.compact,
+.app-shell.home-swipe-locked .page-content>.app-footer{display:none!important}
+.app-shell.home-swipe-locked .page-content>.swipe-stage{margin-block:8px 0;touch-action:pan-x;overscroll-behavior:none}
+.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(300px, min(54dvh, 510px), 510px);max-height:54dvh;touch-action:none;overscroll-behavior:none}
+.app-shell.home-swipe-locked .swipe-stage .swipe-controls{margin-top:12px}
+.app-shell.home-swipe-locked .swipe-stage .swipe-hint{margin:7px 0 0}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .main-area{padding-bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+ .app-shell.home-swipe-locked .page-content{height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));padding:8px 12px 5px;}
+ .app-shell.home-swipe-locked .page-content>.welcome-row{margin-top:0;margin-bottom:8px}
+ .app-shell.home-swipe-locked .page-content>.result-meta{margin-block:4px 7px}
+ .app-shell.home-swipe-locked .page-content>.swipe-stage{margin-top:4px}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(270px, min(48dvh, 440px), 440px);max-height:48dvh}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-controls{margin-top:8px}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-hint{font-size:11px;margin-top:4px}
+}
+@media(max-height:720px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:min(47dvh,390px);min-height:240px}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-controls{margin-top:6px}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-hint{display:none}
+}
+
+/* Premium should be noticeable, but keep the effect lightweight and accessible. */
+.premium-nav-item,.premium-sparkle-button{position:relative;isolation:isolate;overflow:hidden}
+.premium-nav-item{border:1px solid rgba(255,205,117,.32)!important;background:linear-gradient(110deg,rgba(126,78,166,.16),rgba(255,198,91,.12),rgba(218,92,166,.16));box-shadow:inset 0 1px rgba(255,255,255,.08),0 0 16px rgba(224,165,255,.08)}
+.premium-nav-item:before,.premium-sparkle-button:before{content:"";position:absolute;inset:-30% auto -30% -70%;width:48%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.52),rgba(255,224,156,.72),transparent);transform:skewX(-18deg);animation:nm-premium-shimmer 3.8s ease-in-out infinite;z-index:-1}
+.premium-nav-item svg,.premium-sparkle-button svg{filter:drop-shadow(0 0 5px rgba(255,205,112,.5))}
+.premium-nav-item svg:first-child{color:#f7c96d}
+.premium-nav-item:hover,.premium-nav-item.active{border-color:rgba(255,210,122,.7)!important;box-shadow:0 0 0 1px rgba(255,209,123,.13),0 0 22px rgba(222,162,255,.22),inset 0 1px rgba(255,255,255,.14)}
+.premium-sparkle-button{border-color:rgba(232,190,255,.55)!important;background:linear-gradient(110deg,rgba(117,77,155,.16),rgba(255,204,118,.16),rgba(216,104,175,.16));box-shadow:0 0 0 1px rgba(255,255,255,.04),0 0 18px rgba(210,154,255,.12),inset 0 1px rgba(255,255,255,.12);font-weight:750}
+.premium-sparkle-button .premium-button-sparkle{color:#f5d078;animation:nm-premium-twinkle 2s ease-in-out infinite}
+.premium-sparkle-button:hover{transform:translateY(-1px);box-shadow:0 0 24px rgba(224,166,255,.28),0 0 14px rgba(255,205,117,.15)}
+@keyframes nm-premium-shimmer{0%,20%{left:-70%;opacity:0}35%{opacity:1}70%,100%{left:130%;opacity:0}}
+@keyframes nm-premium-twinkle{0%,100%{transform:scale(.88) rotate(-8deg);opacity:.78}50%{transform:scale(1.12) rotate(10deg);opacity:1}}
+@media(prefers-reduced-motion:reduce){.premium-nav-item:before,.premium-sparkle-button:before,.premium-button-sparkle{animation:none!important}.premium-nav-item,.premium-sparkle-button{transition:none!important}}

@@ -2573,9 +2573,9 @@ const loadMatches = useCallback(async () => {
   const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['likes', 'คนที่กดใจ', HeartHandshake], ['visitors', 'คนที่เข้าชม', EyeIcon], ['hangout', 'Hangout', CalendarDays], ['premium', 'Premium', Crown], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
   const empty = <div className="empty-state"><div className="empty-icon"><Search /></div><h3>ยังไม่มีสมาชิกให้แสดง</h3><p>ตอนนี้ยังไม่มีสมาชิกคนอื่นที่ตรงกับตัวกรอง ลองปรับตัวกรอง หรือชวนเพื่อนมาสมัคร</p></div>
   return (
-    <div className="app-shell">
+    <div className={"app-shell" + (view === 'home' ? " home-swipe-locked" : "")}>
       <aside className={'sidebar ' + (nav ? 'show' : '')}><Brand onClick={() => go('home')} /><div className="side-label">เมนูหลัก</div>
-        {items.map(([id, label, I]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '') + (id === 'messages' && unreadMessages > 0 ? ' has-unread-messages' : '')} onClick={() => go(id)}><I size={18} />{label}{id === 'messages' && unreadMessages > 0 && <span className="nav-count">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}{id === 'notifs' && unread > 0 && <span className="nav-count">{unread}</span>}</button>)}
+        {items.map(([id, label, I]) => <button key={id} className={'nav-item ' + (id === 'premium' ? 'premium-nav-item ' : '') + (view === id ? 'active' : '') + (id === 'messages' && unreadMessages > 0 ? ' has-unread-messages' : '')} onClick={() => go(id)}><I size={18} />{label}{id === 'messages' && unreadMessages > 0 && <span className="nav-count">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}{id === 'notifs' && unread > 0 && <span className="nav-count">{unread}</span>}</button>)}
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
@@ -2584,7 +2584,7 @@ const loadMatches = useCallback(async () => {
       <main className="main-area">
         <div className="page-content">
           {view === 'home' && <>
-            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button className="btn btn-ghost" onClick={() => go('premium')}><Crown size={16}/> Premium</button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
+            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             {nearbyFallback && <p className="nearby-fallback-note">ยังไม่พบคนในรัศมีที่ตั้งไว้ จึงแสดงโปรไฟล์อื่นให้ปัดได้ก่อน · ปรับระยะทางได้ในตั้งค่าสเปก</p>}
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
