@@ -2672,3 +2672,17 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
  .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{max-height:75%;padding:55px 15px 14px}
  .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>p{font-size:12px;line-height:1.45}
 }
+
+/* v108: taller portrait card; reserve space for controls and bottom navigation. */
+.app-shell.home-swipe-locked .swipe-stage{width:min(100%,440px);flex:1 1 auto;min-height:0}
+.app-shell.home-swipe-locked .swipe-stage .swipe-stack{aspect-ratio:auto!important;height:auto!important;max-height:none!important;min-height:0!important;flex:1 1 0!important;width:100%}
+.app-shell.home-swipe-locked .swipe-stage .swipe-card>img{object-fit:contain!important;object-position:center center!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{max-height:53%;padding-top:42px;background:linear-gradient(to bottom,transparent,rgba(12,10,25,.75) 30%,rgba(12,10,25,.96) 100%)}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .page-content{height:calc(100dvh - 66px - env(safe-area-inset-bottom,0px));max-height:none;overflow:hidden;padding-top:5px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+ .app-shell.home-swipe-locked .page-content>.welcome-row{margin-bottom:3px}
+ .app-shell.home-swipe-locked .swipe-stage{width:min(100%,420px);padding-bottom:0}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{aspect-ratio:auto!important;flex:1 1 0!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:5px}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{max-height:51%;padding:40px 14px 12px}
+}
