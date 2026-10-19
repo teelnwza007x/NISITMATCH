@@ -1966,3 +1966,129 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .v27-verification .v27-verify-success{display:flex;align-items:flex-start;gap:10px;padding:13px;border-radius:12px;border:1px solid rgba(92,205,157,.23);background:rgba(92,205,157,.07)}
 .v27-verification .v27-verify-success p{margin:5px 0;font-size:.85rem;overflow-wrap:anywhere}
 .v27-verification .v27-verify-success small{display:block;opacity:.7;line-height:1.5}
+
+/* v87: resilient Hangout chat + map viewport across mobile browsers */
+.hangout-overlay,
+.nm-message-hangout-overlay {
+  height: var(--nm-visual-height, 100dvh) !important;
+  max-height: var(--nm-visual-height, 100dvh) !important;
+  min-height: 0 !important;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  overscroll-behavior: none !important;
+  touch-action: auto;
+}
+.hangout-map-modal,
+.hangout-chat-modal,
+.nm-message-hangout-chat {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: calc(var(--nm-visual-height, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px) !important;
+}
+.hangout-map-modal {
+  height: calc(var(--nm-visual-height, 100dvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px) !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+}
+.hangout-map-modal header,
+.hangout-chat-modal header {
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+}
+.hangout-map-modal header .icon-btn,
+.hangout-chat-modal header .icon-btn {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+.hangout-map-modal iframe {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border: 0;
+}
+.hangout-map-modal > p {
+  max-height: 60px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(9px, env(safe-area-inset-bottom));
+}
+.hangout-chat-messages,
+.nm-message-hangout-list {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+  touch-action: pan-y;
+}
+.hangout-chat-compose,
+.nm-message-hangout-chat .hangout-chat-compose {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto !important;
+  min-width: 0;
+  padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+}
+.hangout-chat-compose input,
+.nm-message-hangout-chat .hangout-chat-compose input,
+.v76-hangout-form input,
+.v76-hangout-form textarea,
+.hangout-venue-search input {
+  font-size: 16px !important;
+  line-height: 1.4 !important;
+  transform: none !important;
+  zoom: 1 !important;
+  touch-action: manipulation;
+  -webkit-appearance: none;
+}
+.hangout-chat-bubble,
+.hangout-chat-bubble p,
+.hangout-chat-bubble small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+@media (max-width: 600px) {
+  .hangout-overlay,
+  .nm-message-hangout-overlay {
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    padding: 0 !important;
+    height: var(--nm-visual-height, 100dvh) !important;
+    max-height: var(--nm-visual-height, 100dvh) !important;
+  }
+  .hangout-map-modal,
+  .hangout-chat-modal,
+  .nm-message-hangout-chat {
+    width: 100% !important;
+    height: var(--nm-visual-height, 100dvh) !important;
+    max-height: var(--nm-visual-height, 100dvh) !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+  }
+  .hangout-map-modal { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+  .hangout-map-modal header { padding-top: max(10px, env(safe-area-inset-top)) !important; }
+  .hangout-map-modal > p { padding-bottom: max(9px, env(safe-area-inset-bottom)) !important; }
+  .hangout-chat-compose,
+  .nm-message-hangout-chat .hangout-chat-compose {
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hangout-overlay { animation: none !important; }
+  .message-hangout-room { transition: none !important; }
+}
