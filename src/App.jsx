@@ -406,7 +406,21 @@ function LiveMicWave({ stream }) {
   return <span className="record-wave live-mic-wave" ref={bars} aria-label="คลื่นเสียงจากไมโครโฟนแบบเรียลไทม์">{Array.from({length:29}, (_, i) => <i key={i}/>)}</span>
 }
 
-function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }) {
+function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, onOpenHangoutChat }) {
+  const [hangoutRooms, setHangoutRooms] = useState([])
+  useEffect(() => {
+    let alive = true
+    const loadHangoutRooms = async () => {
+      const { data: memberships, error } = await supabase.from("hangout_rsvps").select("event_id").eq("user_id", me)
+      if (error || !memberships?.length) { if (alive) setHangoutRooms([]); return }
+      const ids = [...new Set(memberships.map(x => x.event_id))]
+      const { data } = await supabase.from("hangout_events").select("id,title,venue,city,starts_at,status,capacity").in("id", ids).eq("status", "open").order("starts_at", { ascending: false }).limit(30)
+      if (alive) setHangoutRooms(data || [])
+    }
+    loadHangoutRooms()
+    const poll = setInterval(loadHangoutRooms, 20000)
+    return () => { alive = false; clearInterval(poll) }
+  }, [me])
   const [selectedId, setSelectedId] = useState(() => {
     try { return sessionStorage.getItem(`nisit-active-chat:${me}`) || null } catch { return null }
   })
@@ -872,6 +886,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
     {sel ? createPortal(<div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
+        {!!hangoutRooms.length && <section className="message-hangout-rooms"><div className="message-hangout-heading"><CalendarDays size={15}/> ห้อง Hangout <span>{hangoutRooms.length}</span></div>{hangoutRooms.map(room => <button type="button" key={room.id} className="message-hangout-room" onClick={() => onOpenHangoutChat?.(room.id)}><span className="message-hangout-room-icon"><Users size={17}/></span><span><b>{room.title}</b><small>{room.venue} · {room.status === "open" ? "เปิดอยู่" : "ปิดแล้ว"}</small></span><MessageCircle size={15}/></button>)}</section>}
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
           const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
@@ -930,6 +945,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead }
       </> : <div className="chat-placeholder"><MessageCircle/><h3>บทสนทนาของคุณ</h3><p>เลือก Match เพื่อเริ่มพูดคุย</p></div>}</div>
     </div>, document.body) : <div className={"chat-layout chat-theme-" + chatTheme + " chat-inbox-open"}>
       <div className="chat-list"><div className="chat-list-head"><b>ข้อความของคุณ<small>เลือกคนที่ต้องการคุย</small></b><span>{matches.length}</span></div>
+        {!!hangoutRooms.length && <section className="message-hangout-rooms"><div className="message-hangout-heading"><CalendarDays size={15}/> ห้อง Hangout <span>{hangoutRooms.length}</span></div>{hangoutRooms.map(room => <button type="button" key={room.id} className="message-hangout-room" onClick={() => onOpenHangoutChat?.(room.id)}><span className="message-hangout-room-icon"><Users size={17}/></span><span><b>{room.title}</b><small>{room.venue} · {room.status === "open" ? "เปิดอยู่" : "ปิดแล้ว"}</small></span><MessageCircle size={15}/></button>)}</section>}
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
           const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
@@ -1815,6 +1831,14 @@ function HangoutPage({ user, profile, notify }) {
     if(list.length){ const {data:rsvps,error:rsvpError}=await supabase.from('hangout_rsvps').select('event_id'); if(!rsvpError){const c={}; (rsvps||[]).forEach(x=>c[x.event_id]=(c[x.event_id]||0)+1); setCounts(c)} }
   },[user.id,notify])
   useEffect(()=>{refresh(); const timer=setInterval(refresh,20000); return ()=>clearInterval(timer)},[refresh])
+  useEffect(() => {
+    try {
+      const pendingId = sessionStorage.getItem(`nisit-pending-hangout-chat:${user.id}`)
+      if (!pendingId || loading) return
+      const event = events.find(item => item.id === pendingId)
+      if (event) { sessionStorage.removeItem(`nisit-pending-hangout-chat:${user.id}`); loadChat(event) }
+    } catch {}
+  }, [events, loading, user.id])
   const create = async e => {
     e.preventDefault(); if(!form.title.trim()||!form.venue.trim()||!form.starts_at) return notify('กรอกชื่อกิจกรรม สถานที่ และวันเวลาให้ครบ')
     if(new Date(form.starts_at)<=new Date()) return notify('เลือกวันเวลาในอนาคต')
@@ -1825,7 +1849,7 @@ function HangoutPage({ user, profile, notify }) {
   }
   const rsvp = async event => {
     if(joined.includes(event.id)) { const {error}=await supabase.from('hangout_rsvps').delete().eq('event_id',event.id).eq('user_id',user.id); if(error) return notify('ยกเลิกการเข้าร่วมไม่สำเร็จ: '+error.message); setJoined(old=>old.filter(x=>x!==event.id)); setCounts(old=>({...old,[event.id]:Math.max(0,(old[event.id]||0)-1)})); notify('ยกเลิกการเข้าร่วมแล้ว'); return }
-    const {error}=await supabase.from('hangout_rsvps').insert({event_id:event.id,user_id:user.id}); if(error) return notify(error.code==='23505'?'คุณเข้าร่วมกิจกรรมนี้แล้ว':`เข้าร่วมไม่สำเร็จ: ${error.message}`); setJoined(old=>[...old,event.id]); setCounts(old=>({...old,[event.id]:(old[event.id]||0)+1})); notify('เข้าร่วม Hangout แล้ว')
+    const {error}=await supabase.from('hangout_rsvps').insert({event_id:event.id,user_id:user.id}); if(error) return notify(error.code==='23505'?'คุณเข้าร่วมกิจกรรมนี้แล้ว':`เข้าร่วมไม่สำเร็จ: ${error.message}`); setJoined(old=>[...old,event.id]); setCounts(old=>({...old,[event.id]:(old[event.id]||0)+1})); notify('เข้าร่วม Hangout แล้ว · เปิดแชทกลุ่มให้แล้ว'); loadChat(event)
   }
   const closeEvent = async event => {
     if(!window.confirm('ปิดห้อง Hangout นี้ใช่ไหม? คนอื่นจะเข้าร่วมใหม่ไม่ได้ และห้องจะหายจากรายการเปิด')) return
@@ -1844,6 +1868,15 @@ function HangoutPage({ user, profile, notify }) {
     const channel=supabase.channel('hangout-chat-'+chatEvent.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'hangout_messages',filter:`event_id=eq.${chatEvent.id}`},payload=>setChatMessages(old=>old.some(m=>m.id===payload.new.id)?old:[...old,payload.new])).subscribe()
     return ()=>{supabase.removeChannel(channel)}
   },[chatEvent?.id])
+  useEffect(() => {
+    if (!mapTarget && !chatEvent) return
+    const root = document.documentElement, body = document.body
+    const previous = { ro: root.style.overflow, bo: body.style.overflow, rs: root.style.overscrollBehavior, bs: body.style.overscrollBehavior }
+    root.style.overflow = 'hidden'; body.style.overflow = 'hidden'; root.style.overscrollBehavior = 'none'; body.style.overscrollBehavior = 'none'
+    const onKey = e => { if (e.key === 'Escape') { setMapTarget(null); setChatEvent(null) } }
+    window.addEventListener('keydown', onKey)
+    return () => { root.style.overflow = previous.ro; body.style.overflow = previous.bo; root.style.overscrollBehavior = previous.rs; body.style.overscrollBehavior = previous.bs; window.removeEventListener('keydown', onKey) }
+  }, [!!mapTarget, !!chatEvent])
   const sendChat = async e => {
     e.preventDefault(); const body=chatDraft.trim(); if(!body||!chatEvent||chatBusy)return
     setChatBusy(true); const {data,error}=await supabase.from('hangout_messages').insert({event_id:chatEvent.id,user_id:user.id,body}).select('id,event_id,user_id,body,created_at').single(); setChatBusy(false)
@@ -1858,8 +1891,8 @@ function HangoutPage({ user, profile, notify }) {
       {form.venue&&<div className="hangout-selected-venue"><Check size={15}/><span>สถานที่ที่เลือก: <b>{form.venue}</b></span><button type="button" onClick={()=>setMapTarget({name:form.venue,city:form.city})}>ดูแผนที่ในเว็บ <MapPinned size={13}/></button></div>}</section>
       <div className="v76-form-two"><label>ชื่อสถานที่<input required maxLength="100" value={form.venue} onFocus={()=>setShowVenuePicker(true)} onChange={e=>{setForm({...form,venue:e.target.value});setVenueQuery(e.target.value);setShowVenuePicker(true)}} placeholder="เลือกร้านด้านบน หรือพิมพ์ชื่อร้าน"/></label><label>จังหวัด / พื้นที่<input value={form.city} maxLength="80" onChange={e=>setForm({...form,city:e.target.value})}/></label></div><div className="v76-form-two"><label>วันและเวลา<input type="datetime-local" required value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label><label>จำนวนคนสูงสุด<select value={form.capacity} onChange={e=>setForm({...form,capacity:e.target.value})}>{[2,3,4,5,6,8,10,12,15,20].map(n=><option key={n} value={n}>{n} คน</option>)}</select></label></div><label>รายละเอียด<textarea rows="3" maxLength="500" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="แนวกิจกรรม งบประมาณโดยประมาณ หรือสิ่งที่ควรรู้"/></label><button className="v76-primary-cta" disabled={busy}>{busy?'กำลังสร้าง...':'เผยแพร่นัด Hangout'} <ArrowRight size={17}/></button></form>}
     {loading?<div className="page-center"><span className="spin"/></div>:events.length?<div className="v76-hangout-grid">{events.map(event=><article className="v76-event-card" key={event.id}><div className="v76-event-date"><span>{new Date(event.starts_at).toLocaleDateString('th-TH',{day:'2-digit'})}</span><small>{new Date(event.starts_at).toLocaleDateString('th-TH',{month:'short'})}</small></div><div className="v76-event-content"><span className="v76-event-tag"><MapPinned size={13}/>{event.city||'นัดพบ'}</span><h3>{event.title}</h3><p><MapPin size={14}/>{event.venue}<button type="button" className="v76-event-map-link" onClick={()=>setMapTarget({name:event.venue,city:event.city})}><MapPinned size={13}/> ดูแผนที่ในเว็บ</button></p><p><Clock size={14}/>{new Date(event.starts_at).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'})}</p>{event.description&&<p className="v76-event-desc">{event.description}</p>}<div className="v76-event-footer"><span><Users size={15}/> เข้าร่วม {counts[event.id]||0}/{event.capacity} คน</span><button className={joined.includes(event.id)?'joined':''} onClick={()=>rsvp(event)}>{joined.includes(event.id)?'ออกจากห้อง ✓':'เข้าร่วม'}</button></div><div className="hangout-card-actions">{(joined.includes(event.id)||event.creator_id===user.id)&&<button type="button" onClick={()=>loadChat(event)}><MessageCircle size={15}/> แชทกลุ่ม</button>}{event.creator_id===user.id&&<button type="button" className="hangout-close-btn" onClick={()=>closeEvent(event)}><X size={15}/> ปิดห้อง</button>}</div></div></article>)}</div>:<div className="v76-empty"><div><CalendarDays size={30}/></div><h2>ยังไม่มีนัด Hangout</h2><p>เริ่มสร้างนัดในพื้นที่สาธารณะ แล้วชวนคนที่สนใจมาร่วมกิจกรรม</p><button className="v76-primary-cta" onClick={()=>setShowCreate(true)}>สร้าง Hangout แรก <ArrowRight size={17}/></button></div>}
-    {mapTarget&&<div className="hangout-overlay" role="dialog" aria-modal="true" aria-label="แผนที่ Hangout"><section className="hangout-map-modal"><header><div><b><MapPinned size={18}/> แผนที่สถานที่</b><small>{mapTarget.name} · {mapTarget.city}</small></div><button type="button" className="icon-btn" onClick={()=>setMapTarget(null)} aria-label="ปิดแผนที่"><X size={20}/></button></header><iframe title={'แผนที่ '+mapTarget.name} src={mapsEmbedUrl(mapTarget.name,mapTarget.city)} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen/><p>แผนที่แสดงภายในเว็บผ่าน Google Maps; การนำทางแบบ turn-by-turn อาจต้องเปิด Google Maps แยกต่างหาก</p></section></div>}
-    {chatEvent&&<div className="hangout-overlay" role="dialog" aria-modal="true" aria-label="ห้องแชท Hangout"><section className="hangout-chat-modal"><header><div><b><MessageCircle size={18}/> {chatEvent.title}</b><small>{chatEvent.venue} · สมาชิก {counts[chatEvent.id]||0}/{chatEvent.capacity} คน</small></div><button type="button" className="icon-btn" onClick={()=>setChatEvent(null)} aria-label="ปิดแชท"><X size={20}/></button></header><div className="hangout-chat-messages">{chatMessages.length?chatMessages.map(m=><div key={m.id} className={'hangout-chat-bubble'+(m.user_id===user.id?' mine':'')}><small>{m.user_id===user.id?'คุณ':'ผู้เข้าร่วม'}</small><p>{m.body}</p><time>{new Date(m.created_at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</time></div>):<div className="hangout-chat-empty"><MessageCircle size={25}/><b>เริ่มคุยกับคนในนัดนี้</b><span>ใช้แชทกลุ่มเพื่อคุยรายละเอียดก่อนเจอกัน</span></div>}</div><form className="hangout-chat-compose" onSubmit={sendChat}><input value={chatDraft} maxLength={1500} onChange={e=>setChatDraft(e.target.value)} placeholder="พิมพ์ข้อความถึงสมาชิก..." aria-label="ข้อความแชท"/><button disabled={chatBusy||!chatDraft.trim()} aria-label="ส่งข้อความ"><Send size={18}/></button></form></section></div>}
+    {mapTarget&&<div className="hangout-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setMapTarget(null)}} onTouchStart={e=>{if(e.target===e.currentTarget)setMapTarget(null)}}><section className="hangout-map-modal" role="dialog" aria-modal="true" aria-label="แผนที่ Hangout"><header><div><b><MapPinned size={18}/> แผนที่สถานที่</b><small>{mapTarget.name} · {mapTarget.city}</small></div><button type="button" className="icon-btn" onClick={()=>setMapTarget(null)} aria-label="ปิดแผนที่"><X size={20}/></button></header><iframe title={'แผนที่ '+mapTarget.name} src={mapsEmbedUrl(mapTarget.name,mapTarget.city)} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen/><p>แผนที่แสดงภายในเว็บผ่าน Google Maps; การนำทางแบบ turn-by-turn อาจต้องเปิด Google Maps แยกต่างหาก</p></section></div>}
+    {chatEvent&&<div className="hangout-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setChatEvent(null)}}><section className="hangout-chat-modal" role="dialog" aria-modal="true" aria-label="ห้องแชท Hangout"><header><div><b><MessageCircle size={18}/> {chatEvent.title}</b><small>{chatEvent.venue} · สมาชิก {counts[chatEvent.id]||0}/{chatEvent.capacity} คน</small></div><button type="button" className="icon-btn" onClick={()=>setChatEvent(null)} aria-label="ปิดแชท"><X size={20}/></button></header><div className="hangout-chat-messages">{chatMessages.length?chatMessages.map(m=><div key={m.id} className={'hangout-chat-bubble'+(m.user_id===user.id?' mine':'')}><small>{m.user_id===user.id?'คุณ':'ผู้เข้าร่วม'}</small><p>{m.body}</p><time>{new Date(m.created_at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</time></div>):<div className="hangout-chat-empty"><MessageCircle size={25}/><b>เริ่มคุยกับคนในนัดนี้</b><span>ใช้แชทกลุ่มเพื่อคุยรายละเอียดก่อนเจอกัน</span></div>}</div><form className="hangout-chat-compose" onSubmit={sendChat}><input value={chatDraft} maxLength={1500} onChange={e=>setChatDraft(e.target.value)} placeholder="พิมพ์ข้อความถึงสมาชิก..." aria-label="ข้อความแชท"/><button disabled={chatBusy||!chatDraft.trim()} aria-label="ส่งข้อความ"><Send size={18}/></button></form></section></div>}
   </div>
 }
 
@@ -2235,7 +2268,7 @@ const loadMatches = useCallback(async () => {
           {view === 'visitors' && <PremiumListPage kind="visitors" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
           {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} />}
           {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
-          {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={loadUnreadMessages} />}
+          {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={loadUnreadMessages} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('hangout') }} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}

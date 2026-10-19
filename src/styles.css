@@ -1903,3 +1903,38 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .nm-self-preview-modal .detail-gallery video{object-fit:cover}
 @media(prefers-reduced-motion:reduce){.v83-media-add{transition:none!important}}
 .swipe-card>.swipe-media-video{width:100%;height:100%;object-fit:cover;pointer-events:none;background:#160f20}
+
+/* v84: Hangout rooms live in the Messages inbox; keep dialogs inside the viewport. */
+.message-hangout-rooms{padding:12px 10px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:7px}
+.message-hangout-heading{display:flex;align-items:center;gap:7px;padding:0 5px 3px;color:#c8bddb;font-size:11px;font-weight:800;letter-spacing:.25px}
+.message-hangout-heading>svg{color:#ff8bc3}.message-hangout-heading>span{margin-left:auto;min-width:20px;padding:2px 6px;border-radius:99px;text-align:center;background:rgba(255,139,195,.12);color:#ffadd2}
+.message-hangout-room{width:100%;min-width:0;display:flex;align-items:center;gap:9px;padding:9px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);color:#f8f4fc;text-align:left;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.message-hangout-room:hover{background:rgba(255,139,195,.08);border-color:rgba(255,139,195,.3);transform:translateY(-1px)}
+.message-hangout-room-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(135deg,rgba(255,115,183,.18),rgba(153,118,255,.2));color:#ff9dce}
+.message-hangout-room>span:nth-child(2){min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}.message-hangout-room b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.message-hangout-room small{font-size:10px;color:#aaa6bc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.message-hangout-room>svg:last-child{flex:0 0 auto;color:#ff9dce}
+.hangout-overlay{position:fixed!important;inset:0!important;width:100vw;width:100dvw;height:100vh;height:100dvh;min-height:0;box-sizing:border-box;overflow:hidden;overscroll-behavior:contain;z-index:100000!important;padding:clamp(8px,2.5vw,22px)!important}
+.hangout-overlay *{box-sizing:border-box}
+.hangout-map-modal,.hangout-chat-modal{width:min(760px,100%)!important;max-width:100%;max-height:calc(100dvh - 2 * clamp(8px,2.5vw,22px))!important;min-height:0;overflow:hidden;overscroll-behavior:contain}
+.hangout-map-modal{height:min(780px,calc(100dvh - 24px));display:grid!important;grid-template-rows:auto minmax(0,1fr) auto}
+.hangout-map-modal header,.hangout-chat-modal header{flex:0 0 auto;min-width:0}
+.hangout-map-modal header>div,.hangout-chat-modal header>div{flex:1;min-width:0;overflow:hidden}
+.hangout-map-modal header small,.hangout-chat-modal header small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hangout-map-modal iframe{height:100%!important;min-height:180px;max-height:none;min-width:0}
+.hangout-map-modal>p{max-height:76px;overflow-y:auto;overscroll-behavior:contain;flex:0 0 auto}
+.hangout-chat-modal{height:min(760px,calc(100dvh - 24px))!important;display:flex!important;flex-direction:column}
+.hangout-chat-messages{flex:1 1 0;min-height:0;max-height:none;overscroll-behavior:contain;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.hangout-chat-compose{flex:0 0 auto;padding-bottom:max(12px,env(safe-area-inset-bottom));gap:8px}
+.hangout-chat-compose input{width:0;min-width:0;flex:1 1 auto;font-size:16px!important}
+@media(max-width:600px){
+ .hangout-overlay{padding:0!important;align-items:stretch!important;justify-content:stretch!important}
+ .hangout-map-modal,.hangout-chat-modal{width:100%!important;height:100%!important;max-height:100%!important;min-height:0;border-radius:0!important;border-left:0;border-right:0;border-top:0;border-bottom:0}
+ .hangout-map-modal{grid-template-rows:auto minmax(0,1fr) auto}
+ .hangout-map-modal header,.hangout-chat-modal header{padding:calc(12px + env(safe-area-inset-top)) 13px 12px;gap:8px}
+ .hangout-map-modal iframe{min-height:0;height:100%!important}
+ .hangout-map-modal>p{padding:9px 12px calc(9px + env(safe-area-inset-bottom));max-height:64px;font-size:10px}
+ .hangout-chat-messages{padding:12px 11px}
+ .hangout-chat-compose{padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
+ .hangout-chat-compose button{width:42px;height:42px}
+ .message-hangout-rooms{padding:10px 8px 12px}
+}
+@media(prefers-reduced-motion:reduce){.message-hangout-room{transition:none}}
