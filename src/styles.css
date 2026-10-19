@@ -2101,3 +2101,20 @@ body > .nm-self-preview-backdrop > .nm-self-preview-modal{position:relative!impo
 .v60-crop-backdrop { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
 .v60-crop-preview img { -webkit-user-drag: none; pointer-events: none; }
 @media (max-width: 600px) { .v60-crop-preview { width: min(82vw, 320px); margin: 12px auto; } .v60-crop-dialog { width: min(100%, 440px); } }
+
+
+/* v89: Hangout group chat media and keyboard-stable composer */
+.nm-message-hangout-overlay{top:var(--nm-visual-top,0px)!important;height:var(--nm-visual-height,100dvh)!important}
+.nm-message-hangout-chat{height:min(780px,var(--nm-visual-height,100dvh))!important;max-height:var(--nm-visual-height,100dvh)!important}
+.nm-message-hangout-chat .hangout-chat-compose{min-height:62px!important;gap:7px!important}
+.nm-message-hangout-chat .hangout-chat-compose input:not([type=file]){height:42px!important;min-height:42px!important;max-height:42px!important;border-radius:22px!important;padding:0 14px!important;box-sizing:border-box!important}
+.nm-message-hangout-chat .hangout-chat-compose button{width:42px!important;height:42px!important;min-width:42px!important;border-radius:50%!important;display:grid!important;place-items:center!important}
+.nm-message-hangout-chat .hangout-compose-media{background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.12)!important;color:var(--accent,#f17bb8)!important}
+.nm-message-hangout-chat .hangout-chat-bubble{max-width:min(82%,440px)!important}
+.nm-message-hangout-chat .hangout-chat-image{display:block;max-width:min(100%,300px);max-height:360px;object-fit:contain;border-radius:13px;cursor:zoom-in;margin:5px 0}
+.nm-message-hangout-chat .hangout-chat-bubble p{margin:0 0 5px!important}
+.nm-message-hangout-chat .hangout-recording-bar{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
+.nm-message-hangout-chat .hangout-recording-bar .voice-wave{flex:1;min-width:0}
+.nm-message-hangout-chat .hangout-closed-notice{flex:0 0 auto;padding:13px 16px calc(13px + env(safe-area-inset-bottom));text-align:center;color:var(--text-muted,#a8afc1);font-size:13px;border-top:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035)}
+.nm-message-hangout-chat .chat-upload-status{flex:0 0 auto;text-align:center;padding:5px 10px;font-size:12px;color:var(--text-muted,#a8afc1)}
+@media(max-width:600px){.nm-message-hangout-chat{height:var(--nm-visual-height,100dvh)!important;max-height:var(--nm-visual-height,100dvh)!important}.nm-message-hangout-chat .hangout-chat-compose{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}}
