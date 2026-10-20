@@ -2373,6 +2373,7 @@ function PushPermissionCard({ user }) {
 
 function AdminDashboard({ onBack }) {
   const [metrics, setMetrics] = useState(null)
+  const [adminTab, setAdminTab] = useState('overview')
   const [reports, setReports] = useState([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -2391,7 +2392,9 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
-    <EmailCenter />
+    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button></nav>
+    {adminTab === "email" && <EmailCenter />}
+    {adminTab === "overview" && <div className="nm-admin-overview">
     <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>↻ รีเฟรชข้อมูล</button>
     {error && <p role="alert">{error}</p>}
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
