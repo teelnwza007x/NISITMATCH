@@ -343,7 +343,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
   </div></div>, document.body)
 }
 
-function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
+function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
   const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [showSwipeMenu, setShowSwipeMenu] = useState(false)
   const [cardVideos, setCardVideos] = useState([])
   const start = useRef(null)
@@ -481,7 +481,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       {person.is_premium && <div className="swipe-premium-badge"><Crown size={13} fill="currentColor"/><span>PREMIUM</span><Sparkles size={12}/></div>}
-      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge universityId={person.university_id} />}{person.relationship_intent && <RelationshipVibe intent={person.relationship_intent} />}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
+      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2>{(person.interests || []).some(x => myInterests.includes(x)) && <div className="nm-mutual-interests"><Sparkles size={14}/> สนใจตรงกัน {(person.interests || []).filter(x => myInterests.includes(x)).length} อย่าง</div>}<p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge universityId={person.university_id} />}{person.relationship_intent && <RelationshipVibe intent={person.relationship_intent} />}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
         <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />
@@ -2883,6 +2883,26 @@ export default function App() {
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
   const user = session?.user
   const userId = user?.id
+  // Presence is opt-in and is never exposed directly from the table.
+  useEffect(() => {
+    if (!userId) return
+    let active = true
+    let allowed = false
+    const refreshPreference = async () => {
+      const {data}=await supabase.from('user_social_preferences').select('show_online').eq('user_id',userId).maybeSingle()
+      if (!active) return
+      allowed = !!data?.show_online
+      if (allowed && document.visibilityState === 'visible') {
+        await supabase.from('user_presence').upsert({user_id:userId,last_seen_at:new Date().toISOString()},{onConflict:'user_id'})
+      }
+    }
+    const tick = () => { if (allowed && document.visibilityState === 'visible') supabase.from('user_presence').upsert({user_id:userId,last_seen_at:new Date().toISOString()},{onConflict:'user_id'}).then(()=>{}) }
+    refreshPreference()
+    const interval = setInterval(()=>{refreshPreference()},60000)
+    document.addEventListener('visibilitychange',tick)
+    return ()=>{active=false;clearInterval(interval);document.removeEventListener('visibilitychange',tick)}
+  },[userId])
+
   // Restore the last tab only for the same account; do not reset it on token refresh.
   const lastAccountRef = useRef(null)
   useEffect(() => {
@@ -3366,7 +3386,7 @@ const loadMatches = useCallback(async () => {
             <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             
-            {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
+            {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
