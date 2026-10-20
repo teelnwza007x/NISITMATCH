@@ -3034,3 +3034,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-settings-install-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;flex-shrink:0;padding:10px 14px;border:0;border-radius:13px;background:linear-gradient(115deg,#fa8dbd,#bba1ff);color:#21172a;font-weight:800;cursor:pointer}
 .nm-settings-install-action:disabled{cursor:default;opacity:.7}
 @media(max-width:520px){.nm-settings-install{flex-wrap:wrap;padding:17px;gap:12px}.nm-settings-install-symbol{flex-basis:45px;height:45px}.nm-settings-install-action{width:100%}}
+
+/* Music EQ v3: animate transforms (compositor-friendly), with real stagger values from React.
+   Earlier height animations and CSS calc(number * time) were unreliable on mobile. */
+.itunes-song-card.itunes-premium .itunes-premium-eq{display:flex;align-items:center;gap:3px;min-height:17px;overflow:visible}
+.itunes-song-card.itunes-premium .itunes-premium-eq i{display:block;flex:0 0 3px;width:3px;height:14px;min-height:0;max-height:none;border-radius:3px;transform-origin:center;transform:scaleY(.23);transition:none;animation:nm-eq-v3 780ms ease-in-out infinite alternate;animation-play-state:paused;opacity:.72;will-change:transform}
+.itunes-song-card.itunes-premium.is-playing .itunes-premium-eq i{animation-play-state:running;opacity:1}
+@keyframes nm-eq-v3{0%{transform:scaleY(.23)}38%{transform:scaleY(.95)}70%{transform:scaleY(.45)}100%{transform:scaleY(.75)}}
+@media(prefers-reduced-motion:reduce){.itunes-song-card.itunes-premium .itunes-premium-eq i{animation:none;transform:scaleY(.35);will-change:auto}}
