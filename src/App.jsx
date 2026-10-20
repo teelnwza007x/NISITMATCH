@@ -1983,30 +1983,22 @@ function playNisitSound(kind) {
     const ctx = nmAudioContext
     const t = ctx.currentTime
     if (kind === 'send') {
-      // Soft descending filtered-noise swoosh, with a tiny tonal tail.
-      const duration = .19
-      const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate)
-      const data = buffer.getChannelData(0)
-      for (let i = 0; i < data.length; i++) {
-        const x = i / data.length
-        data[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * x) * (1 - x)
+      // Gentle two-note "bloop": cute, modern and quiet, without white-noise hiss.
+      const notes = [[740, 988, 0, .105, .035], [988, 1318, .065, .125, .027]]
+      for (const [start, end, delay, duration, volume] of notes) {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(start, t + delay)
+        osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .72)
+        gain.gain.setValueAtTime(.0001, t + delay)
+        gain.gain.exponentialRampToValueAtTime(volume, t + delay + .012)
+        gain.gain.exponentialRampToValueAtTime(.0001, t + delay + duration)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(t + delay)
+        osc.stop(t + delay + duration + .01)
       }
-      const source = ctx.createBufferSource()
-      source.buffer = buffer
-      const filter = ctx.createBiquadFilter()
-      filter.type = 'bandpass'
-      filter.frequency.setValueAtTime(2300, t)
-      filter.frequency.exponentialRampToValueAtTime(550, t + duration)
-      filter.Q.value = .75
-      const gain = ctx.createGain()
-      gain.gain.setValueAtTime(.0001, t)
-      gain.gain.exponentialRampToValueAtTime(.095, t + .025)
-      gain.gain.exponentialRampToValueAtTime(.0001, t + duration)
-      source.connect(filter)
-      filter.connect(gain)
-      gain.connect(ctx.destination)
-      source.start(t)
-      source.stop(t + duration)
       return
     }
     const notes = kind === 'match' ? [[523.25,0,.13],[659.25,.13,.13],[783.99,.26,.16],[1046.5,.42,.28]]
