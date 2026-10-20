@@ -462,7 +462,7 @@ function SwipeDeck({ people, onLike, onSkip, onSuperLike, onUndo, canUndo, onOpe
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       {person.is_premium && <div className="swipe-premium-badge"><Crown size={13} fill="currentColor"/><span>PREMIUM</span><Sparkles size={12}/></div>}
-      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge universityId={person.university_id} />}{person.relationship_intent && <span className="nm-intent-tag">{intentLabel(person.relationship_intent)}</span>}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
+      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2><p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge universityId={person.university_id} />}{person.relationship_intent && <RelationshipVibe intent={person.relationship_intent} />}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
         <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />
@@ -485,7 +485,7 @@ function PersonCard({ p, onLike, onSkip, onOpen, onReport, verifiedIds = [] }) {
       <button className="card-more" onClick={() => onReport(p)} title="รายงาน"><Flag size={15} /></button>
       <div className="person-title"><h3>{p.display_name}, {p.age}</h3><p><GraduationCap size={13} />{uniName(p.university_id)}</p></div></div>
       <div className="person-body"><div className="tags">{(p.interests || []).slice(0, 3).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
-        {p.relationship_intent && <span className="nm-intent-tag">{intentLabel(p.relationship_intent)}</span>}<p className="person-bio">{p.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
+        {p.relationship_intent && <RelationshipVibe intent={p.relationship_intent} />}<p className="person-bio">{p.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
         <div className="person-actions"><button className="round-action nope" onClick={() => onSkip(p)} title="ข้าม"><X size={20} /></button><button className="btn btn-pink like-btn" onClick={() => onLike(p)}><Heart size={17} fill="currentColor" /> ถูกใจ</button><button className="round-action more" onClick={() => onOpen(p)} title="ดูโปรไฟล์"><UserRound size={18} /></button></div></div></article>
   )
 }
@@ -1686,6 +1686,13 @@ async function draftAction(userId, mode, value) {
 }
 const RELATIONSHIP_INTENTS = [{ id: 'serious', label: 'ความสัมพันธ์จริงจัง' }, { id: 'getting_to_know', label: 'ค่อย ๆ ทำความรู้จัก' }, { id: 'friends', label: 'หาเพื่อน' }, { id: 'unsure', label: 'ยังไม่แน่ใจ' }]
 const intentLabel = id => RELATIONSHIP_INTENTS.find(item => item.id === id)?.label || ''
+const INTENT_DESCRIPTIONS = { serious: 'อยากสร้างความสัมพันธ์ที่มั่นคง', getting_to_know: 'เริ่มจากคุยกัน แล้วปล่อยให้เป็นไป', friends: 'หาเพื่อนใหม่ที่คุยกันถูกคอ', unsure: 'เปิดใจให้ทุกความเป็นไปได้' }
+function RelationshipVibe({ intent }) {
+  const item = RELATIONSHIP_INTENTS.find(x => x.id === intent)
+  if (!item) return null
+  const Icon = { serious: Heart, getting_to_know: MessageCircle, friends: Users, unsure: Sparkles }[intent] || Heart
+  return <div className={'nm-vibe-card nm-vibe-' + intent}><span className="nm-vibe-icon"><Icon size={21} strokeWidth={1.9}/></span><span className="nm-vibe-copy"><small>กำลังมองหา</small><strong>{item.label}</strong><span>{INTENT_DESCRIPTIONS[intent]}</span></span><span className="nm-vibe-accent" aria-hidden="true" /></div>
+}
 const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [], relationship_intent: p?.relationship_intent || '' })
 
 function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium = false, initialEditTab = 'photos' }) {
@@ -1968,7 +1975,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         <div className="detail-body"><div className="section-kicker">YOUR PROFILE PREVIEW</div><h2>{f.display_name || 'ชื่อของคุณ'}{ageOf(f.birth_date) ? `, ${ageOf(f.birth_date)}` : ''}</h2>{ownerPremium && <PremiumProfileBadge owner />}
           <p><GraduationCap size={15}/>{uniName(f.uni) || 'มหาวิทยาลัย'}{f.faculty ? ` · ${f.faculty}` : ''}</p>
           {profileEmailVerified && <CampusVerifiedBadge universityId={verifiedUniversityId || f.uni}/>}
-          {f.relationship_intent && <span className="nm-intent-tag">{intentLabel(f.relationship_intent)}</span>}
+          {f.relationship_intent && <RelationshipVibe intent={f.relationship_intent} />}
           <p>{f.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags">{(f.interests || []).map(i => <span className="tag" key={i}>{i}</span>)}</div>
           <div className="match-profile-song"><ITunesSongCard track={song} compact/></div>
@@ -1994,108 +2001,36 @@ let nmLastSound = 0
 function playNisitSound(kind) {
   if (!soundEnabled() || typeof window === 'undefined') return
   try {
-    const AudioContextType = window.AudioContext || window.webkitAudioContext
-    if (!AudioContextType) return
-    const now = performance.now()
-    if (now - nmLastSound < (kind === 'menu' ? 70 : 90)) return
-    if (!nmAudioContext) nmAudioContext = new AudioContextType()
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return
+    if (!nmAudioContext || nmAudioContext.state === 'closed') nmAudioContext = new AudioCtx()
     const ctx = nmAudioContext
-    if (ctx.state !== 'running') {
-      ctx.resume().then(() => { if (ctx.state === 'running') playNisitSound(kind) }).catch(() => {})
-      return
-    }
+    if (ctx.state !== 'running') { ctx.resume().catch(() => {}); return }
+    const now = performance.now()
+    if (now - nmLastSound < 95) return
     nmLastSound = now
-    const t = ctx.currentTime + .008
-    const output = ctx.createGain()
-    output.gain.value = 2.3
-    output.connect(ctx.destination)
-    // Distinct tactile sounds: soft wooden tap, bubble, paper swoosh, glass chime, and harp.
-    const tone = ({ start, end = start, delay = 0, length = .12, volume = .065, type = 'sine', attack = .008 }) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      const begin = t + delay
-      osc.type = type
-      osc.frequency.setValueAtTime(Math.max(1, start), begin)
-      osc.frequency.exponentialRampToValueAtTime(Math.max(1, end), begin + length)
-      gain.gain.setValueAtTime(.0001, begin)
-      gain.gain.exponentialRampToValueAtTime(volume, begin + attack)
-      gain.gain.exponentialRampToValueAtTime(.0001, begin + length)
-      osc.connect(gain); gain.connect(output)
-      osc.start(begin); osc.stop(begin + length + .015)
+    // Small, gentle two-note cues. No noise buffers or per-button listeners.
+    const notes = {
+      menu: [[560,.07,.015,0]],
+      send: [[650,.09,.024,0],[880,.12,.014,.055]],
+      like: [[520,.12,.035,0],[780,.18,.023,.085]],
+      message: [[784,.15,.027,0],[988,.19,.018,.07]],
+      match: [[523,.22,.037,0],[659,.24,.034,.12],[784,.32,.029,.25]],
+      super: [[587,.12,.033,0],[880,.18,.028,.09],[1175,.25,.02,.2]],
+      skip: [[390,.09,.016,0]]
+    }[kind] || [[560,.07,.015,0]]
+    for (const [frequency,duration,volume,delay] of notes) {
+      const osc = ctx.createOscillator(), gain = ctx.createGain()
+      const t = ctx.currentTime + .012 + delay
+      osc.type = 'sine'; osc.frequency.setValueAtTime(frequency,t)
+      gain.gain.setValueAtTime(.0001,t)
+      gain.gain.exponentialRampToValueAtTime(volume,t+.015)
+      gain.gain.exponentialRampToValueAtTime(.0001,t+duration)
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.start(t); osc.stop(t+duration+.015)
+      osc.onended = () => { osc.disconnect(); gain.disconnect() }
     }
-    const noise = ({ delay = 0, length = .13, volume = .035, cutoff = 1200, highpass = false }) => {
-      const samples = Math.ceil(ctx.sampleRate * length)
-      const buffer = ctx.createBuffer(1, samples, ctx.sampleRate)
-      const channel = buffer.getChannelData(0)
-      for (let i = 0; i < samples; i++) channel[i] = (Math.random() * 2 - 1)
-      const src = ctx.createBufferSource()
-      src.buffer = buffer
-      const filter = ctx.createBiquadFilter()
-      filter.type = highpass ? 'highpass' : 'lowpass'
-      filter.frequency.value = cutoff
-      const gain = ctx.createGain()
-      const begin = t + delay
-      gain.gain.setValueAtTime(.0001, begin)
-      gain.gain.exponentialRampToValueAtTime(volume, begin + .009)
-      gain.gain.exponentialRampToValueAtTime(.0001, begin + length)
-      src.connect(filter); filter.connect(gain); gain.connect(output)
-      src.start(begin); src.stop(begin + length + .01)
-    }
-    switch (kind) {
-      case 'send':
-        // A soft paper flutter and gentle airy tail, not a pitched beep.
-        noise({ length: .16, volume: .012, cutoff: 1550, highpass: true })
-        tone({ start: 330, end: 220, delay: .045, length: .15, volume: .011 })
-        break
-      case 'like':
-        // Round, bouncy water-drop plop.
-        tone({ start: 460, end: 250, length: .17, volume: .036 })
-        tone({ start: 690, end: 410, delay: .085, length: .16, volume: .018 })
-        break
-      case 'message':
-        // Light, glassy shimmer on an incoming message.
-        tone({ start: 880, end: 875, length: .26, volume: .016 })
-        tone({ start: 1320, end: 1310, delay: .06, length: .30, volume: .009 })
-        break
-      case 'match':
-        // Soft harp-like rising celebration.
-        tone({ start: 392, length: .30, volume: .028 })
-        tone({ start: 494, delay: .105, length: .32, volume: .025 })
-        tone({ start: 587, delay: .22, length: .36, volume: .022 })
-        tone({ start: 784, delay: .34, length: .42, volume: .016 })
-        break
-      default:
-        // Subtle wooden tap for navigation, quiet enough for frequent use.
-        noise({ length: .065, volume: .038, cutoff: 1100 })
-        tone({ start: 480, end: 290, length: .11, volume: .075 })
-    }
-  } catch { /* Audio is optional; never interrupt the UI. */ }
-}
-// Unlock Web Audio on the first real gesture (Safari / installed iOS web apps).
-if (typeof document !== 'undefined') {
-  const unlockNisitAudio = () => {
-    if (!soundEnabled()) return
-    try {
-      const AudioContextType = window.AudioContext || window.webkitAudioContext
-      if (!AudioContextType) return
-      if (!nmAudioContext || nmAudioContext.state === 'closed') nmAudioContext = new AudioContextType()
-      if (nmAudioContext.state === 'suspended') nmAudioContext.resume().catch(() => {})
-    } catch { /* audio is optional */ }
-  }
-  document.addEventListener('pointerdown', unlockNisitAudio, { passive: true })
-  document.addEventListener('touchstart', unlockNisitAudio, { passive: true })
-  document.addEventListener('keydown', unlockNisitAudio, { passive: true })
-}
-// Capture ordinary button taps across the app, including portaled dialogs.
-if (typeof document !== 'undefined') {
-  document.addEventListener('click', event => {
-    if (!event.isTrusted || !soundEnabled()) return
-    const target = event.target
-    if (!(target instanceof Element)) return
-    const button = target.closest('button, [role="button"]')
-    if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true' || button.closest('[data-no-ui-sound]')) return
-    playNisitSound('menu')
-  }, { passive: true })
+  } catch { /* Audio is optional */ }
 }
 const THEME_KEY = 'nisit-match-theme-v1'
 function applyTheme(theme) {
@@ -3276,7 +3211,7 @@ const loadMatches = useCallback(async () => {
       {visibleDetail && createPortal(<div className={"modal-backdrop detail-backdrop hangout-member-profile-portal" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
         <ProfileGallery person={visibleDetail} />
         <div className="detail-body nm-member-profile-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{visibleDetail.display_name}, {visibleDetail.age}</h2>{visibleDetail.is_premium && <PremiumProfileBadge owner={visibleDetail.id === userId} />}
-          <p className="detail-campus-line"><GraduationCap size={15} />{visibleDetail.university_id ? uniName(visibleDetail.university_id) : 'มหาวิทยาลัยยังไม่ระบุ'}{visibleDetail.faculty ? ` · ${visibleDetail.faculty}` : ''}{visibleDetail.major ? ` · ${visibleDetail.major}` : ''}</p>{verifiedCampusIds.includes(visibleDetail.id) && <CampusVerifiedBadge universityId={visibleDetail.university_id} />}{visibleDetail.relationship_intent && <span className="nm-intent-tag">{intentLabel(visibleDetail.relationship_intent)}</span>}<p>{visibleDetail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
+          <p className="detail-campus-line"><GraduationCap size={15} />{visibleDetail.university_id ? uniName(visibleDetail.university_id) : 'มหาวิทยาลัยยังไม่ระบุ'}{visibleDetail.faculty ? ` · ${visibleDetail.faculty}` : ''}{visibleDetail.major ? ` · ${visibleDetail.major}` : ''}</p>{verifiedCampusIds.includes(visibleDetail.id) && <CampusVerifiedBadge universityId={visibleDetail.university_id} />}{visibleDetail.relationship_intent && <RelationshipVibe intent={visibleDetail.relationship_intent} />}<p>{visibleDetail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags nm-member-interest-tags">{(visibleDetail.interests || []).map((i, index) => <span className="tag" style={{"--tag-index":index}} key={i}>{i}</span>)}</div>
           <div className="match-profile-song">{itunesTrack(visibleDetail) ? <ITunesSongCard track={itunesTrack(visibleDetail)} compact /> : <div className="detail-no-song"><Music2 size={17}/><span><b>ยังไม่ได้เพิ่มเพลงโปรด</b><small>เพลงที่สมาชิกเลือกจะแสดงตรงนี้</small></span></div>}</div>
           {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(visibleDetail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
