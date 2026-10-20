@@ -76,6 +76,9 @@ function AuthLinkScreen({ onFinished }) {
     const params = new URLSearchParams(window.location.search)
     const hash = new URLSearchParams(window.location.hash.slice(1))
     const error = params.get('error_description') || hash.get('error_description')
+    // The redirect flow is explicit because Supabase may consume/remove the recovery type
+    // while exchanging its auth code before this component reads the URL.
+    const recoveryLink = params.get('flow') === 'recovery' || params.get('type') === 'recovery' || hash.get('type') === 'recovery'
     if (error) { setStatus(decodeURIComponent(error.replace(/\+/g, ' '))); return }
     const run = async () => {
       try {
@@ -83,7 +86,7 @@ function AuthLinkScreen({ onFinished }) {
         const { data, error: sessionError } = await supabase.auth.getSession()
         if (!alive) return
         if (sessionError) throw sessionError
-        if (data.session && (params.get('type') === 'recovery' || hash.get('type') === 'recovery')) {
+        if (data.session && recoveryLink) {
           setReady(true); setStatus('ตั้งรหัสผ่านใหม่ได้เลย')
         } else if (data.session) {
           setStatus('ยืนยันอีเมลสำเร็จแล้ว คุณสามารถใช้งาน NISIT MATCH ได้')
@@ -131,9 +134,9 @@ function AuthModal({ mode, setMode, close, notify }) {
     try {
     if (mode === 'login') r = await supabase.auth.signInWithPassword({ email, password: pw })
     else if (mode === 'register') {
-      r = await supabase.auth.signUp({ email, password: pw, options: { emailRedirectTo: authRedirectUrl() } })
+      r = await supabase.auth.signUp({ email, password: pw, options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` } })
       if (!r.error && !r.data.session) notify('ส่งอีเมลยืนยันแล้ว กรุณาตรวจกล่องจดหมายแล้วกลับมาเข้าสู่ระบบ')
-    } else { r = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() }); if (!r.error) notify('ส่งลิงก์รีเซ็ตรหัสผ่านแล้ว') }
+    } else { r = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); if (!r.error) notify('ส่งลิงก์รีเซ็ตรหัสผ่านแล้ว') }
     if (r.error) notify(r.error.message.includes('rate limit') ? 'ส่งอีเมลเกินกำหนดชั่วคราว กรุณารอสักพักก่อนลองใหม่' : r.error.message)
     } catch (err) { notify(err?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่') }
     finally { setBusy(false) }
@@ -2000,7 +2003,7 @@ function SettingsPage({ user, notify }) {
     } catch(e) { notify(e.message) }
     finally { setPushBusy(false) }
   }
-  const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: authRedirectUrl() }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
+  const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
     <section className="theme-gallery" aria-label="เลือกธีมของแอป">
