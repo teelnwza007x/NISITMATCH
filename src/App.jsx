@@ -2183,6 +2183,44 @@ function CampusEmailVerification({ user }) {
   </section>
 }
 
+function PushPermissionCard({ user }) {
+  const [state, setState] = useState('checking')
+  const [busy, setBusy] = useState(false)
+  const dismissedKey = 'nm-push-invite:' + user.id
+  useEffect(() => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext) { setState('unsupported'); return }
+    if (Notification.permission === 'denied') { setState('denied'); return }
+    if (localStorage.getItem(dismissedKey) === 'later') { setState('later'); return }
+    let active = true
+    navigator.serviceWorker.getRegistration().then(reg => reg?.pushManager.getSubscription()).then(sub => { if (active) setState(sub ? 'enabled' : 'invite') }).catch(() => { if (active) setState('invite') })
+    return () => { active = false }
+  }, [dismissedKey])
+  const allow = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const key = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!key) throw new Error('ยังไม่ได้ตั้งค่า Push')
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') { setState(permission === 'denied' ? 'denied' : 'later'); return }
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) })
+      const json = sub.toJSON()
+      const { error } = await supabase.from('push_subscriptions').upsert({ user_id: user.id, endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth }, { onConflict: 'endpoint' })
+      if (error) throw error
+      setState('enabled')
+    } catch (e) { window.alert('เปิดแจ้งเตือนไม่สำเร็จ: ' + e.message) }
+    finally { setBusy(false) }
+  }
+  if (state !== 'invite') return null
+  return <div className="nm-push-permission" role="region" aria-label="ตั้งค่าการแจ้งเตือน">
+    <span className="nm-push-permission-icon"><Bell size={19}/></span>
+    <div className="nm-push-permission-copy"><strong>ไม่พลาดแมตช์และข้อความใหม่</strong><p>รับแจ้งเตือนเมื่อไม่ได้ใช้งานแอป และปิดได้ทุกเมื่อในหน้าตั้งค่า</p></div>
+    <button type="button" className="btn btn-pink" disabled={busy} onClick={allow}>{busy ? 'กำลังเปิด…' : 'เปิดแจ้งเตือน'}</button>
+    <button type="button" className="nm-push-permission-dismiss" onClick={() => { localStorage.setItem(dismissedKey, 'later'); setState('later') }} aria-label="ไว้ทีหลัง"><X size={17}/></button>
+  </div>
+}
+
 function SettingsPage({ user, notify }) {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
@@ -3101,6 +3139,7 @@ const loadMatches = useCallback(async () => {
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
       {view === "home" && discoveryLimited && <div className="nm-discovery-notice" role="status"><Users size={15}/><span>ระบบค้นหาส่งสมาชิกกลับมาน้อยมาก หากเห็นคนเดิมซ้ำต้องตรวจเงื่อนไข discover ใน Supabase</span></div>}
+      <PushPermissionCard user={user} />
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
         {[["home","ปัด",Heart],["likes","คนที่กดใจ",HeartHandshake],["messages","ข้อความ",MessageCircle],["hangout","Hangout",CalendarDays],["profile","โปรไฟล์",UserRound],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
       </nav>
