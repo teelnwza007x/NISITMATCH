@@ -2967,3 +2967,33 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .detail-modal .detail-gallery.v58-swipe-gallery .gallery-thumbnails::-webkit-scrollbar{display:none!important;width:0;height:0}
 .detail-modal .detail-gallery.v58-swipe-gallery .gallery-thumbnails button{flex:0 0 35px;width:35px;height:43px;border-radius:9px;background:rgba(18,20,31,.65);box-shadow:0 2px 9px rgba(0,0,0,.24)}
 @media(max-width:480px){.detail-modal .detail-gallery.v58-swipe-gallery .gallery-thumbnails button{flex-basis:29px;width:29px;height:37px}}
+
+/* v120: NISIT MATCH interactive onboarding and always-available guide. */
+.app-footer .nm-guide-open-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid rgba(248,145,198,.34);background:linear-gradient(125deg,rgba(244,114,182,.16),rgba(150,118,246,.13));color:#ffe1f0;border-radius:999px;padding:10px 17px;font-weight:750;cursor:pointer;transition:transform .18s,border-color .18s}
+.app-footer .nm-guide-open-btn:hover{transform:translateY(-2px);border-color:rgba(248,145,198,.75)}
+.nm-guide-backdrop{z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.nm-dialog.nm-guide-v2{position:relative;display:flex;flex-direction:column;width:min(100%,440px);max-height:min(90dvh,760px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid rgba(248,175,225,.22);border-radius:28px;padding:23px;background:radial-gradient(ellipse at 85% 0%,rgba(163,112,255,.23),transparent 52%),linear-gradient(155deg,#211a32,#131523 65%,#1d172a);box-shadow:0 28px 90px rgba(0,0,0,.5);color:#f8f1ff}
+.nm-guide-v2 .nm-dialog-close{z-index:4}
+.nm-guide-v2-top{display:flex;align-items:center;justify-content:space-between;padding-right:33px;gap:8px}
+.nm-guide-v2-brand{display:flex;align-items:center;gap:7px;font-weight:850;font-size:12px;letter-spacing:.05em;color:#ffb2d7}
+.nm-guide-v2-brand small{color:#c6b8dc;font-size:9px;font-weight:700;letter-spacing:.14em}
+.nm-guide-v2-counter{font-size:11px;font-weight:800;letter-spacing:.14em;color:#c8b8dc;white-space:nowrap}
+.nm-guide-v2-progress{display:flex;gap:5px;margin:18px 0 16px}
+.nm-guide-v2-progress button{height:5px;flex:1;padding:0;border:0;border-radius:999px;background:#ffffff25;cursor:pointer;transition:background .2s,transform .2s}
+.nm-guide-v2-progress button.active{background:linear-gradient(90deg,#fa78b5,#b18cff)}
+.nm-guide-v2-progress button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.nm-guide-v2-visual{position:relative;isolation:isolate;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;overflow:hidden;border:1px solid rgba(255,255,255,.09);border-radius:22px;background:radial-gradient(circle at 50% 42%,rgba(244,116,190,.2),transparent 60%),linear-gradient(145deg,#30223e,#1c1d32);animation:nm-guide-v2-enter .3s ease both}
+.nm-guide-v2-halo{position:absolute;z-index:-1;width:180px;height:180px;border:1px solid #f6b6df33;border-radius:50%;box-shadow:0 0 0 25px #ec9ce309,0 0 0 52px #ec9ce307}
+.nm-guide-v2-icon{width:95px;height:95px;display:grid;place-items:center;border:1px solid #f9b7e25e;border-radius:28px;color:#ffd2ec;background:linear-gradient(140deg,#ed6ca75c,#9c7af23c);box-shadow:0 18px 45px #120b254d;transform:rotate(-5deg)}
+.nm-guide-v2-visual-caption{font-size:9px;font-weight:850;letter-spacing:.2em;color:#d6bce9}
+.nm-guide-v2-copy{padding:19px 2px 12px;text-align:left}
+.nm-guide-v2-kicker{font-size:10px;letter-spacing:.12em;font-weight:800;color:#ff9acb}
+.nm-guide-v2-copy h2{margin:9px 0 10px;font-size:clamp(22px,5vw,27px);font-weight:850;letter-spacing:-.03em;color:#fff}
+.nm-guide-v2-copy p{margin:0;color:#d4cadd;font-size:13px;line-height:1.8;min-height:73px}
+.nm-guide-v2-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:15px}
+.nm-guide-v2-back,.nm-guide-v2-next{min-height:44px;padding:10px 17px;border-radius:14px;font-weight:750;cursor:pointer}
+.nm-guide-v2-back{border:1px solid #ffffff24;background:#ffffff0b;color:#e5d9ec}
+.nm-guide-v2-next{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;background:linear-gradient(110deg,#ff81b8,#c295ff);color:#1d1228;box-shadow:0 7px 22px #e66ab633}
+@keyframes nm-guide-v2-enter{from{opacity:.6;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:480px){.nm-guide-backdrop{padding:10px}.nm-dialog.nm-guide-v2{padding:19px;border-radius:23px;max-height:calc(100dvh - 20px)}.nm-guide-v2-visual{min-height:158px}.nm-guide-v2-icon{width:78px;height:78px}.nm-guide-v2-copy p{font-size:12.5px}}
+@media(prefers-reduced-motion:reduce){.nm-guide-v2-visual{animation:none}.app-footer .nm-guide-open-btn,.nm-guide-v2-progress button{transition:none}}
