@@ -1461,6 +1461,34 @@ function ITunesSongCard({ track, compact = false }) {
   const eqRef = useRef(null)
   const waveformRef = useRef(null)
   const [waveformAvailable, setWaveformAvailable] = useState(false)
+  const seekingRef = useRef(false)
+  const seekAnimationRef = useRef(null)
+  const [seeking, setSeeking] = useState(false)
+  // Update the position at display refresh rate, rather than only on the
+  // browser's infrequent timeupdate events. Pause updates while dragging.
+  useEffect(() => {
+    if (!playing) return
+    let lastPaint = 0
+    const frame = now => {
+      const audio = audioRef.current
+      if (audio && !seekingRef.current && now - lastPaint >= 32) {
+        setPosition(audio.currentTime)
+        lastPaint = now
+      }
+      seekAnimationRef.current = requestAnimationFrame(frame)
+    }
+    seekAnimationRef.current = requestAnimationFrame(frame)
+    return () => {
+      if (seekAnimationRef.current != null) cancelAnimationFrame(seekAnimationRef.current)
+      seekAnimationRef.current = null
+    }
+  }, [playing])
+  const startSeek = () => { seekingRef.current = true; setSeeking(true) }
+  const endSeek = () => { seekingRef.current = false; setSeeking(false) }
+  const safeUrl = url => /^https:\/\//i.test(url || '') ? url : ''
+  const preview = safeUrl(track?.preview)
+  const [resolvedPreview, setResolvedPreview] = useState(preview)
+  const [previewError, setPreviewError] = useState(false)
   // Decode a separate copy of the preview. Never attach MediaElementSource to
   // the playback element: Apple's cross-origin streams can become silent.
   // When CORS disallows reading the preview, do not fabricate audio levels.
@@ -1534,34 +1562,6 @@ function ITunesSongCard({ track, compact = false }) {
     frameId = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(frameId); reset() }
   }, [playing, waveformAvailable])
-  const seekingRef = useRef(false)
-  const seekAnimationRef = useRef(null)
-  const [seeking, setSeeking] = useState(false)
-  // Update the position at display refresh rate, rather than only on the
-  // browser's infrequent timeupdate events. Pause updates while dragging.
-  useEffect(() => {
-    if (!playing) return
-    let lastPaint = 0
-    const frame = now => {
-      const audio = audioRef.current
-      if (audio && !seekingRef.current && now - lastPaint >= 32) {
-        setPosition(audio.currentTime)
-        lastPaint = now
-      }
-      seekAnimationRef.current = requestAnimationFrame(frame)
-    }
-    seekAnimationRef.current = requestAnimationFrame(frame)
-    return () => {
-      if (seekAnimationRef.current != null) cancelAnimationFrame(seekAnimationRef.current)
-      seekAnimationRef.current = null
-    }
-  }, [playing])
-  const startSeek = () => { seekingRef.current = true; setSeeking(true) }
-  const endSeek = () => { seekingRef.current = false; setSeeking(false) }
-  const safeUrl = url => /^https:\/\//i.test(url || '') ? url : ''
-  const preview = safeUrl(track?.preview)
-  const [resolvedPreview, setResolvedPreview] = useState(preview)
-  const [previewError, setPreviewError] = useState(false)
   useEffect(() => {
     setResolvedPreview(preview)
     setPreviewError(false)
