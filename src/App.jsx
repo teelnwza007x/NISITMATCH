@@ -144,11 +144,27 @@ function AuthModal({ mode, setMode, close, notify }) {
   const [resendBusy, setResendBusy] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [verificationEmail, setVerificationEmail] = useState('')
+  const submitInFlight = useRef(false)
+  const resendInFlight = useRef(false)
+  const [registrationComplete, setRegistrationComplete] = useState(false)
+  const cooldownKey = address => 'nisit-auth-resend-until:' + address
+  const startResendCooldown = (address) => {
+    const until = Date.now() + 60000
+    try { localStorage.setItem(cooldownKey(address), String(until)) } catch {}
+    setResendCooldown(60)
+  }
   useEffect(() => {
-    if (resendCooldown <= 0) return
-    const timer = window.setTimeout(() => setResendCooldown(n => Math.max(0, n - 1)), 1000)
-    return () => window.clearTimeout(timer)
-  }, [resendCooldown])
+    const address = (verificationEmail || email).trim().toLowerCase()
+    if (!address) { setResendCooldown(0); return }
+    const refresh = () => {
+      let until = 0
+      try { until = Number(localStorage.getItem(cooldownKey(address))) || 0 } catch {}
+      setResendCooldown(Math.max(0, Math.ceil((until - Date.now()) / 1000)))
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 1000)
+    return () => window.clearInterval(timer)
+  }, [verificationEmail, email])
   const errorText = (error) => {
     const message = error?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
     if (/rate limit|too many requests|429/i.test(message)) return 'ส่งอีเมลเกินกำหนดชั่วคราว กรุณารอสักพักก่อนลองใหม่'
@@ -157,7 +173,9 @@ function AuthModal({ mode, setMode, close, notify }) {
   }
   const resendVerification = async () => {
     const address = (verificationEmail || email).trim().toLowerCase()
-    if (!address || resendBusy || resendCooldown > 0) return
+    if (!address || resendInFlight.current || resendBusy || resendCooldown > 0) return
+    resendInFlight.current = true
+    startResendCooldown(address)
     setResendBusy(true)
     try {
       const { error } = await supabase.auth.resend({
@@ -166,15 +184,15 @@ function AuthModal({ mode, setMode, close, notify }) {
         options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` },
       })
       if (error) throw error
-      setResendCooldown(60)
       notify('รับคำขอส่งอีเมลยืนยันอีกครั้งแล้ว กรุณาตรวจกล่องจดหมายและจดหมายขยะ')
     } catch (error) {
-      if (/rate limit|too many requests|429/i.test(error?.message || '')) setResendCooldown(60)
       notify(errorText(error))
-    } finally { setResendBusy(false) }
+    } finally { resendInFlight.current = false; setResendBusy(false) }
   }
   const submit = async (e) => {
     e.preventDefault()
+    if (submitInFlight.current || busy || (mode === 'register' && registrationComplete)) return
+    submitInFlight.current = true
     setBusy(true)
     try {
       const address = email.trim().toLowerCase()
@@ -193,10 +211,11 @@ function AuthModal({ mode, setMode, close, notify }) {
           options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` },
         })
         if (error) throw error
+        setRegistrationComplete(true)
         if (!data?.session) {
           setVerificationEmail(address)
           setAwaitingVerification(true)
-          setResendCooldown(60)
+          startResendCooldown(address)
           notify('รับคำขอสมัครสมาชิกแล้ว หากยังไม่พบอีเมลยืนยัน กรุณาตรวจ Spam หรือกดส่งอีกครั้งหลังครบเวลารอ')
         } else {
           notify('สมัครสมาชิกสำเร็จแล้ว')
@@ -208,8 +227,11 @@ function AuthModal({ mode, setMode, close, notify }) {
         if (error) throw error
         setSent(true)
       }
-    } catch (error) { notify(errorText(error)) }
-    finally { setBusy(false) }
+    } catch (error) {
+      if (mode === 'register' && (error?.status === 429 || /rate limit|too many requests|429/i.test(error?.message || ''))) startResendCooldown(email.trim().toLowerCase())
+      notify(errorText(error))
+    }
+    finally { submitInFlight.current = false; setBusy(false) }
   }
   const title = { login: 'ยินดีที่ได้เจอกันอีกครั้ง', register: 'เริ่มต้นเรื่องราวของคุณ', reset: 'ลืมรหัสผ่าน?' }[mode]
   return (
@@ -221,7 +243,7 @@ function AuthModal({ mode, setMode, close, notify }) {
         <label>อีเมล<input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); if (awaitingVerification && e.target.value.trim().toLowerCase() !== verificationEmail) setAwaitingVerification(false) }} /></label>
         {mode !== 'reset' && <label>รหัสผ่าน<input required type="password" minLength={8} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="อย่างน้อย 8 ตัวอักษร" value={pw} onChange={(e) => setPw(e.target.value)} /></label>}
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
-        <button disabled={busy} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
+        <button disabled={busy || (mode === 'register' && registrationComplete)} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'register' && registrationComplete ? 'สมัครแล้ว กรุณายืนยันอีเมล' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
       {mode !== 'reset' && awaitingVerification && <section className="nm-verify-resend" aria-labelledby="nm-verify-resend-title">
         <div className="nm-verify-resend-icon" aria-hidden="true"><Send size={22}/></div>
