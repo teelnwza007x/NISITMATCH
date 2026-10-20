@@ -3023,3 +3023,14 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .itunes-song-card.itunes-premium .itunes-premium-eq i{animation:nm-music-wave 850ms ease-in-out infinite alternate;animation-play-state:paused;will-change:height}
 .itunes-song-card.itunes-premium.is-playing .itunes-premium-eq i{animation-play-state:running;animation-delay:calc(var(--bar) * -85ms)}
 @media(prefers-reduced-motion:reduce){.itunes-song-card.itunes-premium .itunes-premium-eq i{animation:none;will-change:auto}}
+
+/* Install shortcut belongs at the top of Settings rather than the global footer. */
+.nm-settings-install{display:flex;align-items:center;gap:15px;padding:20px;margin:0 0 18px;border-radius:22px;border:1px solid rgba(194,150,255,.3);background:radial-gradient(circle at 5% 5%,rgba(249,119,184,.16),transparent 50%),linear-gradient(115deg,rgba(35,28,55,.98),rgba(24,26,43,.98));box-shadow:0 12px 35px rgba(0,0,0,.1)}
+.nm-settings-install-symbol{display:grid;place-items:center;flex:0 0 52px;height:52px;border-radius:17px;color:#ffd3ef;background:linear-gradient(140deg,rgba(246,122,180,.3),rgba(150,121,250,.3))}
+.nm-settings-install-copy{flex:1;min-width:0}
+.nm-settings-install-copy .theme-kicker{color:#e4a5ef;font-size:10px}
+.nm-settings-install-copy h3{margin:4px 0 5px;font-size:17px;color:#fdf4ff}
+.nm-settings-install-copy p{margin:0;color:#c9bfd5;font-size:12px;line-height:1.65}
+.nm-settings-install-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;flex-shrink:0;padding:10px 14px;border:0;border-radius:13px;background:linear-gradient(115deg,#fa8dbd,#bba1ff);color:#21172a;font-weight:800;cursor:pointer}
+.nm-settings-install-action:disabled{cursor:default;opacity:.7}
+@media(max-width:520px){.nm-settings-install{flex-wrap:wrap;padding:17px;gap:12px}.nm-settings-install-symbol{flex-basis:45px;height:45px}.nm-settings-install-action{width:100%}}
