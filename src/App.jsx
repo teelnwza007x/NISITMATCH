@@ -930,6 +930,20 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   }, [me, refreshInbox])
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
+  const [lastSeenAt, setLastSeenAt] = useState(null)
+  useEffect(() => {
+    if (!sel?.p?.id) { setLastSeenAt(null); return }
+    let alive = true
+    const loadPresence = async () => {
+      const {data,error}=await supabase.rpc('get_match_presence',{p_user_id:sel.p.id})
+      if (alive) setLastSeenAt(!error && data?.[0]?.last_seen_at ? data[0].last_seen_at : null)
+    }
+    loadPresence()
+    const timer=setInterval(loadPresence,60000)
+    return ()=>{alive=false;clearInterval(timer)}
+  },[sel?.p?.id])
+  const lastSeenLabel = lastSeenAt && Date.now()-new Date(lastSeenAt).getTime()<120000 ? 'ออนไลน์เมื่อสักครู่' : lastSeenAt ? 'ใช้งานล่าสุด '+new Date(lastSeenAt).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง'
+
   // Lock document scrolling without shifting the fixed chat viewport.
   // The chat is portaled to document.body below, so it never inherits a scrolled
   // or transformed page container's coordinate system.
@@ -1354,7 +1368,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
       <div className="chat-window">{sel ? <>
-        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : "แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง"}</small></span></button><div className="chat-theme-control"><button type="button" className="icon-btn chat-theme-toggle" onClick={() => setThemePickerOpen(v => !v)} title="เปลี่ยนธีมแชต" aria-label="เปลี่ยนธีมแชต" aria-expanded={themePickerOpen}><Palette size={18}/></button></div><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
+        <div className="chat-header"><button type="button" className="chat-back icon-btn" onClick={() => setSelectedId(null)} aria-label="กลับไปหน้ารายชื่อ"><ArrowRight size={20} style={{transform:"rotate(180deg)"}} /></button><button type="button" className="chat-profile-trigger" onClick={() => onOpenProfile?.(sel.p)} title="ดูโปรไฟล์ รูปทั้งหมด และเพลง" aria-label={`ดูโปรไฟล์ ${partnerName(sel.p)}`}><Av u={sel.p} cls="avatar md" /><span><b>{partnerName(sel.p)}</b><small className={partnerTyping ? "chat-presence typing" : partnerOnline ? "chat-presence online" : "chat-presence"}>{partnerTyping ? "กำลังพิมพ์…" : partnerOnline ? "กำลังออนไลน์ในแชต" : lastSeenLabel}</small></span></button><div className="chat-theme-control"><button type="button" className="icon-btn chat-theme-toggle" onClick={() => setThemePickerOpen(v => !v)} title="เปลี่ยนธีมแชต" aria-label="เปลี่ยนธีมแชต" aria-expanded={themePickerOpen}><Palette size={18}/></button></div><button className="icon-btn" onClick={report} title="รายงาน"><Flag size={17}/></button><button className="icon-btn" onClick={block} title="บล็อก"><Ban size={17}/></button></div>
         {openChatImage && <div className="chat-image-lightbox" role="presentation" onClick={() => setOpenChatImage(null)}>
           <div className="chat-image-lightbox-content" role="dialog" aria-modal="true" aria-label="ดูรูปภาพในแชต" onClick={e => e.stopPropagation()}>
             <button type="button" className="chat-image-close" onClick={() => setOpenChatImage(null)} aria-label="ปิดรูปภาพ"><X size={22}/></button>
