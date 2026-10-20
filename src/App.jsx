@@ -2047,8 +2047,9 @@ function CampusEmailVerification({ user }) {
       })
       if (error) throw error
       setDomainRequestMessage(`ส่งคำขอเพิ่มโดเมน @${domain} ไปให้ทีมงานตรวจสอบแล้ว 💗`)
-      setDomainRequestSuccess(`@${domain}`)
+      setDomainRequestSuccess({ domain: `@${domain}`, university: universityName })
       setRequestedDomain('')
+      setRequestedUniversity('')
     } catch (error) {
       setDomainRequestMessage(error?.code === '23505' ? 'คุณเคยแจ้งโดเมนนี้แล้ว ทีมงานกำลังตรวจสอบ' : 'ส่งคำขอไม่สำเร็จ กรุณาลองใหม่ หากยังไม่ได้ให้แจ้งผู้ดูแลระบบ')
     } finally { setDomainRequestBusy(false) }
@@ -2119,7 +2120,7 @@ function CampusEmailVerification({ user }) {
           <label htmlFor="nm-request-domain">โดเมนอีเมลมหาวิทยาลัย (กรอกแค่ @...)</label>
           <input id="nm-request-domain" required maxLength={254} placeholder="เช่น @nu.ac.th" value={requestedDomain} onChange={e=>setRequestedDomain(e.target.value)} />
           <button type="submit" className="btn btn-pink" disabled={domainRequestBusy}>{domainRequestBusy ? 'กำลังส่งคำขอ...' : 'ส่งคำขอให้ทีมงานตรวจสอบ'} <Send size={16}/></button>
-          {domainRequestSuccess && <div className="nm-domain-request-success" role="status" aria-live="polite"><Check size={20}/><div><strong>ส่งคำขอเรียบร้อยแล้ว!</strong><p>เราได้รับคำขอเพิ่มโดเมน <b>{domainRequestSuccess}</b> แล้ว ทีมงานจะตรวจสอบก่อนเพิ่มเข้าระบบ</p></div></div>}
+          {domainRequestSuccess && <div className="nm-domain-request-success" role="status" aria-live="polite"><Check size={20}/><div><strong>ส่งคำขอเรียบร้อยแล้ว!</strong><p>เราได้รับคำขอเพิ่มโดเมน <b>{domainRequestSuccess.domain}</b> ของมหาวิทยาลัย <b>{domainRequestSuccess.university}</b> แล้ว ทีมงานจะตรวจสอบก่อนเพิ่มเข้าระบบ</p></div></div>}
           {domainRequestMessage && !domainRequestSuccess && <p role="status" className="v27-verify-message">{domainRequestMessage}</p>}
         </form>}
       </div>
