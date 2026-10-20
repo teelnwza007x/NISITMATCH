@@ -1439,6 +1439,33 @@ function ITunesSongCard({ track, compact = false }) {
   const [playing, setPlaying] = useState(false)
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(30)
+  const eqRef = useRef(null)
+  // Drive the visual bars directly so old theme CSS and reduced-motion overrides
+  // cannot freeze them. No Web Audio graph is connected to the music element.
+  useEffect(() => {
+    const bars = eqRef.current?.querySelectorAll('i')
+    if (!bars?.length) return
+    if (!playing) {
+      bars.forEach(bar => { bar.style.transform = 'scaleY(.25)' })
+      return
+    }
+    let frameId = 0
+    let previous = 0
+    const tick = time => {
+      if (time - previous > 28) {
+        bars.forEach((bar, index) => {
+          const wave = Math.sin(time * (0.0042 + (index % 4) * 0.00063) + index * 1.19)
+          const ripple = Math.sin(time * 0.0071 - index * .73)
+          const level = Math.max(.18, Math.min(1, .53 + wave * .31 + ripple * .15))
+          bar.style.transform = 'scaleY(' + level.toFixed(3) + ')'
+        })
+        previous = time
+      }
+      frameId = requestAnimationFrame(tick)
+    }
+    frameId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frameId)
+  }, [playing])
   const seekingRef = useRef(false)
   const seekAnimationRef = useRef(null)
   const [seeking, setSeeking] = useState(false)
@@ -1516,7 +1543,7 @@ function ITunesSongCard({ track, compact = false }) {
         <div className="itunes-premium-eyebrow">เพลงในโปรไฟล์</div>
         <strong title={track.name}>{track.name}</strong>
         <span title={track.artist}>{track.artist}</span>
-        <div className="itunes-premium-eq" aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{animationDelay: `-${(i * 0.113).toFixed(3)}s`, animationDuration: `${0.58 + (i % 5) * 0.13}s`}} />)}</div>
+        <div className="itunes-premium-eq" ref={eqRef} aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{animationDelay: `-${(i * 0.113).toFixed(3)}s`, animationDuration: `${0.58 + (i % 5) * 0.13}s`}} />)}</div>
       </div>
       <button className={'itunes-premium-play music-smooth-toggle' + (playing ? ' music-smooth-toggle--playing' : '')} type="button" onClick={toggle} disabled={!resolvedPreview} aria-pressed={playing} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={resolvedPreview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}><span className="music-smooth-icon music-smooth-icon--play" aria-hidden="true"><Play size={15} strokeWidth={2.6} fill="currentColor" /></span><span className="music-smooth-icon music-smooth-icon--pause" aria-hidden="true"><Pause size={15} strokeWidth={2.6} fill="currentColor" /></span></button>
     </div>
