@@ -1587,6 +1587,22 @@ function ITunesSongCard({ track, compact = false }) {
     if (audio) { audio.pause(); audio.currentTime = 0 }
     setPlaying(false); setPosition(0); setDuration(30)
   }, [track?.id, preview])
+  // Stop preview when the app is backgrounded, navigated away from,
+  // or when a swipe card is removed. Avoid unexpected PWA background audio.
+  useEffect(() => {
+    const stopWhenHidden = () => {
+      if (document.visibilityState === 'hidden') audioRef.current?.pause()
+    }
+    const stopOnNavigation = () => audioRef.current?.pause()
+    document.addEventListener('visibilitychange', stopWhenHidden)
+    window.addEventListener('pagehide', stopOnNavigation)
+    window.addEventListener('popstate', stopOnNavigation)
+    return () => {
+      document.removeEventListener('visibilitychange', stopWhenHidden)
+      window.removeEventListener('pagehide', stopOnNavigation)
+      window.removeEventListener('popstate', stopOnNavigation)
+    }
+  }, [])
   useEffect(() => () => { audioRef.current?.pause() }, [])
   if (!track?.id) return null
   const formatTime = n => { const v = Math.floor(Number.isFinite(n) ? n : 0); return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` }
