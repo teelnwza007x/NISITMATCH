@@ -1463,11 +1463,6 @@ function ITunesSongCard({ track, compact = false }) {
   }, [playing])
   const startSeek = () => { seekingRef.current = true; setSeeking(true) }
   const endSeek = () => { seekingRef.current = false; setSeeking(false) }
-  const barsRef = useRef(null)
-  const animationRef = useRef(null)
-  const audioContextRef = useRef(null)
-  const analyserRef = useRef(null)
-  const sourceRef = useRef(null)
   const safeUrl = url => /^https:\/\//i.test(url || '') ? url : ''
   const preview = safeUrl(track?.preview)
   const [resolvedPreview, setResolvedPreview] = useState(preview)
@@ -1491,54 +1486,7 @@ function ITunesSongCard({ track, compact = false }) {
     if (audio) { audio.pause(); audio.currentTime = 0 }
     setPlaying(false); setPosition(0); setDuration(30)
   }, [track?.id, preview])
-  useEffect(() => () => {
-    if (audioRef.current) audioRef.current.pause()
-    if (animationRef.current != null) cancelAnimationFrame(animationRef.current)
-    if (audioContextRef.current) audioContextRef.current.close().catch(() => {})
-  }, [])
-  useEffect(() => {
-    if (!playing) {
-      if (animationRef.current != null) cancelAnimationFrame(animationRef.current)
-      animationRef.current = null
-      barsRef.current?.querySelectorAll('i').forEach(bar => { bar.style.height = '4px' })
-      return
-    }
-    const audio = audioRef.current
-    // Web Audio provides frequency-driven bars when the preview server permits CORS.
-    // A soft beat animation is used when analysis is unavailable.
-    if (audio && !audioContextRef.current) {
-      try {
-        const Context = window.AudioContext || window.webkitAudioContext
-        if (Context) {
-          const context = new Context()
-          const analyser = context.createAnalyser()
-          analyser.fftSize = 256
-          const source = context.createMediaElementSource(audio)
-          source.connect(analyser)
-          analyser.connect(context.destination)
-          audioContextRef.current = context
-          analyserRef.current = analyser
-          sourceRef.current = source
-        }
-      } catch { /* preview remains playable without audio analysis */ }
-    }
-    audioContextRef.current?.resume().catch(() => {})
-    const bins = analyserRef.current ? new Uint8Array(analyserRef.current.frequencyBinCount) : null
-    const animate = (time) => {
-      const bars = barsRef.current?.querySelectorAll('i')
-      if (bins && analyserRef.current) analyserRef.current.getByteFrequencyData(bins)
-      bars?.forEach((bar, i) => {
-        const energy = bins ? bins[Math.min(bins.length - 1, 2 + i * 3)] / 255 : 0
-        bar.style.height = `${Math.round(3 + 14 * energy)}px` // real analyser samples only; quiet if cross-origin audio disallows analysis
-      })
-      animationRef.current = requestAnimationFrame(animate)
-    }
-    animationRef.current = requestAnimationFrame(animate)
-    return () => {
-      if (animationRef.current != null) cancelAnimationFrame(animationRef.current)
-      animationRef.current = null
-    }
-  }, [playing])
+  useEffect(() => () => { audioRef.current?.pause() }, [])
   if (!track?.id) return null
   const formatTime = n => { const v = Math.floor(Number.isFinite(n) ? n : 0); return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` }
   const toggle = async () => {
@@ -1568,7 +1516,7 @@ function ITunesSongCard({ track, compact = false }) {
         <div className="itunes-premium-eyebrow">เพลงในโปรไฟล์</div>
         <strong title={track.name}>{track.name}</strong>
         <span title={track.artist}>{track.artist}</span>
-        <div className="itunes-premium-eq" ref={barsRef} aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
+        <div className="itunes-premium-eq" aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
       </div>
       <button className={'itunes-premium-play music-smooth-toggle' + (playing ? ' music-smooth-toggle--playing' : '')} type="button" onClick={toggle} disabled={!resolvedPreview} aria-pressed={playing} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={resolvedPreview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}><span className="music-smooth-icon music-smooth-icon--play" aria-hidden="true"><Play size={15} strokeWidth={2.6} fill="currentColor" /></span><span className="music-smooth-icon music-smooth-icon--pause" aria-hidden="true"><Pause size={15} strokeWidth={2.6} fill="currentColor" /></span></button>
     </div>
@@ -2722,6 +2670,25 @@ export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [profileEntryTab, setProfileEntryTab] = useState('photos')
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [installHelpOpen, setInstallHelpOpen] = useState(false)
+  const [isInstalled, setIsInstalled] = useState(() => typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true))
+  const isIOSInstall = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/i.test(navigator.userAgent)
+  useEffect(() => {
+    const onBeforeInstall = event => { event.preventDefault(); setInstallPrompt(event) }
+    const onInstalled = () => { setInstallPrompt(null); setIsInstalled(true); setInstallHelpOpen(false) }
+    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => { window.removeEventListener('beforeinstallprompt', onBeforeInstall); window.removeEventListener('appinstalled', onInstalled) }
+  }, [])
+  const openInstall = async () => {
+    if (installPrompt) {
+      const prompt = installPrompt
+      setInstallPrompt(null)
+      try { await prompt.prompt(); await prompt.userChoice } catch { setInstallHelpOpen(true) }
+    } else setInstallHelpOpen(true)
+  }
+
   const [newMatch, setNewMatch] = useState(null)
   useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
   const previousUnreadMessages = useRef(null)
@@ -3250,7 +3217,7 @@ const loadMatches = useCallback(async () => {
           {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}
-          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
+          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button>{!isInstalled && <button type="button" className="nm-install-open-btn" onClick={openInstall}><Globe2 size={16}/> ติดตั้ง NISIT MATCH <ArrowRight size={15}/></button>}</footer>
         </div>
       </main>
       {visibleDetail && createPortal(<div className={"modal-backdrop detail-backdrop hangout-member-profile-portal" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
@@ -3263,6 +3230,7 @@ const loadMatches = useCallback(async () => {
           <button type="button" className="detail-bottom-close" onClick={() => setDetail(null)}>← กลับไปหน้าปัด</button>
           <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>, document.body)}
       {reportTarget && createPortal(<div className="modal-backdrop nm-dialog-backdrop nm-report-portal" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>, document.body)}
+      {installHelpOpen && createPortal(<div className="modal-backdrop nm-dialog-backdrop nm-install-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setInstallHelpOpen(false) }}><div className="nm-dialog nm-install-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-install-title"><button type="button" className="nm-dialog-close" aria-label="ปิด" onClick={() => setInstallHelpOpen(false)}><X size={20}/></button><div className="nm-install-icon"><Heart size={32} fill="currentColor"/></div><span className="nm-install-kicker">NISIT MATCH · APP</span><h2 id="nm-install-title">เพิ่มแอปไว้บนหน้าจอโฮม</h2><p>เปิด NISIT MATCH ได้สะดวกเหมือนแอปทั่วไป ไม่ต้องพิมพ์ชื่อเว็บใหม่</p><div className="nm-install-steps">{isIOSInstall ? <><div><b>01</b><span>เปิดเว็บไซต์นี้ใน <strong>Safari</strong></span></div><div><b>02</b><span>แตะปุ่ม <strong>แชร์</strong> ในแถบเครื่องมือ</span></div><div><b>03</b><span>เลือก <strong>เพิ่มไปยังหน้าจอโฮม</strong> แล้วกดเพิ่ม</span></div></> : <><div><b>01</b><span>เปิดเว็บนี้ใน <strong>Chrome หรือ Edge</strong></span></div><div><b>02</b><span>แตะเมนูเบราว์เซอร์ <strong>⋮</strong> หรือไอคอนติดตั้ง</span></div><div><b>03</b><span>เลือก <strong>ติดตั้งแอป</strong> หรือ <strong>เพิ่มลงหน้าจอหลัก</strong></span></div></>}</div><button type="button" className="nm-install-done" onClick={() => setInstallHelpOpen(false)}>เข้าใจแล้ว <Check size={17}/></button><small>เพื่อความปลอดภัย เบราว์เซอร์ต้องให้คุณยืนยันการติดตั้งด้วยตัวเอง</small></div></div>, document.body)}
       {guideOpen && createPortal(<div className="modal-backdrop nm-dialog-backdrop nm-guide-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) closeGuide() }}><div className="nm-dialog nm-guide nm-guide-v2" role="dialog" aria-modal="true" aria-labelledby="nm-guide-title">
         <button className="nm-dialog-close" type="button" onClick={closeGuide} aria-label="ปิดคู่มือ"><X size={20}/></button>
         <div className="nm-guide-v2-top"><span className="nm-guide-v2-brand"><Sparkles size={17}/> NISIT MATCH <small>GUIDE</small></span><span className="nm-guide-v2-counter">{String(guideStep+1).padStart(2,'0')} / 06</span></div>
