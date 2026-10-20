@@ -1,0 +1,28 @@
+name: Frontend build and repository safety checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check for committed local environment files
+        run: |
+          if git ls-files --error-unmatch .env.local >/dev/null 2>&1; then
+            echo "::error::.env.local is tracked in Git. Remove it from Git history and rotate any exposed keys."
+            exit 1
+          fi
+      - name: Build Vite application
+        run: npm run build
