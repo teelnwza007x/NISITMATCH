@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from
 import { createPortal } from 'react-dom'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
+import EmailCenter from './components/EmailCenter'
 import { authRedirectUrl, isAuthCallbackPath, clearAuthCallbackUrl } from './authRedirect'
 import './authLink.css'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
@@ -2390,6 +2391,7 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
+    <EmailCenter />
     <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>↻ รีเฟรชข้อมูล</button>
     {error && <p role="alert">{error}</p>}
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
