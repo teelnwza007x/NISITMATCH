@@ -2400,6 +2400,7 @@ function AdminDashboard({ onBack }) {
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
     <section className="nm-admin-queue"><h3>รายงานล่าสุด</h3><p>ใช้ตรวจสอบรายงานก่อนดำเนินการ ไม่มีการเปิดเผยข้อมูลส่วนตัวของผู้รายงาน</p>
     {reports.length ? reports.map((report,index)=><article key={report.id||index}><span className="nm-admin-queue-meta">{report.created_at ? new Date(report.created_at).toLocaleString('th-TH') : 'รายงาน'}</span><strong>{report.reason||'ไม่ระบุเหตุผล'}</strong><small>ผู้ถูกรายงาน: {report.reported||'ไม่ระบุ'}</small></article>) : <p>ไม่มีรายงานที่แสดงได้ หรือยังไม่ได้ติดตั้ง SQL สำหรับคิวรายงาน</p>}</section>
+    </div>}
   </section>
 }
 
