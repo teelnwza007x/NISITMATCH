@@ -24,6 +24,16 @@ Deno.serve(async (req) => {
       await db.from('push_queue').update({ processed_at: new Date().toISOString() }).eq('id', item.id)
       continue
     }
+    // Respect opt-out for match notifications. Missing preferences mean
+    // defaults apply; the optional table is installed by social_features_admin_v1.sql.
+    if (item.type === 'match') {
+      const { data: preference, error: preferenceError } = await db.from('user_social_preferences')
+        .select('notify_matches').eq('user_id', item.user_id).maybeSingle()
+      if (!preferenceError && preference?.notify_matches === false) {
+        await db.from('push_queue').update({ processed_at: new Date().toISOString() }).eq('id', item.id)
+        continue
+      }
+    }
     const payload = JSON.stringify({ title: 'NISIT MATCH', body: item.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : 'มีคนกำลังสนใจคุณอยู่', tag: 'nisit-'+item.id })
     let transientFailure = false
     for (const s of subs || []) {
