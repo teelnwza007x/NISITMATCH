@@ -30,7 +30,7 @@ const Av = ({ u, cls = 'avatar' }) => {
   const [attempt, setAttempt] = useState(0)
   const signature = candidates.join('|')
   useEffect(() => setAttempt(0), [signature])
-  return <img className={cls} src={candidates[attempt] || ph(u?.display_name)} alt={u?.display_name || 'โปรไฟล์'} loading="lazy" onError={() => setAttempt(n => n < candidates.length ? n + 1 : n)} />
+  return <img className={cls} src={candidates[attempt] || ph(u?.display_name)} alt={u?.display_name || 'โปรไฟล์'} loading="lazy" decoding="async" onError={() => setAttempt(n => n < candidates.length ? n + 1 : n)} />
 }
 // v58: scroll lock shared by full-screen overlays; restore the exact previous scroll position.
 function useViewportScrollLock(active) {
@@ -2899,8 +2899,9 @@ const loadMatches = useCallback(async () => {
 }, [user?.id, notify])
 
   useEffect(() => {
-    if (!userId || !profile?.id) { setDiscoveryReady(false); return }
+    if (!userId || !profile?.id) { setDiscoveryReady(false); setPeople(null); return }
     let active = true
+    setDiscoveryReady(false)
     const cached = readDiscovery(userId)
     setPeople(null)
     const revisionAtLoad = discoverySaveRevision.current
@@ -2939,16 +2940,19 @@ const loadMatches = useCallback(async () => {
   const seenSwipes = useRef(new Set())
   const discoveryRanks = useRef(new Map())
   const discoveryInFlight = useRef(false)
+  const discoveryQueryKey = useRef('')
   const [discoveryLimited, setDiscoveryLimited] = useState(false)
   const discoverySession = useRef('')
   const loadPeople = useCallback(async ({ silent = false } = {}) => {
     if (!discoveryReady || !discovery || !userId) return
-    if (discoveryInFlight.current) return
+    const queryKey = JSON.stringify([userId, discovery.gender, discovery.min, discovery.max])
+    if (discoveryInFlight.current && discoveryQueryKey.current === queryKey) return
     discoveryInFlight.current = true
+    discoveryQueryKey.current = queryKey
     const request = ++discoveryRequest.current
     const { data, error } = await supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null })
-    discoveryInFlight.current = false
     if (request !== discoveryRequest.current) return
+    discoveryInFlight.current = false
     if (error) { if (!silent) notify(error.message); return }
     setDiscoveryLimited((data || []).length <= 1)
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
@@ -3173,8 +3177,8 @@ const loadMatches = useCallback(async () => {
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const shown = (people || []).filter((p) => matchesSelectedGender(p) && campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
   const filteredPeople = (people || []).filter(p => matchesSelectedGender(p) && campusFiltered(p))
-  const nearbyFallback = discovery?.mode === 'nearby' && (people || []).length > 0 && filteredPeople.length === 0
-  const swipePeople = nearbyFallback ? (people || []).filter(matchesSelectedGender) : filteredPeople
+  // Never bypass the chosen campus radius when no nearby profile exists.
+  const swipePeople = filteredPeople
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
   if (session === undefined || (user && profile === undefined)) return <div className="page-center"><span className="spin" /></div>
