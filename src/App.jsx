@@ -2978,20 +2978,22 @@ const loadMatches = useCallback(async () => {
     for (const p of unique) if (!ranks.has(p.id)) ranks.set(p.id, rankFor(p.id))
     unique.sort((a,b) => ranks.get(a.id) - ranks.get(b.id))
     setPeople(current => {
-      if (!silent || !current?.length) return unique
-      const byId = new Map(unique.map(p => [p.id, p]))
-      const stable = current.filter(p => byId.has(p.id)).map(p => ({...p, ...byId.get(p.id)}))
-      const oldIds = new Set(stable.map(p => p.id))
-      return [...stable, ...unique.filter(p => !oldIds.has(p.id))]
+      // Preserve the exact visible deck on background refresh; only append newcomers.
+      // Never replace/reorder the first card unless the user swipes or changes filters.
+      if (silent && current !== null) {
+        const existingIds = new Set((current || []).map(p => p.id))
+        return [...(current || []), ...unique.filter(p => !existingIds.has(p.id))]
+      }
+      return unique
     })
   }, [discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify, userId])
+  // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
-    if (!userId || !profile) return
+    if (view !== 'home' || !userId || !profile) return
     const refresh = () => { if (document.visibilityState === 'visible') loadPeople({ silent: true }) }
-    const interval = window.setInterval(refresh, 20000)
     document.addEventListener('visibilitychange', refresh)
-    return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', refresh) }
-  }, [userId, !!profile, loadPeople])
+    return () => document.removeEventListener('visibilitychange', refresh)
+  }, [view, userId, !!profile, loadPeople])
   useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
   useEffect(() => { if (profile) { loadMatches(); loadPeople() } }, [profile, loadMatches, loadPeople])
   // Public Premium status for swipe cards: only a boolean is returned by the RPC.
