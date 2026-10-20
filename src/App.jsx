@@ -2356,7 +2356,22 @@ function PushPermissionCard({ user }) {
   </div>
 }
 
-function SettingsPage({ user, notify, onInstall, isInstalled }) {
+function AdminDashboard({ onBack }) {
+  const [metrics, setMetrics] = useState(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    supabase.rpc('nm_admin_metrics').then(({data,error:requestError}) => {
+      if (!active) return
+      if (requestError) setError('ไม่สามารถโหลดสถิติได้ กรุณาตรวจสิทธิ์ผู้ดูแลและรัน SQL social_features_admin_v1.sql')
+      else setMetrics(data)
+    })
+    return () => { active = false }
+  }, [])
+  return <section className="nm-admin-dashboard"><button type="button" className="btn btn-ghost" onClick={onBack}>← กลับไปตั้งค่า</button><Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="ภาพรวมชุมชน NISIT MATCH (ข้อมูลรวม ไม่เปิดเผยข้อมูลส่วนตัว)" />{error ? <p role="alert">{error}</p> : !metrics ? <div className="page-center"><span className="spin"/></div> : <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div>}</section>
+}
+
+function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
   })
@@ -2373,6 +2388,23 @@ function SettingsPage({ user, notify, onInstall, isInstalled }) {
   }
 
 
+  const [social, setSocial] = useState({show_online:false,show_read_receipts:true,notify_matches:true,notify_messages:true,notify_hangouts:true})
+  const [socialSaving, setSocialSaving] = useState(false)
+  useEffect(() => {
+    let alive = true
+    supabase.from('user_social_preferences').select('show_online,show_read_receipts,notify_matches,notify_messages,notify_hangouts').eq('user_id',user.id).maybeSingle().then(({data})=>{if(alive && data)setSocial(old=>({...old,...data}))}).catch(()=>{})
+    return ()=>{alive=false}
+  },[user.id])
+  const changeSocial = async (key) => {
+    if(socialSaving)return
+    const next={...social,[key]:!social[key]}
+    setSocialSaving(true)
+    const {error}=await supabase.from('user_social_preferences').upsert({user_id:user.id,...next,updated_at:new Date().toISOString()},{onConflict:'user_id'})
+    setSocialSaving(false)
+    if(error) return notify('บันทึกไม่ได้ กรุณารัน SQL social_features_admin_v1.sql ก่อน')
+    setSocial(next)
+    notify('บันทึกการตั้งค่าแล้ว')
+  }
   const [privacy, setPrivacy] = useState({ mode: 'visible' })
   const [privacyBusy, setPrivacyBusy] = useState(false)
   useEffect(() => {
@@ -2444,6 +2476,8 @@ function SettingsPage({ user, notify, onInstall, isInstalled }) {
         <span className="theme-check">{theme === t.id && <Check size={14}/>}</span>
       </button>)}</div>
     </section>
+    <section className="v26-settings-section nm-social-settings" aria-label="สถานะและการแจ้งเตือน"><span className="theme-kicker">SOCIAL & NOTIFICATIONS</span><h3>สถานะและการแจ้งเตือน</h3><p>เลือกข้อมูลที่ต้องการแชร์และประเภทการแจ้งเตือน (การส่ง Push แต่ละประเภทต้องรองรับโดยระบบเซิร์ฟเวอร์)</p><div className="nm-social-options">{[['show_online','แสดงสถานะออนไลน์','เฉพาะคนที่แมตช์กัน'],['show_read_receipts','แสดงว่าอ่านข้อความแล้ว','ใช้กับข้อความที่คุณได้รับ'],['notify_matches','แจ้งเตือนแมตช์ใหม่','ความต้องการรับแจ้งเตือน'],['notify_messages','แจ้งเตือนข้อความ','ความต้องการรับแจ้งเตือน'],['notify_hangouts','แจ้งเตือน Hangouts','ความต้องการรับแจ้งเตือน']].map(([key,title,desc])=><button type="button" key={key} className={'nm-social-option'+(social[key]?' selected':'')} disabled={socialSaving} onClick={()=>changeSocial(key)} role="switch" aria-checked={!!social[key]}><span><strong>{title}</strong><small>{desc}</small></span><span className="nm-social-switch">{social[key]?'เปิด':'ปิด'}</span></button>)}</div></section>
+    {onAdmin && <section className="v26-settings-section"><span className="theme-kicker">ADMIN</span><h3>จัดการระบบ</h3><p>เฉพาะบัญชีผู้ดูแลระบบเท่านั้น</p><button type="button" className="btn btn-pink" onClick={onAdmin}>เปิด Admin Dashboard <ArrowRight size={16}/></button></section>}
     <section className="v26-settings-section" aria-label="ความเป็นส่วนตัว">
       <span className="theme-kicker">PRIVACY & DISCOVERY</span><h3>ใครสามารถพบคุณได้</h3><p>ควบคุมการแสดงโปรไฟล์ในหน้าปัดของคนอื่น</p>
       <div className="v26-mode-grid">{[
@@ -3344,7 +3378,7 @@ const loadMatches = useCallback(async () => {
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
-          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} />}
+          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} onAdmin={profile?.is_admin ? () => go('admin') : null} />}{view === 'admin' && profile?.is_admin && <AdminDashboard onBack={() => go('settings')} />}
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
         </div>
       </main>
