@@ -2155,8 +2155,12 @@ function PremiumPage({ user, notify, onGoVisitors }) {
   const request = async () => {
     setBusy(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) throw new Error('กรุณาเข้าสู่ระบบอีกครั้ง')
+      // Refresh before checkout so the API receives a current access token.
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
+      if (refreshError || !refreshed?.session?.access_token) {
+        throw new Error('เซสชันหมดอายุ กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่')
+      }
+      const session = refreshed.session
       const response = await fetch('/api/create-checkout', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ plan }),
