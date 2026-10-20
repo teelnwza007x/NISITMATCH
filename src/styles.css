@@ -2748,3 +2748,18 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 @media(prefers-reduced-motion:reduce){:root[data-theme] .btn-pink{transition:none;transform:none}}
 
 .nisit-embedded-checkout{margin:24px auto;width:100%;max-width:760px;padding:18px;border:1px solid #f45ca555;border-radius:22px;background:#fff;color:#20212b}.nisit-embedded-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.nisit-embedded-header button{border:0;border-radius:10px;padding:9px 14px;background:#fce7f3;color:#9d174d;cursor:pointer}
+
+/* Email verification resend: readable Thai typography and balanced spacing */
+.auth-modal .nm-verify-resend{display:flex;flex-direction:column;align-items:center;gap:0;margin:20px 0 6px;padding:24px 20px 20px;border-radius:22px;border:1px solid rgba(238,118,164,.23);background:linear-gradient(155deg,rgba(255,231,242,.76),rgba(255,255,255,.62) 66%);text-align:center;box-shadow:0 10px 28px rgba(170,62,112,.055);min-width:0}
+.auth-modal .nm-verify-resend-icon{display:grid;place-items:center;width:52px;height:52px;flex-shrink:0;margin:0 auto 14px;border-radius:18px;background:linear-gradient(135deg,#ff6ba7,#e8488c);color:white;box-shadow:0 7px 17px rgba(232,72,140,.23)}
+.auth-modal .nm-verify-resend-copy{width:100%;min-width:0}
+.auth-modal .nm-verify-resend h3{margin:0 0 7px;font-size:clamp(17px,4vw,20px);font-weight:800;line-height:1.5;letter-spacing:0;overflow-wrap:break-word}
+.auth-modal .nm-verify-resend-copy>p{margin:0;font-size:13px;line-height:1.8;letter-spacing:0}
+.auth-modal .nm-verify-resend-email{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;min-width:0;margin:13px 0;padding:11px 12px;border-radius:13px;background:rgba(255,255,255,.75);border:1px solid rgba(222,125,164,.18)}
+.auth-modal .nm-verify-resend-email span{font-size:11px;font-weight:600;opacity:.68;line-height:1.5}
+.auth-modal .nm-verify-resend-email strong{display:block;max-width:100%;font-size:13px;line-height:1.6;font-weight:750;overflow-wrap:anywhere;word-break:break-word}
+.auth-modal .nm-verify-resend-copy>.nm-verify-resend-tip{font-size:12px;line-height:1.85;opacity:.76;margin:0 0 16px}
+.auth-modal .nm-verify-resend-button{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:46px;padding:10px 12px;font-size:13px;font-weight:750;line-height:1.5;white-space:normal;text-align:center}
+.auth-modal .nm-verify-resend-button svg{flex-shrink:0}
+.auth-modal .nm-verify-resend-footnote{margin:12px 0 0;font-size:11px;line-height:1.8;opacity:.65;max-width:31ch}
+@media(max-width:420px){.auth-modal .nm-verify-resend{padding:20px 14px 18px;margin-top:16px}.auth-modal .nm-verify-resend h3{font-size:17px}}
