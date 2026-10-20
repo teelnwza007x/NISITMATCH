@@ -3133,3 +3133,48 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 :root[data-theme] .faculty-option,:root[data-theme] .university-option,:root[data-theme] .uni-search,:root[data-theme] .major-field input{background:var(--theme-panel);border-color:var(--theme-border)}
 :root[data-theme] .faculty-option.selected,:root[data-theme] .university-option.selected{background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel));border-color:var(--theme-accent);color:var(--theme-text)}
 :root[data-theme] .faculty-option.selected svg,:root[data-theme] .university-option.selected svg,:root[data-theme] .choice-step,:root[data-theme] .choice-count{color:var(--theme-accent)}
+
+/* Mobile PWA hardening: safe-area insets and dynamic viewport height. */
+@supports (height:100dvh){
+  .chat-layout.chat-room-open.chat-fullscreen{max-height:100dvh}
+}
+@media (max-width:767px){
+  .chat-layout.chat-room-open.chat-fullscreen{padding-bottom:env(safe-area-inset-bottom,0px)}
+  .chat-layout.chat-room-open.chat-fullscreen input,
+  .chat-layout.chat-room-open.chat-fullscreen textarea,
+  .chat-layout.chat-room-open.chat-fullscreen select{font-size:16px}
+  .nm-dialog,.auth-modal{max-height:min(92dvh,calc(100dvh - 24px));overflow-y:auto;overscroll-behavior:contain}
+  .bottom-nav{padding-bottom:max(env(safe-area-inset-bottom,0px),8px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .nm-campus-unspecified,.faculty-option,.university-option{transition:none!important}
+}
+/* Unify core surfaces with the selected theme while keeping photographs untouched. */
+:root[data-theme] .auth-modal,
+:root[data-theme] .nm-dialog,
+:root[data-theme] .nm-edit-workspace,
+:root[data-theme] .nm-edit-photo-page,
+:root[data-theme] .choice-section,
+:root[data-theme] .nm-existing-account{
+  border-color:var(--theme-border)!important;
+  color:var(--theme-text)!important;
+}
+:root[data-theme] .auth-modal,
+:root[data-theme] .nm-dialog,
+:root[data-theme] .nm-existing-account{
+  background:var(--theme-panel)!important;
+}
+:root[data-theme] .auth-modal input,
+:root[data-theme] .auth-modal select,
+:root[data-theme] .auth-modal textarea,
+:root[data-theme] .nm-dialog input,
+:root[data-theme] .nm-dialog textarea{
+  border-color:var(--theme-border);
+  color:var(--theme-text);
+  background:color-mix(in srgb,var(--theme-panel) 85%,var(--theme-bg));
+}
+:root[data-theme] .auth-modal input::placeholder,
+:root[data-theme] .nm-dialog input::placeholder{color:var(--theme-muted)}
+:root[data-theme] .nm-existing-account-actions .btn-pink{
+  background:linear-gradient(125deg,var(--theme-accent),var(--theme-accent2));
+}
