@@ -1,0 +1,26 @@
+import React,{useEffect,useState} from 'react'
+import {supabase} from '../supabase'
+export default function EmailCenter(){
+ const [rows,setRows]=useState([]),[stats,setStats]=useState(null),[search,setSearch]=useState(''),[type,setType]=useState(''),[status,setStatus]=useState(''),[page,setPage]=useState(0),[total,setTotal]=useState(0),[error,setError]=useState(''),[loading,setLoading]=useState(false)
+ const load=async()=>{setLoading(true);setError('');try{
+  const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{search,type,status,page,limit:25}})
+  if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูลไม่สำเร็จ')
+  setRows(data.rows||[]);setStats(data.stats);setTotal(data.total||0)
+ }catch(e){setError(e.message)}finally{setLoading(false)}}
+ useEffect(()=>{load()},[type,status,page])
+ const date=s=>new Date(s).toLocaleString('th-TH')
+ return <section style={{marginTop:30,padding:20,border:'1px solid #62456d',borderRadius:18,background:'#1b1226',color:'#f8efff'}}>
+  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><small style={{color:'#f18acb',letterSpacing:2}}>ADMIN / EMAIL OPERATIONS</small><h2 style={{margin:'8px 0'}}>Email Center</h2><p style={{color:'#c8b6d0'}}>ติดตามการส่ง OTP มหาวิทยาลัยผ่าน Gmail SMTP</p></div><button type="button" onClick={load} disabled={loading}>รีเฟรช</button></div>
+  <p style={{color:'#e5b5d5',fontSize:13}}>หมายเหตุ: accepted หมายถึง SMTP รับอีเมล ไม่ได้ยืนยันว่าเข้ากล่อง Inbox แล้ว ขณะนี้ Verify/Reset ของ Supabase Auth ยังไม่มี Delivery Logs ในตารางนี้</p>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap',margin:'16px 0'}}>{[['ส่งใน 24 ชม.',stats?.total24h],['SMTP รับแล้ว',stats?.accepted24h],['ส่งล้มเหลว',stats?.failed24h]].map(([label,n])=><div key={label} style={{flex:'1 1 130px',background:'#30203b',padding:16,borderRadius:12}}><small>{label}</small><div style={{fontSize:28,fontWeight:800}}>{n??'—'}</div></div>)}</div>
+  <form onSubmit={e=>{e.preventDefault();setPage(0);load()}} style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}>
+   <input aria-label="ค้นหาอีเมล" placeholder="ค้นหาอีเมลผู้รับ" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:'1 1 180px'}}/>
+   <select aria-label="ประเภทอีเมล" value={type} onChange={e=>{setType(e.target.value);setPage(0)}}><option value="">ทุกประเภท</option><option value="university_otp">University OTP</option><option value="signup_verify">Signup Verify</option><option value="password_reset">Reset Password</option></select>
+   <select aria-label="สถานะ" value={status} onChange={e=>{setStatus(e.target.value);setPage(0)}}><option value="">ทุกสถานะ</option><option value="accepted">Accepted</option><option value="failed">Failed</option><option value="delivered">Delivered</option><option value="bounced">Bounced</option></select>
+   <button type="submit">ค้นหา</button>
+  </form>
+  {error&&<p role="alert" style={{color:'#ff9696'}}>{error}</p>}
+  <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:13}}><thead><tr>{['เวลา','ผู้รับ','ประเภท','สถานะ','รายละเอียด'].map(x=><th key={x} style={{padding:10,borderBottom:'1px solid #62456d'}}>{x}</th>)}</tr></thead><tbody>{rows.map(r=><tr key={r.id}>{[date(r.created_at),r.recipient_email,r.email_type,r.status,r.error_message||r.provider_message_id||'—'].map((v,i)=><td key={i} style={{padding:10,borderBottom:'1px solid #49344e',overflowWrap:'anywhere'}}>{v}</td>)}</tr>)}</tbody></table>{!rows.length&&!loading&&<p>ยังไม่มีข้อมูล</p>}</div>
+  <div style={{display:'flex',alignItems:'center',gap:12,marginTop:12}}><button type="button" disabled={page===0||loading} onClick={()=>setPage(x=>x-1)}>ก่อนหน้า</button><span>หน้า {page+1} · {total} รายการ</span><button type="button" disabled={(page+1)*25>=total||loading} onClick={()=>setPage(x=>x+1)}>ถัดไป</button></div>
+ </section>
+}
