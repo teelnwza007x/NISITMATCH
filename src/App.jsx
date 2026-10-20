@@ -2033,10 +2033,10 @@ function CampusEmailVerification({ user }) {
   const submitDomainRequest = async (event) => {
     event.preventDefault()
     if (domainRequestBusy) return
-    const universityName = requestedUniversity.trim()
-    const domain = requestedDomain.trim().toLowerCase().replace(/^@/, '')
-    if (universityName.length < 3 || universityName.length > 150) return setDomainRequestMessage('กรุณาระบุชื่อมหาวิทยาลัยให้ถูกต้อง')
-    if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/.test(domain) || domain.length > 253) return setDomainRequestMessage('กรุณาระบุโดเมนอีเมล เช่น student.university.ac.th')
+    const domain = requestedDomain.trim().toLowerCase().replace(/^@+/, '')
+    const universityName = requestedUniversity.trim() || 'ไม่ระบุ (' + domain + ')'
+    if (universityName.length > 150) return setDomainRequestMessage('ชื่อมหาวิทยาลัยยาวเกินไป')
+    if (!/^[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/.test(domain) || domain.length > 253) return setDomainRequestMessage('กรุณากรอกเฉพาะโดเมน เช่น @nu.ac.th')
     setDomainRequestBusy(true)
     setDomainRequestMessage('')
     try {
@@ -2111,10 +2111,10 @@ function CampusEmailVerification({ user }) {
         <p style={{margin:'0 0 12px'}}>แจ้งชื่อมหาวิทยาลัยและโดเมนอีเมลเพื่อให้ทีมงานตรวจสอบและเพิ่มการรองรับ</p>
         <button type="button" className="btn btn-ghost btn-small" onClick={() => { setShowDomainRequest(v => !v); setDomainRequestMessage('') }}>{showDomainRequest ? 'ปิดแบบฟอร์ม' : 'แจ้งเพิ่มโดเมนอีเมลมหาวิทยาลัย'} <ArrowRight size={15}/></button>
         {showDomainRequest && <form onSubmit={submitDomainRequest} style={{display:'grid',gap:10,marginTop:14}}>
-          <label htmlFor="nm-request-university">ชื่อมหาวิทยาลัย</label>
-          <input id="nm-request-university" required minLength={3} maxLength={150} placeholder="เช่น มหาวิทยาลัย..." value={requestedUniversity} onChange={e=>setRequestedUniversity(e.target.value)} />
-          <label htmlFor="nm-request-domain">โดเมนอีเมลมหาวิทยาลัย (ไม่ต้องกรอกอีเมลเต็ม)</label>
-          <input id="nm-request-domain" required maxLength={254} placeholder="เช่น student.example.ac.th" value={requestedDomain} onChange={e=>setRequestedDomain(e.target.value)} />
+          <label htmlFor="nm-request-university">ชื่อมหาวิทยาลัย (ไม่จำเป็น)</label>
+          <input id="nm-request-university" maxLength={150} placeholder="ไม่กรอกก็ได้" value={requestedUniversity} onChange={e=>setRequestedUniversity(e.target.value)} />
+          <label htmlFor="nm-request-domain">โดเมนอีเมลมหาวิทยาลัย (กรอกแค่ @...)</label>
+          <input id="nm-request-domain" required maxLength={254} placeholder="เช่น @nu.ac.th" value={requestedDomain} onChange={e=>setRequestedDomain(e.target.value)} />
           <button type="submit" className="btn btn-pink" disabled={domainRequestBusy}>{domainRequestBusy ? 'กำลังส่งคำขอ...' : 'ส่งคำขอให้ทีมงานตรวจสอบ'} <Send size={16}/></button>
           {domainRequestMessage && <p role="status" className="v27-verify-message">{domainRequestMessage}</p>}
         </form>}
