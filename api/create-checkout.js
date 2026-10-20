@@ -2,8 +2,8 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
 const PLANS = {
-  weekly: { price: 'price_1USZirRqxNC12BLAmggjV2kg', amount: 3900 },
-  monthly: { price: 'price_1USZiGRqxNC12BLAKJolJ90W', amount: 11900 },
+  weekly: { price: 'price_1USbJURqFWgXWBBi39VMnQwx', amount: 3900 },
+  monthly: { price: 'price_1USbJXRqFWgXWBBiDlVJBTX7', amount: 11900 },
 }
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -37,11 +37,11 @@ export default async function handler(req, res) {
       line_items: [{ price: PLANS[plan].price, quantity: 1 }],
       client_reference_id: user.id, metadata: { user_id: user.id, plan },
       payment_intent_data: { metadata: { user_id: user.id, plan } },
-      success_url: `${base}/?premium_payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/?premium_payment=cancelled`,
+      ui_mode: 'embedded',
+      return_url: `${base}/?premium_payment=success&session_id={CHECKOUT_SESSION_ID}`,
       expires_at: Math.floor(Date.now() / 1000) + 1800,
     })
-    return res.status(200).json({ url: session.url })
+    return res.status(200).json({ clientSecret: session.client_secret })
   } catch (e) {
     console.error('[checkout] Failure:', { name: e?.name, type: e?.type, code: e?.code, message: e?.message })
     return res.status(500).json({ error: 'ไม่สามารถเริ่มชำระเงินได้ กรุณาตรวจสอบการตั้งค่า Stripe และ PromptPay' })

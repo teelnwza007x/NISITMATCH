@@ -2746,3 +2746,5 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 :root[data-theme] .nav-item.active,:root[data-theme] .bottom-nav .active{color:var(--theme-accent)}
 :root[data-theme] .settings-card,:root[data-theme] .settings-danger,:root[data-theme] .premium-card{box-shadow:0 12px 38px #00000012}
 @media(prefers-reduced-motion:reduce){:root[data-theme] .btn-pink{transition:none;transform:none}}
+
+.nisit-embedded-checkout{margin:24px auto;width:100%;max-width:760px;padding:18px;border:1px solid #f45ca555;border-radius:22px;background:#fff;color:#20212b}.nisit-embedded-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.nisit-embedded-header button{border:0;border-radius:10px;padding:9px 14px;background:#fce7f3;color:#9d174d;cursor:pointer}

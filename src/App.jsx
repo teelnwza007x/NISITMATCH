@@ -2145,6 +2145,8 @@ function PremiumPage({ user, notify, onGoVisitors }) {
   const [plan, setPlan] = useState('monthly')
   const [status, setStatus] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [checkoutSecret, setCheckoutSecret] = useState('')
+  const checkoutMount = useRef(null)
   useEffect(() => {
     let active = true
     supabase.from('premium_subscriptions').select('plan,status,ends_at').eq('user_id', user.id).maybeSingle()
@@ -2166,11 +2168,45 @@ function PremiumPage({ user, notify, onGoVisitors }) {
         body: JSON.stringify({ plan }),
       })
       const result = await response.json()
-      if (!response.ok || !result.url) throw new Error(result.error || 'ไม่สามารถเปิดหน้าชำระเงินได้')
-      window.location.assign(result.url)
+      if (!response.ok || !result.clientSecret) throw new Error(result.error || 'ไม่สามารถเปิดหน้าชำระเงินได้')
+      setCheckoutSecret(result.clientSecret)
     } catch (error) { notify(error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่') }
     finally { setBusy(false) }
   }
+  useEffect(() => {
+    if (!checkoutSecret || !checkoutMount.current) return
+    let cancelled = false
+    let checkout
+    const loadStripe = () => new Promise((resolve, reject) => {
+      if (window.Stripe) return resolve(window.Stripe)
+      const existing = document.querySelector('script[data-nisit-stripe]')
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.Stripe), { once: true })
+        existing.addEventListener('error', () => reject(new Error('โหลด Stripe ไม่สำเร็จ')), { once: true })
+        return
+      }
+      const script = document.createElement('script')
+      script.src = 'https://js.stripe.com/v3/'
+      script.dataset.nisitStripe = 'true'
+      script.onload = () => resolve(window.Stripe)
+      script.onerror = () => reject(new Error('โหลด Stripe ไม่สำเร็จ'))
+      document.head.appendChild(script)
+    })
+    ;(async () => {
+      try {
+        const Stripe = await loadStripe()
+        if (cancelled) return
+        const config = await fetch('/api/stripe-config')
+        const { publishableKey, error } = await config.json()
+        if (!config.ok || !publishableKey) throw new Error(error || 'ยังไม่ได้ตั้งค่า Stripe Publishable Key')
+        const stripe = Stripe(publishableKey)
+        checkout = await stripe.initEmbeddedCheckout({ clientSecret: checkoutSecret })
+        if (cancelled) { checkout.destroy(); return }
+        checkout.mount(checkoutMount.current)
+      } catch (e) { if (!cancelled) { notify(e.message); setCheckoutSecret('') } }
+    })()
+    return () => { cancelled = true; if (checkout) checkout.destroy() }
+  }, [checkoutSecret])
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const payment = params.get('premium_payment')
@@ -2198,9 +2234,10 @@ function PremiumPage({ user, notify, onGoVisitors }) {
       {[['weekly','รายสัปดาห์','เหมาะกับการลองใช้ Premium'],['monthly','รายเดือน','สำหรับคนที่อยากใช้ต่อเนื่อง']].map(([id,title,sub]) => <button type="button" key={id} className={'v76-plan-card'+(plan===id?' selected':'')} onClick={()=>setPlan(id)} aria-pressed={plan===id}><span className="v76-plan-radio">{plan===id&&<Check size={13}/>}</span><strong>{title}</strong><small>{sub}</small><span className="v76-plan-price">{id === 'weekly' ? '฿39 · 7 วัน' : '฿119 · 30 วัน'} · จ่ายครั้งเดียว</span></button>)}
     </div>
     <div className="v76-premium-features"><div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div><div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div><div><Sparkles/><span><b>สิทธิพิเศษเพิ่มเติม</b><small>รองรับการเพิ่มฟีเจอร์ในอนาคต</small></span></div></div>
-    <button className="v76-primary-cta" type="button" onClick={request} disabled={busy}>{busy?'กำลังเปิดหน้าชำระเงิน...':'ชำระเงินผ่าน PromptPay'} <ArrowRight size={18}/></button>
+    {!checkoutSecret && <button className="v76-primary-cta" type="button" onClick={request} disabled={busy}>{busy?'กำลังเตรียมการชำระเงิน...':'ชำระเงินผ่าน PromptPay ในเว็บไซต์'} <ArrowRight size={18}/></button>}
+    {checkoutSecret && <section className="nisit-embedded-checkout"><div className="nisit-embedded-header"><strong>ชำระเงินอย่างปลอดภัย</strong><button type="button" onClick={() => setCheckoutSecret('')}>ปิดหน้าชำระเงิน</button></div><div ref={checkoutMount}/></section>}
     <button type="button" className="v76-secondary-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูหน้าคนที่เข้าชมโปรไฟล์</button>
-    <p className="v76-disclaimer">การชำระเงินจะดำเนินการผ่าน Stripe Checkout ระบบเปิด Premium หลังได้รับการยืนยันชำระเงินจาก Stripe เท่านั้น หากยังไม่เปิดใช้ Webhook และรัน SQL ระบบจะยังไม่สามารถเปิดสิทธิ์ได้</p>
+    <p className="v76-disclaimer">การชำระเงินจะแสดงภายในเว็บไซต์ผ่าน Stripe Embedded Checkout ระบบเปิด Premium หลังได้รับการยืนยันชำระเงินจาก Stripe เท่านั้น หากยังไม่เปิดใช้ Webhook และรัน SQL ระบบจะยังไม่สามารถเปิดสิทธิ์ได้</p>
   </div>
 }
 
@@ -2475,7 +2512,7 @@ export default function App() {
   }, [])
   useEffect(() => { if (userId) setModal('') }, [userId])
   const loadProfile = useCallback(async () => { if (!userId) return; const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
-  const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('read', false).in('type', ['interest', 'match', 'hangout_message']); setUnread(count || 0) }, [userId])
+  const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false).in('type', ['interest', 'match', 'hangout_message']); setUnread(count || 0) }, [userId])
   // Message badges are separate from activity notifications: unread chat messages
   // animate the Messages tab, without generating a noisy notification for each text.
   const loadUnreadMessages = useCallback(async () => {
@@ -2490,9 +2527,7 @@ export default function App() {
         .neq('sender_id', userId).is('read_at', null)
       if (!error) directCount = count || 0
     }
-    const { count: hangoutCount, error: hangoutError } = await supabase.from('notifications')
-      .select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false).eq('type', 'hangout_message')
-    setUnreadMessages(directCount + (!hangoutError ? (hangoutCount || 0) : 0))
+    setUnreadMessages(directCount)
   }, [userId])
   useEffect(() => {
     if (!userId) { setUnreadMessages(0); return }

@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 
 export const config = { api: { bodyParser: false } }
 const EXPECTED = {
-  price_1USZirRqxNC12BLAmggjV2kg: { plan: 'weekly', amount: 3900 },
-  price_1USZiGRqxNC12BLAKJolJ90W: { plan: 'monthly', amount: 11900 },
+  price_1USbJURqFWgXWBBi39VMnQwx: { plan: 'weekly', amount: 3900 },
+  price_1USbJXRqFWgXWBBiDlVJBTX7: { plan: 'monthly', amount: 11900 },
 }
 async function rawBody(req) {
   const chunks = []
