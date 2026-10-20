@@ -1763,8 +1763,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
+    let idleId = null
+    let fallbackTimer = null
     setDraftReady(false)
-    draftAction(user.id, 'read').then(d => {
+    const restoreDraft = () => draftAction(user.id, 'read').then(d => {
       if (!alive) return
       if (d && d.version === 1) {
         if (d.f) setF(d.f)
@@ -1776,7 +1778,14 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       }
       setDraftReady(true)
     }).catch(err => { console.warn('Draft restore unavailable:', err); if (alive) setDraftReady(true) })
-    return () => { alive = false }
+    // Let the profile screen paint before reading large photo/video drafts from IndexedDB.
+    if (typeof window.requestIdleCallback === 'function') idleId = window.requestIdleCallback(restoreDraft, { timeout: 1200 })
+    else fallbackTimer = window.setTimeout(restoreDraft, 90)
+    return () => {
+      alive = false
+      if (idleId !== null) window.cancelIdleCallback(idleId)
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer)
+    }
   }, [user.id])
   useEffect(() => {
     if (!draftReady) return
