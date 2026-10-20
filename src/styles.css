@@ -2788,3 +2788,26 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 @keyframes nm-profile-subtabs-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:650px){.nm-edit-tabs-grouped{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nm-edit-tabs-grouped>button{width:100%;min-height:54px;padding:10px 8px;font-size:12px}.nm-edit-tabs-grouped .nm-edit-nav-separator{display:none}.nm-edit-tabs-grouped .nm-edit-subtabs{grid-column:1/-1;order:initial;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:8px}.nm-edit-tabs-grouped .nm-edit-subtabs button{min-width:0;flex:auto;font-size:11px;padding:10px 5px;gap:5px;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){.nm-edit-tabs-grouped .nm-edit-subtabs{animation:none}}
+
+/* Relationship intent: airy, tactile cards, themed rather than hardcoded blue. */
+.nm-intent-editor-fresh{position:relative;overflow:hidden;padding:clamp(17px,3vw,25px);border-radius:23px;background:linear-gradient(140deg,color-mix(in srgb,var(--accent,#ec77b3) 12%,transparent),color-mix(in srgb,var(--accent-2,#9c86ed) 7%,transparent) 60%,transparent);border:1px solid color-mix(in srgb,var(--accent,#ec77b3) 30%,transparent)}
+.nm-intent-editor-fresh:before{content:"";position:absolute;width:180px;height:180px;right:-85px;top:-100px;border-radius:50%;background:var(--accent,#ec77b3);filter:blur(85px);opacity:.16;pointer-events:none}
+.nm-intent-editor-fresh .nm-intent-heading{position:relative;margin-bottom:17px}
+.nm-intent-editor-fresh .nm-intent-kicker{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:850;letter-spacing:.17em;color:var(--accent,#ec77b3);margin-bottom:8px}
+.nm-intent-editor-fresh .nm-intent-heading strong{font-size:clamp(17px,2.8vw,22px);letter-spacing:-.02em}
+.nm-intent-editor-fresh .nm-intent-heading p{margin-top:7px;margin-bottom:0}
+.nm-intent-editor-fresh .nm-intent-options{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.nm-intent-editor-fresh .nm-intent-options button{position:relative;display:flex;align-items:center;text-align:left;gap:11px;min-height:83px;width:100%;border-radius:18px;padding:14px 13px;border:1px solid color-mix(in srgb,var(--accent,#ec77b3) 20%,rgba(255,255,255,.12));background:color-mix(in srgb,var(--surface,#252238) 86%,transparent);color:var(--text,#fff);font-size:13px;font-weight:750;box-shadow:0 6px 18px rgba(0,0,0,.06);transition:transform .22s cubic-bezier(.2,.8,.2,1),border-color .22s,box-shadow .22s,background .22s}
+.nm-intent-editor-fresh .nm-intent-options button:hover{transform:translateY(-3px);border-color:var(--accent,#ec77b3);box-shadow:0 10px 25px color-mix(in srgb,var(--accent,#ec77b3) 15%,transparent)}
+.nm-intent-editor-fresh .nm-intent-options button:active{transform:scale(.975)}
+.nm-intent-editor-fresh .nm-intent-options button.selected{background:linear-gradient(125deg,color-mix(in srgb,var(--accent,#ec77b3) 22%,var(--surface,#252238)),color-mix(in srgb,var(--accent-2,#9c86ed) 13%,var(--surface,#252238)));border-color:var(--accent,#ec77b3);color:var(--text,#fff);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent,#ec77b3) 20%,transparent),0 12px 30px color-mix(in srgb,var(--accent,#ec77b3) 12%,transparent)}
+.nm-intent-editor-fresh .nm-intent-emoji{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:14px;background:color-mix(in srgb,var(--accent,#ec77b3) 14%,transparent);font-size:24px;transition:transform .22s}
+.nm-intent-editor-fresh button.selected .nm-intent-emoji{transform:rotate(-7deg) scale(1.08)}
+.nm-intent-editor-fresh .nm-intent-label{flex:1;line-height:1.4}
+.nm-intent-editor-fresh .nm-intent-check{display:grid;place-items:center;width:23px;height:23px;flex:0 0 23px;border-radius:50%;border:1px solid color-mix(in srgb,var(--accent,#ec77b3) 35%,transparent);color:var(--accent,#ec77b3);font-size:15px}
+.nm-intent-editor-fresh button.selected .nm-intent-check{background:var(--accent,#ec77b3);color:#fff;border-color:transparent}
+.nm-intent-editor-fresh .nm-intent-options button:focus-visible,.nm-edit-tabs-grouped button:focus-visible{outline:2px solid var(--accent,#ec77b3);outline-offset:3px}
+.nm-edit-tabs-grouped>button.active{border-color:var(--accent,#ec77b3);background:linear-gradient(125deg,color-mix(in srgb,var(--accent,#ec77b3) 23%,transparent),color-mix(in srgb,var(--accent-2,#9c86ed) 18%,transparent));color:var(--text,#fff)}
+.nm-edit-tabs-grouped>button:has(.lucide-graduation-cap).active{box-shadow:0 8px 24px color-mix(in srgb,var(--accent,#ec77b3) 18%,transparent)}
+@media(max-width:550px){.nm-intent-editor-fresh .nm-intent-options{grid-template-columns:1fr}.nm-intent-editor-fresh .nm-intent-options button{min-height:68px}}
+@media(prefers-reduced-motion:reduce){.nm-intent-editor-fresh .nm-intent-options button,.nm-intent-editor-fresh .nm-intent-emoji{transition:none}}
