@@ -2902,6 +2902,7 @@ const loadMatches = useCallback(async () => {
     if (!userId || !profile?.id) { setDiscoveryReady(false); return }
     let active = true
     const cached = readDiscovery(userId)
+    setPeople(null)
     const revisionAtLoad = discoverySaveRevision.current
     setDiscovery(cached)
     setDiscoveryReady(true)
@@ -2921,6 +2922,7 @@ const loadMatches = useCallback(async () => {
     discoverySaveRevision.current += 1
     try { localStorage.setItem(discoveryKey(userId), JSON.stringify(prefs)) } catch {}
     setDiscovery(prefs)
+    setPeople(null)
     setDiscoveryEditing(false)
     setFl(f => ({...f, uni: '', gender: prefs.gender, min: prefs.min, max: prefs.max}))
     const {error} = await supabase.from('discovery_preferences').upsert({user_id:userId, preferences:prefs}, {onConflict:'user_id'})
@@ -2940,6 +2942,7 @@ const loadMatches = useCallback(async () => {
   const [discoveryLimited, setDiscoveryLimited] = useState(false)
   const discoverySession = useRef('')
   const loadPeople = useCallback(async ({ silent = false } = {}) => {
+    if (!discoveryReady || !discovery || !userId) return
     if (discoveryInFlight.current) return
     discoveryInFlight.current = true
     const request = ++discoveryRequest.current
@@ -2955,7 +2958,8 @@ const loadMatches = useCallback(async () => {
       discoveryRanks.current = new Map()
       seenSwipes.current = new Set()
     }
-    const unique = [...new Map((data || []).filter(p => p?.id && p.id !== userId && !seenSwipes.current.has(p.id)).map(p => [p.id, p])).values()]
+    const matchesGender = p => !discovery.gender || p.gender === discovery.gender
+    const unique = [...new Map((data || []).filter(p => p?.id && p.id !== userId && !seenSwipes.current.has(p.id) && matchesGender(p)).map(p => [p.id, p])).values()]
     const ranks = discoveryRanks.current
     const rankFor = id => {
       let hash = 2166136261
@@ -2970,11 +2974,11 @@ const loadMatches = useCallback(async () => {
       // Never replace/reorder the first card unless the user swipes or changes filters.
       if (silent && current !== null) {
         const existingIds = new Set((current || []).map(p => p.id))
-        return [...(current || []), ...unique.filter(p => !existingIds.has(p.id))]
+        return [...(current || []).filter(matchesGender), ...unique.filter(p => !existingIds.has(p.id))]
       }
       return unique
     })
-  }, [discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify, userId])
+  }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify, userId])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
@@ -2983,7 +2987,13 @@ const loadMatches = useCallback(async () => {
     return () => document.removeEventListener('visibilitychange', refresh)
   }, [view, userId, !!profile, loadPeople])
   useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
-  useEffect(() => { if (profile) { loadMatches(); loadPeople() } }, [profile, loadMatches, loadPeople])
+  useEffect(() => { if (profile) loadMatches() }, [profile, loadMatches])
+  useEffect(() => {
+    if (!profile || !discoveryReady || !discovery) return
+    // Discard a deck loaded for older preferences before requesting new matches.
+    setPeople(null)
+    loadPeople()
+  }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, loadPeople])
   // Public Premium status for swipe cards: only a boolean is returned by the RPC.
   const premiumCandidateKey = (people || []).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
@@ -3160,10 +3170,11 @@ const loadMatches = useCallback(async () => {
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
   const go = (v) => { if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
-  const shown = (people || []).filter((p) => campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
-  const filteredPeople = (people || []).filter(campusFiltered)
+  const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
+  const shown = (people || []).filter((p) => matchesSelectedGender(p) && campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
+  const filteredPeople = (people || []).filter(p => matchesSelectedGender(p) && campusFiltered(p))
   const nearbyFallback = discovery?.mode === 'nearby' && (people || []).length > 0 && filteredPeople.length === 0
-  const swipePeople = nearbyFallback ? (people || []) : filteredPeople
+  const swipePeople = nearbyFallback ? (people || []).filter(matchesSelectedGender) : filteredPeople
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
   if (session === undefined || (user && profile === undefined)) return <div className="page-center"><span className="spin" /></div>
