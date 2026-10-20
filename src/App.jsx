@@ -148,6 +148,8 @@ function AuthModal({ mode, setMode, close, notify }) {
   const submitInFlight = useRef(false)
   const resendInFlight = useRef(false)
   const [registrationComplete, setRegistrationComplete] = useState(false)
+  const [existingAccount, setExistingAccount] = useState(false)
+  useEffect(() => { setExistingAccount(false); setRegistrationComplete(false) }, [mode])
   const cooldownKey = address => 'nisit-auth-resend-until:' + address
   const startResendCooldown = (address) => {
     const until = Date.now() + 60000
@@ -214,7 +216,23 @@ function AuthModal({ mode, setMode, close, notify }) {
           email: address, password: pw,
           options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` },
         })
-        if (error) throw error
+        if (error) {
+          if (/already registered|already exists|user already registered|email exists/i.test(error.message || '')) {
+            setExistingAccount(true)
+            setAwaitingVerification(false)
+            return
+          }
+          throw error
+        }
+        // Supabase returns an obfuscated user with no identities when email
+        // confirmation is enabled and a confirmed account already exists.
+        // Do not claim a new signup or offer resend for that response.
+        if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0 && !data.session) {
+          setExistingAccount(true)
+          setAwaitingVerification(false)
+          return
+        }
+        setExistingAccount(false)
         setRegistrationComplete(true)
         if (!data?.session) {
           setVerificationEmail(address)
@@ -249,6 +267,7 @@ function AuthModal({ mode, setMode, close, notify }) {
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
         <button disabled={busy || (mode === 'register' && registrationComplete)} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'register' && registrationComplete ? 'สมัครแล้ว กรุณายืนยันอีเมล' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
+      {mode === 'register' && existingAccount && <section className="nm-existing-account" role="status" aria-live="polite"><div className="nm-existing-account-icon"><ShieldCheck size={23}/></div><div><h3>อีเมลนี้อาจมีบัญชีอยู่แล้ว</h3><p>หากเคยสมัคร NISIT MATCH ด้วยอีเมลนี้ กรุณาเข้าสู่ระบบ หรือขอตั้งรหัสผ่านใหม่</p></div><div className="nm-existing-account-actions"><button type="button" className="btn btn-pink" onClick={() => setMode('login')}>เข้าสู่ระบบ <ArrowRight size={16}/></button><button type="button" className="btn btn-ghost" onClick={() => setMode('reset')}>ลืมรหัสผ่าน</button></div></section>}
       {mode !== 'reset' && awaitingVerification && <section className="nm-verify-resend" aria-labelledby="nm-verify-resend-title">
         <div className="nm-verify-resend-icon" aria-hidden="true"><Send size={22}/></div><span className="nm-verify-kicker">NISIT MATCH · EMAIL VERIFICATION</span>
         <div className="nm-verify-resend-copy">
