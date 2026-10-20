@@ -2154,21 +2154,49 @@ function PremiumPage({ user, notify, onGoVisitors }) {
   }, [user.id])
   const request = async () => {
     setBusy(true)
-    const { error } = await supabase.from('premium_requests').insert({ user_id: user.id, plan })
-    setBusy(false)
-    if (error) return notify('บันทึกคำขอ Premium ไม่สำเร็จ กรุณารัน supabase/V76_PREMIUM_HANGOUT_MEDIA.sql ก่อน')
-    notify('บันทึกแพ็กเกจที่สนใจแล้ว ระบบชำระเงินจริงยังอยู่ระหว่างเชื่อมต่อ')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('กรุณาเข้าสู่ระบบอีกครั้ง')
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ plan }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result.url) throw new Error(result.error || 'ไม่สามารถเปิดหน้าชำระเงินได้')
+      window.location.assign(result.url)
+    } catch (error) { notify(error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่') }
+    finally { setBusy(false) }
   }
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const payment = params.get('premium_payment')
+    if (!payment) return
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+    if (payment === 'success') {
+      notify('ได้รับผลการชำระเงินแล้ว กำลังตรวจสอบและเปิด Premium อัตโนมัติ')
+      let count = 0
+      const refresh = async () => {
+        const { data } = await supabase.from('premium_subscriptions').select('plan,status,ends_at').eq('user_id',user.id).maybeSingle()
+        if (data) setStatus(data)
+        if (data?.status === 'active' && new Date(data.ends_at) > new Date()) { clearInterval(timer); notify('Premium พร้อมใช้งานแล้ว!') }
+        if (++count >= 15) clearInterval(timer)
+      }
+      const timer = setInterval(refresh, 2000)
+      refresh()
+      return () => clearInterval(timer)
+    }
+    if (payment === 'cancelled') notify('ยกเลิกการชำระเงินแล้ว คุณสามารถลองใหม่ได้')
+  }, [user.id])
   return <div className="v76-page"><Heading kicker="NISIT MATCH / PREMIUM" title="ความสัมพันธ์ที่ลึกขึ้น" sub="เครื่องมือเพิ่มเติมสำหรับคนที่อยากค้นหาให้ตรงใจมากขึ้น" />
     {status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date() && <div className="v76-active-plan"><Crown size={19}/> Premium เปิดใช้งานอยู่ · หมดอายุ {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
     <div className="v76-premium-hero"><div className="v76-premium-orb"><Crown size={34}/></div><span className="v76-eyebrow">A LITTLE MORE MAGIC</span><h2>เห็นโอกาสที่คุณอาจพลาด</h2><p>ดูคนที่กดใจคุณ ดูผู้เข้าชมโปรไฟล์ และใช้ตัวช่วยค้นหาคนที่สนใจคุณจริง ๆ</p></div>
     <div className="v76-plan-grid">
-      {[['weekly','รายสัปดาห์','เหมาะกับการลองใช้ Premium'],['monthly','รายเดือน','สำหรับคนที่อยากใช้ต่อเนื่อง']].map(([id,title,sub]) => <button type="button" key={id} className={'v76-plan-card'+(plan===id?' selected':'')} onClick={()=>setPlan(id)} aria-pressed={plan===id}><span className="v76-plan-radio">{plan===id&&<Check size={13}/>}</span><strong>{title}</strong><small>{sub}</small><span className="v76-plan-price">ราคาแสดงก่อนเปิดชำระเงินจริง</span></button>)}
+      {[['weekly','รายสัปดาห์','เหมาะกับการลองใช้ Premium'],['monthly','รายเดือน','สำหรับคนที่อยากใช้ต่อเนื่อง']].map(([id,title,sub]) => <button type="button" key={id} className={'v76-plan-card'+(plan===id?' selected':'')} onClick={()=>setPlan(id)} aria-pressed={plan===id}><span className="v76-plan-radio">{plan===id&&<Check size={13}/>}</span><strong>{title}</strong><small>{sub}</small><span className="v76-plan-price">{id === 'weekly' ? '฿39 · 7 วัน' : '฿119 · 30 วัน'} · จ่ายครั้งเดียว</span></button>)}
     </div>
     <div className="v76-premium-features"><div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div><div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div><div><Sparkles/><span><b>สิทธิพิเศษเพิ่มเติม</b><small>รองรับการเพิ่มฟีเจอร์ในอนาคต</small></span></div></div>
-    <button className="v76-primary-cta" type="button" onClick={request} disabled={busy}>{busy?'กำลังบันทึก...':'เลือกแพ็กเกจนี้'} <ArrowRight size={18}/></button>
+    <button className="v76-primary-cta" type="button" onClick={request} disabled={busy}>{busy?'กำลังเปิดหน้าชำระเงิน...':'ชำระเงินผ่าน PromptPay'} <ArrowRight size={18}/></button>
     <button type="button" className="v76-secondary-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูหน้าคนที่เข้าชมโปรไฟล์</button>
-    <p className="v76-disclaimer">หมายเหตุ: หน้านี้เป็นการเตรียมระบบแพ็กเกจและบันทึกความสนใจ ยังไม่เรียกเก็บเงินจริง ต้องเชื่อม Payment Gateway และ webhook ที่ตรวจสอบการชำระเงินฝั่งเซิร์ฟเวอร์ก่อนเปิดใช้งาน</p>
+    <p className="v76-disclaimer">การชำระเงินจะดำเนินการผ่าน Stripe Checkout ระบบเปิด Premium หลังได้รับการยืนยันชำระเงินจาก Stripe เท่านั้น หากยังไม่เปิดใช้ Webhook และรัน SQL ระบบจะยังไม่สามารถเปิดสิทธิ์ได้</p>
   </div>
 }
 
