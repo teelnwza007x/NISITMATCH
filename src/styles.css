@@ -3209,3 +3209,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 
 .swipe-controls .swipe-control.undo{color:#f5bc67;border-color:rgba(245,188,103,.45);background:rgba(245,188,103,.1)}
 .swipe-controls .swipe-control.undo:disabled{opacity:.35;cursor:not-allowed}
+
+/* Keep admin back navigation clear of the dashboard heading and mobile safe area. */
+.nm-admin-dashboard{padding-top:clamp(18px,3vw,30px)}
+.nm-admin-topbar{display:flex;align-items:center;min-height:48px;margin-bottom:clamp(18px,3vw,28px);position:relative;z-index:1}
+.nm-admin-back{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;max-width:100%;padding:10px 16px;border:1px solid var(--theme-border);border-radius:999px;background:var(--theme-panel);color:var(--theme-text);font:inherit;font-weight:600;cursor:pointer}
+.nm-admin-back:hover{border-color:var(--theme-accent);color:var(--theme-accent)}
+.nm-admin-back:focus-visible{outline:2px solid var(--theme-accent);outline-offset:3px}
+@media(max-width:600px){.nm-admin-dashboard{padding-top:20px}.nm-admin-topbar{margin-bottom:24px}.nm-admin-back{font-size:14px}}
