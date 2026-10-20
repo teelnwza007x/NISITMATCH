@@ -2763,3 +2763,16 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .auth-modal .nm-verify-resend-button svg{flex-shrink:0}
 .auth-modal .nm-verify-resend-footnote{margin:12px 0 0;font-size:11px;line-height:1.8;opacity:.65;max-width:31ch}
 @media(max-width:420px){.auth-modal .nm-verify-resend{padding:20px 14px 18px;margin-top:16px}.auth-modal .nm-verify-resend h3{font-size:17px}}
+
+/* Optional gentle UI sound control */
+.nm-sound-settings{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 22px;padding:18px 20px;border:1px solid rgba(225,132,177,.26);border-radius:20px;background:linear-gradient(120deg,rgba(249,192,221,.13),rgba(255,255,255,.045))}
+.nm-sound-settings-info{display:flex;align-items:center;gap:13px;min-width:0}
+.nm-sound-settings-icon{width:44px;height:44px;flex-shrink:0;display:grid;place-items:center;border-radius:14px;background:rgba(240,103,169,.15);color:#ed71ae}
+.nm-sound-settings-info h3{margin:0 0 4px;font-size:16px;line-height:1.5;font-weight:800}
+.nm-sound-settings-info p{margin:0;font-size:12px;line-height:1.7;opacity:.7}
+.nm-sound-toggle{flex-shrink:0;display:flex;align-items:center;width:52px;height:30px;padding:3px;border:1px solid rgba(150,150,150,.22);border-radius:99px;background:rgba(140,140,150,.35);cursor:pointer;transition:background .2s}
+.nm-sound-toggle span{display:block;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.14);transition:transform .2s}
+.nm-sound-toggle.is-on{background:#ee65a4;border-color:#ee65a4}
+.nm-sound-toggle.is-on span{transform:translateX(22px)}
+.nm-sound-toggle:focus-visible{outline:3px solid #ee65a4;outline-offset:3px}
+@media(max-width:420px){.nm-sound-settings{padding:14px 12px;gap:10px}.nm-sound-settings-info{gap:9px}.nm-sound-settings-icon{width:38px;height:38px}.nm-sound-settings-info h3{font-size:14px}.nm-sound-settings-info p{font-size:11px}}
