@@ -2030,6 +2030,7 @@ function CampusEmailVerification({ user }) {
   const [requestedDomain, setRequestedDomain] = useState('')
   const [domainRequestBusy, setDomainRequestBusy] = useState(false)
   const [domainRequestMessage, setDomainRequestMessage] = useState('')
+  const [domainRequestSuccess, setDomainRequestSuccess] = useState('')
   const submitDomainRequest = async (event) => {
     event.preventDefault()
     if (domainRequestBusy) return
@@ -2039,12 +2040,14 @@ function CampusEmailVerification({ user }) {
     if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(domain) || domain.length > 253) return setDomainRequestMessage('กรุณากรอกเฉพาะโดเมน เช่น @nu.ac.th')
     setDomainRequestBusy(true)
     setDomainRequestMessage('')
+    setDomainRequestSuccess('')
     try {
       const { error } = await supabase.from('campus_domain_requests').insert({
         user_id: user.id, university_name: universityName, email_domain: domain,
       })
       if (error) throw error
-      setDomainRequestMessage('ส่งคำขอเรียบร้อยแล้ว! ทีมงานจะตรวจสอบโดเมนก่อนเพิ่มเข้าสู่ระบบ')
+      setDomainRequestMessage(`ส่งคำขอเพิ่มโดเมน @${domain} ไปให้ทีมงานตรวจสอบแล้ว 💗`)
+      setDomainRequestSuccess(`@${domain}`)
       setRequestedDomain('')
     } catch (error) {
       setDomainRequestMessage(error?.code === '23505' ? 'คุณเคยแจ้งโดเมนนี้แล้ว ทีมงานกำลังตรวจสอบ' : 'ส่งคำขอไม่สำเร็จ กรุณาลองใหม่ หากยังไม่ได้ให้แจ้งผู้ดูแลระบบ')
@@ -2116,7 +2119,8 @@ function CampusEmailVerification({ user }) {
           <label htmlFor="nm-request-domain">โดเมนอีเมลมหาวิทยาลัย (กรอกแค่ @...)</label>
           <input id="nm-request-domain" required maxLength={254} placeholder="เช่น @nu.ac.th" value={requestedDomain} onChange={e=>setRequestedDomain(e.target.value)} />
           <button type="submit" className="btn btn-pink" disabled={domainRequestBusy}>{domainRequestBusy ? 'กำลังส่งคำขอ...' : 'ส่งคำขอให้ทีมงานตรวจสอบ'} <Send size={16}/></button>
-          {domainRequestMessage && <p role="status" className="v27-verify-message">{domainRequestMessage}</p>}
+          {domainRequestSuccess && <div className="nm-domain-request-success" role="status" aria-live="polite"><Check size={20}/><div><strong>ส่งคำขอเรียบร้อยแล้ว!</strong><p>เราได้รับคำขอเพิ่มโดเมน <b>{domainRequestSuccess}</b> แล้ว ทีมงานจะตรวจสอบก่อนเพิ่มเข้าระบบ</p></div></div>}
+          {domainRequestMessage && !domainRequestSuccess && <p role="status" className="v27-verify-message">{domainRequestMessage}</p>}
         </form>}
       </div>
       <p className="v27-verify-note">ตอนนี้แสดงเฉพาะมหาวิทยาลัยที่กำหนดโดเมนอีเมลชัดเจนแล้ว เมื่อมีโดเมนอื่นที่ตรวจสอบได้จะเพิ่มเข้ารายการภายหลัง</p>
