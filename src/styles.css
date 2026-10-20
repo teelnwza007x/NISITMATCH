@@ -2997,3 +2997,24 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nm-guide-v2-enter{from{opacity:.6;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:480px){.nm-guide-backdrop{padding:10px}.nm-dialog.nm-guide-v2{padding:19px;border-radius:23px;max-height:calc(100dvh - 20px)}.nm-guide-v2-visual{min-height:158px}.nm-guide-v2-icon{width:78px;height:78px}.nm-guide-v2-copy p{font-size:12.5px}}
 @media(prefers-reduced-motion:reduce){.nm-guide-v2-visual{animation:none}.app-footer .nm-guide-open-btn,.nm-guide-v2-progress button{transition:none}}
+
+/* PWA install action and guided iPhone / Android instructions */
+.app-footer .nm-install-open-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:10px 17px;border-radius:999px;border:1px solid rgba(164,142,255,.45);background:linear-gradient(115deg,rgba(120,100,225,.23),rgba(244,120,190,.15));color:#f4eaff;font-weight:800;cursor:pointer;transition:transform .2s,border-color .2s}
+.app-footer .nm-install-open-btn:hover{transform:translateY(-2px);border-color:#c3a8ff}
+.nm-install-backdrop{z-index:10010;display:flex;justify-content:center;align-items:center;padding:16px}
+.nm-dialog.nm-install-dialog{position:relative;width:min(100%,420px);max-height:90dvh;overflow-y:auto;border:1px solid #f9b5df36;border-radius:28px;padding:28px;background:radial-gradient(ellipse at 50% 0%,#744a8a40,transparent 60%),linear-gradient(145deg,#21182f,#151524);color:#fdf6ff;box-shadow:0 30px 90px #0009;text-align:center}
+.nm-install-icon{display:grid;place-items:center;margin:5px auto 15px;width:75px;height:75px;border-radius:23px;color:#ffb0d7;background:linear-gradient(140deg,#f475ad42,#9b7ce847);box-shadow:0 12px 30px #0004}
+.nm-install-kicker{font-size:10px;letter-spacing:.17em;font-weight:850;color:#ffaad4}
+.nm-install-dialog h2{margin:9px 0;font-size:25px;color:#fff}
+.nm-install-dialog p{font-size:13px;line-height:1.8;color:#d6c9e1;margin:0 0 20px}
+.nm-install-steps{display:grid;gap:10px;text-align:left;margin-bottom:20px}
+.nm-install-steps>div{display:flex;align-items:center;gap:13px;padding:13px;border:1px solid #ffffff18;background:#ffffff09;border-radius:15px}
+.nm-install-steps b{display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:11px;background:#e788c524;color:#ffb6dc;font-size:12px}
+.nm-install-steps span{font-size:13px;color:#ddd1e6;line-height:1.65}
+.nm-install-steps strong{color:#fff}
+.nm-install-done{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;border:0;border-radius:14px;background:linear-gradient(110deg,#ff82ba,#b99bff);font-weight:850;color:#241629;cursor:pointer}
+.nm-install-dialog>small{display:block;margin-top:13px;color:#a89bb6;font-size:11px;line-height:1.6}
+.itunes-song-card .itunes-premium-eq i{animation:nm-music-wave 950ms ease-in-out infinite alternate;animation-play-state:paused}
+.itunes-song-card.is-playing .itunes-premium-eq i{animation-play-state:running;animation-delay:calc(var(--bar)*-67ms)}
+@keyframes nm-music-wave{from{height:4px}to{height:15px}}
+@media(prefers-reduced-motion:reduce){.itunes-song-card .itunes-premium-eq i{animation:none!important}.app-footer .nm-install-open-btn{transition:none}}
