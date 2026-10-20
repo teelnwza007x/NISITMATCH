@@ -2004,12 +2004,13 @@ function playNisitSound(kind) {
     nmLastSound = now
     const t = ctx.currentTime + .012
     // Short, soft sine layers with rounded envelopes; no pixel/chiptune oscillators.
+    // Playful, tiny two-tone "peep" with rounded, gentle sine notes.
     const patterns = {
-      menu: [[380, 450, 0, .085, .018]],
-      like: [[440, 580, 0, .15, .032], [660, 720, .085, .12, .013]],
-      send: [[520, 650, 0, .12, .027], [710, 790, .065, .105, .013]],
-      message: [[580, 680, 0, .15, .02]],
-      match: [[440, 570, 0, .20, .026], [550, 720, .13, .22, .022], [720, 880, .27, .28, .016]]
+      menu: [[720, 830, 0, .085, .024], [960, 1030, .055, .09, .014]],
+      like: [[680, 900, 0, .13, .030], [1040, 1170, .09, .14, .019]],
+      send: [[790, 1040, 0, .105, .026], [1080, 1220, .075, .10, .016]],
+      message: [[880, 1040, 0, .11, .022], [1080, 1180, .07, .09, .012]],
+      match: [[660, 880, 0, .16, .026], [880, 1100, .11, .17, .023], [1100, 1320, .24, .22, .019]]
     }
     for (const [start, end, delay, duration, volume] of (patterns[kind] || patterns.menu)) {
       const osc = ctx.createOscillator()
@@ -2018,7 +2019,7 @@ function playNisitSound(kind) {
       osc.frequency.setValueAtTime(start, t + delay)
       osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .72)
       gain.gain.setValueAtTime(.0001, t + delay)
-      gain.gain.exponentialRampToValueAtTime(volume, t + delay + .025)
+      gain.gain.exponentialRampToValueAtTime(volume, t + delay + .014)
       gain.gain.exponentialRampToValueAtTime(.0001, t + delay + duration)
       osc.connect(gain)
       gain.connect(ctx.destination)
@@ -2069,6 +2070,8 @@ const VERIFIED_CAMPUS_DOMAINS = {
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
   up: { name: 'มหาวิทยาลัยพะเยา', domains: ['up.ac.th'] },
+  mu: { name: 'มหาวิทยาลัยมหิดล', domains: ['mu.ac.th'] },
+  mfu: { name: 'มหาวิทยาลัยแม่ฟ้าหลวง', domains: ['mfu.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
