@@ -1459,32 +1459,81 @@ function ITunesSongCard({ track, compact = false }) {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(30)
   const eqRef = useRef(null)
-  // Drive the visual bars directly so old theme CSS and reduced-motion overrides
-  // cannot freeze them. No Web Audio graph is connected to the music element.
+  const waveformRef = useRef(null)
+  const [waveformAvailable, setWaveformAvailable] = useState(false)
+  // Decode a separate copy of the preview. Never attach MediaElementSource to
+  // the playback element: Apple's cross-origin streams can become silent.
+  // When CORS disallows reading the preview, do not fabricate audio levels.
+  useEffect(() => {
+    waveformRef.current = null
+    setWaveformAvailable(false)
+    const url = resolvedPreview
+    if (!url) return
+    let active = true
+    const controller = new AbortController()
+    const load = async () => {
+      let ctx
+      try {
+        const response = await fetch(url, { mode: 'cors', signal: controller.signal })
+        if (!response.ok) return
+        const bytes = await response.arrayBuffer()
+        if (!active || bytes.byteLength > 5_000_000) return
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        if (!AudioCtx) return
+        ctx = new AudioCtx()
+        const decoded = await ctx.decodeAudioData(bytes)
+        if (!active) return
+        const channels = Array.from({ length: decoded.numberOfChannels }, (_, i) => decoded.getChannelData(i))
+        const windowsPerSecond = 24
+        const count = Math.ceil(decoded.duration * windowsPerSecond)
+        const levels = new Float32Array(count * 12)
+        const samplesPerWindow = decoded.sampleRate / windowsPerSecond
+        for (let windowIndex = 0; windowIndex < count; windowIndex++) {
+          const begin = Math.floor(windowIndex * samplesPerWindow)
+          const end = Math.min(decoded.length, Math.floor((windowIndex + 1) * samplesPerWindow))
+          for (let bar = 0; bar < 12; bar++) {
+            let sum = 0
+            let n = 0
+            // Each bar reads a different interleaved slice of the real PCM
+            // samples, creating a varied display without synthetic oscillators.
+            for (let sample = begin + bar; sample < end; sample += 12) {
+              for (const channel of channels) { const v = channel[sample]; sum += v * v; n++ }
+            }
+            levels[windowIndex * 12 + bar] = n ? Math.sqrt(sum / n) : 0
+          }
+        }
+        let peak = 0
+        for (const level of levels) if (level > peak) peak = level
+        if (peak <= 0) return
+        waveformRef.current = { levels, windowsPerSecond, peak }
+        setWaveformAvailable(true)
+      } catch { /* CORS-protected preview: preserve normal audio playback. */ }
+      finally { if (ctx) ctx.close().catch(() => {}) }
+    }
+    load()
+    return () => { active = false; controller.abort() }
+  }, [resolvedPreview])
   useEffect(() => {
     const bars = eqRef.current?.querySelectorAll('i')
     if (!bars?.length) return
-    if (!playing) {
-      bars.forEach(bar => { bar.style.transform = 'scaleY(.25)' })
-      return
-    }
+    const reset = () => bars.forEach(bar => { bar.style.transform = 'scaleY(.25)' })
+    if (!playing || !waveformAvailable) { reset(); return }
     let frameId = 0
-    let previous = 0
-    const tick = time => {
-      if (time - previous > 28) {
-        bars.forEach((bar, index) => {
-          const wave = Math.sin(time * (0.0042 + (index % 4) * 0.00063) + index * 1.19)
-          const ripple = Math.sin(time * 0.0071 - index * .73)
-          const level = Math.max(.18, Math.min(1, .53 + wave * .31 + ripple * .15))
-          bar.style.transform = 'scaleY(' + level.toFixed(3) + ')'
-        })
-        previous = time
+    const tick = () => {
+      const waveform = waveformRef.current
+      const audio = audioRef.current
+      if (waveform && audio && !audio.paused) {
+        const frame = Math.min(Math.floor(audio.currentTime * waveform.windowsPerSecond), waveform.levels.length / 12 - 1)
+        for (let bar = 0; bar < bars.length; bar++) {
+          const rms = waveform.levels[Math.max(0, frame) * 12 + bar] || 0
+          bars[bar].style.transform = 'scaleY(' + Math.min(1, Math.max(.12, Math.sqrt(rms / waveform.peak))).toFixed(3) + ')'
+        }
       }
       frameId = requestAnimationFrame(tick)
     }
     frameId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frameId)
-  }, [playing])
+    return () => { cancelAnimationFrame(frameId); reset() }
+  }, [playing, waveformAvailable])
   const seekingRef = useRef(false)
   const seekAnimationRef = useRef(null)
   const [seeking, setSeeking] = useState(false)
