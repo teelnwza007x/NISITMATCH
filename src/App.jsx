@@ -1211,6 +1211,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     setReplyTo(null)
     forceNextScroll.current = true
     setMsgs(prev => [...prev, optimistic])
+    playNisitSound('send')
     try {
       let payload = { match_id: targetRoom, sender_id: me, body }
       if (replyTo?.id && chatExtrasSupported.current) payload.reply_to = replyTo.id
@@ -1978,9 +1979,36 @@ function playNisitSound(kind) {
     if (now - nmLastSound < 110) return
     nmLastSound = now
     if (!nmAudioContext) nmAudioContext = new AudioContextType()
-    if (nmAudioContext.state === 'suspended') { nmAudioContext.resume().catch(() => {}); return }
+    if (nmAudioContext.state === 'suspended') nmAudioContext.resume().catch(() => {})
     const ctx = nmAudioContext
     const t = ctx.currentTime
+    if (kind === 'send') {
+      // Soft descending filtered-noise swoosh, with a tiny tonal tail.
+      const duration = .19
+      const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate)
+      const data = buffer.getChannelData(0)
+      for (let i = 0; i < data.length; i++) {
+        const x = i / data.length
+        data[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * x) * (1 - x)
+      }
+      const source = ctx.createBufferSource()
+      source.buffer = buffer
+      const filter = ctx.createBiquadFilter()
+      filter.type = 'bandpass'
+      filter.frequency.setValueAtTime(2300, t)
+      filter.frequency.exponentialRampToValueAtTime(550, t + duration)
+      filter.Q.value = .75
+      const gain = ctx.createGain()
+      gain.gain.setValueAtTime(.0001, t)
+      gain.gain.exponentialRampToValueAtTime(.095, t + .025)
+      gain.gain.exponentialRampToValueAtTime(.0001, t + duration)
+      source.connect(filter)
+      filter.connect(gain)
+      gain.connect(ctx.destination)
+      source.start(t)
+      source.stop(t + duration)
+      return
+    }
     const notes = kind === 'match' ? [[523.25,0,.13],[659.25,.13,.13],[783.99,.26,.16],[1046.5,.42,.28]]
       : kind === 'like' ? [[659.25,0,.085],[880,.09,.13]]
       : kind === 'message' ? [[784,0,.075],[987.77,.085,.11]]
