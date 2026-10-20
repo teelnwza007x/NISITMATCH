@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import nodemailer from 'npm:nodemailer@6.10.1'
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }
 const reply = (body: unknown, status=200) => new Response(JSON.stringify(body), {status,headers:{...cors,'Content-Type':'application/json'}})
 const hash = async (s:string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(x=>x.toString(16).padStart(2,'0')).join('')
@@ -7,8 +8,8 @@ Deno.serve(async req => {
  if(req.method!=='POST') return reply({error:'Method not allowed'},405)
  try {
   const url=Deno.env.get('SUPABASE_URL')!, anon=Deno.env.get('SUPABASE_ANON_KEY')!, service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const mailjetKey=Deno.env.get('MAILJET_API_KEY'), mailjetSecret=Deno.env.get('MAILJET_SECRET_KEY'), sender=Deno.env.get('OTP_FROM_EMAIL'), pepper=Deno.env.get('OTP_PEPPER')
-  if(!pepper || !mailjetKey || !mailjetSecret || !sender) return reply({error:'ยังไม่ได้ตั้งค่าระบบส่งอีเมล OTP'},503)
+  const sender=Deno.env.get('GMAIL_USER'), password=Deno.env.get('GMAIL_APP_PASSWORD'), pepper=Deno.env.get('OTP_PEPPER')
+  if(!pepper || !sender || !password) return reply({error:'ยังไม่ได้ตั้งค่าระบบส่งอีเมล OTP'},503)
   const auth=createClient(url,anon,{global:{headers:{Authorization:req.headers.get('Authorization')||''}}})
   const {data:{user},error:authError}=await auth.auth.getUser()
   if(authError||!user) return reply({error:'กรุณาเข้าสู่ระบบ'},401)
@@ -49,26 +50,25 @@ Deno.serve(async req => {
    const code_hash=await hash(`${user.id}:${mail}:${otp}:${pepper}`)
    const {error:saveError}=await db.from('student_email_otp_challenges').upsert({user_id:user.id,university_id,email:mail,code_hash,expires_at:new Date(now+10*60000).toISOString(),sent_at:new Date(now).toISOString(),attempts:0},{onConflict:'user_id'})
    if(saveError) throw saveError
-   // Mailjet Send API v3.1 uses Basic auth with API key + secret key.
-   // OTP_FROM_EMAIL must be an active, verified sender address in Mailjet.
-   const sent=await fetch('https://api.mailjet.com/v3.1/send',{
-    method:'POST',
-    headers:{
-     Authorization:`Basic ${btoa(`${mailjetKey}:${mailjetSecret}`)}`,
-     'Content-Type':'application/json'
-    },
-    body:JSON.stringify({Messages:[{
-     From:{Email:sender,Name:'Nisit Match'},
-     To:[{Email:mail}],
-     Subject:'Nisit Match — รหัสยืนยันอีเมลมหาวิทยาลัย',
-     TextPart:`รหัสยืนยันของคุณคือ ${otp}\nรหัสหมดอายุใน 10 นาที หากคุณไม่ได้ร้องขอ ให้ละเว้นอีเมลนี้`
-    }]})
-   })
-   if(!sent.ok) {
-    const detail=(await sent.text()).slice(0,1000)
-    console.error('Mailjet send failed',sent.status,detail)
+   const log=async(status:string,messageId:string|null=null,errorMessage:string|null=null)=>{
+    const {error:logError}=await db.from('email_delivery_logs').insert({user_id:user.id,recipient_email:mail,email_type:'university_otp',provider:'gmail_smtp',status,provider_message_id:messageId,error_message:errorMessage})
+    if(logError) console.error('Email log failed',logError.message)
+   }
+   try {
+    const transport=nodemailer.createTransport({host:'smtp.gmail.com',port:465,secure:true,auth:{user:sender,pass:password},connectionTimeout:15000,greetingTimeout:15000,socketTimeout:20000})
+    const result=await transport.sendMail({
+      from:`"NISIT MATCH" <${sender}>`,to:mail,
+      subject:'NISIT MATCH — รหัสยืนยันอีเมลมหาวิทยาลัย',
+      text:`รหัสยืนยันของคุณคือ ${otp}\nรหัสหมดอายุใน 10 นาที หากไม่ได้ร้องขอ โปรดละเว้นอีเมลนี้`,
+      html:`<div style="background:#100c19;padding:32px 16px;font-family:Arial,sans-serif;color:white"><div style="max-width:520px;margin:auto;background:#24152e;border:1px solid #6c3a69;border-radius:18px;padding:32px"><b style="color:#ff70bf;letter-spacing:3px">NISIT MATCH</b><h1>ยืนยันอีเมลมหาวิทยาลัย</h1><p>กรอกรหัส 6 หลักนี้เพื่อยืนยันตัวตน</p><div style="font-size:38px;letter-spacing:9px;text-align:center;color:#ff83d2;background:#130d1e;padding:20px 0;border-radius:12px">${otp}</div><p>รหัสหมดอายุใน 10 นาที</p><small>หากไม่ได้ร้องขอ โปรดละเว้นอีเมลนี้</small></div></div>`
+    })
+    if(!result.accepted?.some((x:string)=>x.toLowerCase()===mail))throw new Error('SMTP recipient not accepted')
+    await log('accepted',result.messageId||null)
+   } catch(e) {
+    console.error('Gmail SMTP send failed',e instanceof Error?e.message:'unknown')
+    await log('failed',null,e instanceof Error?e.message.slice(0,300):'SMTP error')
     await db.from('student_email_otp_challenges').delete().eq('user_id',user.id)
-    return reply({error:'ส่งอีเมลไม่สำเร็จ กรุณาตรวจสอบการตั้งค่า Mailjet และลองอีกครั้ง'},502)
+    return reply({error:'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่'},502)
    }
    return reply({ok:true})
   }
