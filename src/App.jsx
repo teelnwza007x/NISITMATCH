@@ -223,16 +223,19 @@ function AuthModal({ mode, setMode, close, notify }) {
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
         <button disabled={busy} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
-      {mode !== 'reset' && awaitingVerification && <div className="nm-verify-resend" role="status">
-        <div className="nm-verify-resend-icon"><Send size={23}/></div>
-        <strong>ยังไม่ได้รับอีเมลยืนยัน?</strong>
-        <p>ส่งคำขอยืนยันสำหรับ {verificationEmail} แล้ว ลองตรวจ Spam / Junk / Promotions ก่อนนะ</p>
-        <button type="button" className="btn btn-pink btn-full" onClick={resendVerification} disabled={resendBusy || resendCooldown > 0}>
-          {resendBusy ? 'กำลังส่ง…' : resendCooldown > 0 ? `ส่งอีกครั้งได้ใน ${resendCooldown} วินาที` : 'ส่งอีเมลยืนยันอีกครั้ง'}
-          <ArrowRight size={17}/>
+      {mode !== 'reset' && awaitingVerification && <section className="nm-verify-resend" aria-labelledby="nm-verify-resend-title">
+        <div className="nm-verify-resend-icon" aria-hidden="true"><Send size={22}/></div>
+        <div className="nm-verify-resend-copy">
+          <h3 id="nm-verify-resend-title">ยังไม่ได้รับอีเมลยืนยัน?</h3>
+          <p>เราได้รับคำขอยืนยันบัญชีของคุณแล้ว</p>
+          <div className="nm-verify-resend-email" title={verificationEmail}><span>ส่งถึง</span><strong>{verificationEmail}</strong></div>
+          <p className="nm-verify-resend-tip">ลองเช็กกล่องจดหมาย รวมถึง Spam หรือ Junk ก่อนขอส่งอีกครั้งนะ</p>
+        </div>
+        <button type="button" className="btn btn-pink btn-full nm-verify-resend-button" onClick={resendVerification} disabled={resendBusy || resendCooldown > 0}>
+          {resendBusy ? <><Send size={17}/> กำลังส่งอีเมล…</> : resendCooldown > 0 ? <><Clock size={17}/> ส่งอีกครั้งได้ใน {resendCooldown} วินาที</> : <><Send size={17}/> ส่งอีเมลยืนยันอีกครั้ง</>}
         </button>
-        <small>หากยังไม่เข้า อาจเกิดจากข้อจำกัดการส่งอีเมลของผู้ให้บริการ</small>
-      </div>}
+        <p className="nm-verify-resend-footnote">หากยังไม่ได้รับ อาจมีข้อจำกัดจากผู้ให้บริการอีเมล กรุณารอสักครู่แล้วลองใหม่</p>
+      </section>}
       <div className="auth-switch">
         {mode === 'login' ? <>ยังไม่มีบัญชี?<button onClick={() => { setAwaitingVerification(false); setMode('register') }}>สมัครสมาชิก</button><button onClick={() => setMode('reset')}>ลืมรหัสผ่าน</button></> : <>มีบัญชีอยู่แล้ว?<button onClick={() => setMode('login')}>เข้าสู่ระบบ</button></>}
       </div>
