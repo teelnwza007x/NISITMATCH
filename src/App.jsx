@@ -1988,7 +1988,7 @@ const THEME_OPTIONS = [
   { id: 'lavender', name: 'Lavender', detail: 'ม่วงละมุน นุ่มนวล', colors: ['#1b162a','#b299ed','#efacd7'] },
 ]
 const SOUND_SETTING_KEY = 'nisit-match-sound-v1'
-const soundEnabled = () => { try { return localStorage.getItem(SOUND_SETTING_KEY) === 'on' } catch { return false } }
+const soundEnabled = () => { try { return localStorage.getItem(SOUND_SETTING_KEY) !== 'off' } catch { return false } }
 let nmAudioContext = null
 let nmLastSound = 0
 function playNisitSound(kind) {
@@ -1997,40 +1997,46 @@ function playNisitSound(kind) {
     const AudioContextType = window.AudioContext || window.webkitAudioContext
     if (!AudioContextType) return
     const now = performance.now()
-    if (now - nmLastSound < (kind === 'menu' ? 85 : 115)) return
+    if (now - nmLastSound < 95) return
     if (!nmAudioContext) nmAudioContext = new AudioContextType()
     const ctx = nmAudioContext
     if (ctx.state === 'suspended') ctx.resume().catch(() => {})
     nmLastSound = now
-    const t = ctx.currentTime + .008
-    // Airy, rounded interface tones: no triangle/square waves, chiptune steps or noise.
-    const sounds = {
-      menu: [[480, 620, 0, .095, .018]],
-      like: [[510, 740, 0, .145, .028], [790, 900, .07, .14, .014]],
-      send: [[640, 890, 0, .13, .026], [890, 1010, .06, .105, .013]],
-      message: [[720, 860, 0, .14, .022]],
-      match: [[520, 700, 0, .19, .027], [700, 900, .12, .23, .024], [900, 1100, .26, .28, .019]]
+    const t = ctx.currentTime + .012
+    // Short, soft sine layers with rounded envelopes; no pixel/chiptune oscillators.
+    const patterns = {
+      menu: [[380, 450, 0, .085, .018]],
+      like: [[440, 580, 0, .15, .032], [660, 720, .085, .12, .013]],
+      send: [[520, 650, 0, .12, .027], [710, 790, .065, .105, .013]],
+      message: [[580, 680, 0, .15, .02]],
+      match: [[440, 570, 0, .20, .026], [550, 720, .13, .22, .022], [720, 880, .27, .28, .016]]
     }
-    const notes = sounds[kind] || sounds.menu
-    for (const [start, end, delay, duration, volume] of notes) {
+    for (const [start, end, delay, duration, volume] of (patterns[kind] || patterns.menu)) {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-      const lowpass = ctx.createBiquadFilter()
       osc.type = 'sine'
-      lowpass.type = 'lowpass'
-      lowpass.frequency.value = 1800
       osc.frequency.setValueAtTime(start, t + delay)
-      osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .65)
+      osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .72)
       gain.gain.setValueAtTime(.0001, t + delay)
       gain.gain.exponentialRampToValueAtTime(volume, t + delay + .025)
       gain.gain.exponentialRampToValueAtTime(.0001, t + delay + duration)
-      osc.connect(lowpass)
-      lowpass.connect(gain)
+      osc.connect(gain)
       gain.connect(ctx.destination)
       osc.start(t + delay)
-      osc.stop(t + delay + duration + .012)
+      osc.stop(t + delay + duration + .01)
     }
-  } catch { /* Never interrupt app interactions if audio is unavailable. */ }
+  } catch { /* Optional audio must not block UI. */ }
+}
+// Capture ordinary button taps across the app, including portaled dialogs.
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', event => {
+    if (!event.isTrusted || !soundEnabled()) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const button = target.closest('button, [role="button"]')
+    if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true' || button.closest('[data-no-ui-sound]')) return
+    playNisitSound('menu')
+  }, { passive: true })
 }
 const THEME_KEY = 'nisit-match-theme-v1'
 function applyTheme(theme) {
