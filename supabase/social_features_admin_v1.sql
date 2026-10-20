@@ -60,3 +60,23 @@ begin
 end $$;
 revoke all on function public.nm_admin_metrics() from public, anon;
 grant execute on function public.nm_admin_metrics() to authenticated;
+
+-- Admin-only report queue. No reporter identity is exposed.
+create or replace function public.nm_admin_report_queue()
+returns table(id uuid, reported uuid, reason text, status text, created_at timestamptz)
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.is_admin is true
+  ) then
+    raise exception 'not authorized' using errcode = '42501';
+  end if;
+  return query
+  select r.id, r.reported, r.reason, r.status, r.created_at
+  from public.reports r
+  order by r.created_at desc
+  limit 50;
+end $$;
+revoke all on function public.nm_admin_report_queue() from public, anon;
+grant execute on function public.nm_admin_report_queue() to authenticated;
