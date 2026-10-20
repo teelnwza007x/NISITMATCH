@@ -2388,7 +2388,7 @@ function AdminDashboard({ onBack }) {
   }, [])
   useEffect(() => { reload() }, [reload])
   return <section className="nm-admin-dashboard">
-    <button type="button" className="btn btn-ghost" onClick={onBack}>← กลับไปตั้งค่า</button>
+    <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
     <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>↻ รีเฟรชข้อมูล</button>
     {error && <p role="alert">{error}</p>}
