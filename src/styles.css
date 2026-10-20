@@ -2938,3 +2938,6 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-intent-editor-fresh .selected .nm-intent-check{background:var(--nm-ui-accent,#f45ca5)!important;color:#17111e!important}
 @media(max-width:360px){.nm-intent-editor-fresh .nm-intent-options{gap:8px!important}.nm-intent-editor-fresh .nm-intent-options button{padding:12px!important;min-height:118px!important}.nm-intent-editor-fresh .nm-intent-label{font-size:12px!important}}
 @media(prefers-reduced-motion:reduce){.nm-intent-editor-fresh .nm-intent-options button{transition:none!important}}
+
+/* Discovery sound check */
+.nm-sound-settings{flex-wrap:wrap}.nm-sound-test-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 100%;width:100%;min-height:40px;padding:10px 14px;border-radius:13px;border:1px solid color-mix(in srgb,var(--nm-ui-accent,#f45ca5) 38%,transparent);background:color-mix(in srgb,var(--nm-ui-accent,#f45ca5) 12%,transparent);color:var(--nm-ui-text,#fff);font:inherit;font-size:12px;font-weight:750;cursor:pointer}.nm-sound-test-btn:disabled{opacity:.45;cursor:not-allowed}.nm-sound-test-btn:not(:disabled):active{transform:scale(.99)}
