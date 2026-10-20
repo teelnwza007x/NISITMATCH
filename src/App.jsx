@@ -1997,50 +1997,40 @@ function playNisitSound(kind) {
     const AudioContextType = window.AudioContext || window.webkitAudioContext
     if (!AudioContextType) return
     const now = performance.now()
-    if (now - nmLastSound < 110) return
-    nmLastSound = now
+    if (now - nmLastSound < (kind === 'menu' ? 85 : 115)) return
     if (!nmAudioContext) nmAudioContext = new AudioContextType()
-    if (nmAudioContext.state === 'suspended') nmAudioContext.resume().catch(() => {})
     const ctx = nmAudioContext
-    const t = ctx.currentTime
-    if (kind === 'send') {
-      // Gentle two-note "bloop": cute, modern and quiet, without white-noise hiss.
-      const notes = [[740, 988, 0, .105, .035], [988, 1318, .065, .125, .027]]
-      for (const [start, end, delay, duration, volume] of notes) {
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.type = 'sine'
-        osc.frequency.setValueAtTime(start, t + delay)
-        osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .72)
-        gain.gain.setValueAtTime(.0001, t + delay)
-        gain.gain.exponentialRampToValueAtTime(volume, t + delay + .012)
-        gain.gain.exponentialRampToValueAtTime(.0001, t + delay + duration)
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.start(t + delay)
-        osc.stop(t + delay + duration + .01)
-      }
-      return
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+    nmLastSound = now
+    const t = ctx.currentTime + .008
+    // Airy, rounded interface tones: no triangle/square waves, chiptune steps or noise.
+    const sounds = {
+      menu: [[480, 620, 0, .095, .018]],
+      like: [[510, 740, 0, .145, .028], [790, 900, .07, .14, .014]],
+      send: [[640, 890, 0, .13, .026], [890, 1010, .06, .105, .013]],
+      message: [[720, 860, 0, .14, .022]],
+      match: [[520, 700, 0, .19, .027], [700, 900, .12, .23, .024], [900, 1100, .26, .28, .019]]
     }
-    const notes = kind === 'match' ? [[523.25,0,.13],[659.25,.13,.13],[783.99,.26,.16],[1046.5,.42,.28]]
-      : kind === 'like' ? [[659.25,0,.085],[880,.09,.13]]
-      : kind === 'message' ? [[784,0,.075],[987.77,.085,.11]]
-      : kind === 'menu' ? [[659.25,0,.055],[987.77,.055,.095]]
-      : [[480,0,.045],[640,.045,.065]]
-    for (const [frequency,delay,duration] of notes) {
-      const oscillator = ctx.createOscillator()
+    const notes = sounds[kind] || sounds.menu
+    for (const [start, end, delay, duration, volume] of notes) {
+      const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-      oscillator.type = kind === 'match' ? 'sine' : 'triangle'
-      oscillator.frequency.setValueAtTime(frequency,t+delay)
-      gain.gain.setValueAtTime(.0001,t+delay)
-      gain.gain.exponentialRampToValueAtTime(kind === 'match' ? .075 : .045,t+delay+.014)
-      gain.gain.exponentialRampToValueAtTime(.0001,t+delay+duration)
-      oscillator.connect(gain)
+      const lowpass = ctx.createBiquadFilter()
+      osc.type = 'sine'
+      lowpass.type = 'lowpass'
+      lowpass.frequency.value = 1800
+      osc.frequency.setValueAtTime(start, t + delay)
+      osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .65)
+      gain.gain.setValueAtTime(.0001, t + delay)
+      gain.gain.exponentialRampToValueAtTime(volume, t + delay + .025)
+      gain.gain.exponentialRampToValueAtTime(.0001, t + delay + duration)
+      osc.connect(lowpass)
+      lowpass.connect(gain)
       gain.connect(ctx.destination)
-      oscillator.start(t+delay)
-      oscillator.stop(t+delay+duration+.015)
+      osc.start(t + delay)
+      osc.stop(t + delay + duration + .012)
     }
-  } catch { /* Audio is optional; never interrupt core app actions. */ }
+  } catch { /* Never interrupt app interactions if audio is unavailable. */ }
 }
 const THEME_KEY = 'nisit-match-theme-v1'
 function applyTheme(theme) {
