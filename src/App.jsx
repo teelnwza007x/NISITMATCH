@@ -2015,6 +2015,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net'] },
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
+  utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
