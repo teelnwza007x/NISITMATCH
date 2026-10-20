@@ -20,6 +20,14 @@ Deno.serve(async req=>{
   const type=['university_otp','signup_verify','password_reset'].includes(body.type)?body.type:null
   const status=['attempted','accepted','failed','delivered','bounced'].includes(body.status)?body.status:null
   const search=typeof body.search==='string'?body.search.trim().slice(0,150):''
+  if(body.mode==='domain_requests'){
+    const query=typeof body.search==='string'?body.search.trim().slice(0,100):''
+    let requests=db.from('campus_domain_requests').select('university_name,email_domain,user_id,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(page*limit,page*limit+limit-1)
+    if(query){const safe=query.replace(/[%,()]/g,'');if(safe)requests=requests.or(`university_name.ilike.%${safe}%,email_domain.ilike.%${safe}%`)}
+    const {data,error,count}=await requests
+    if(error){console.error('domain requests query',error.message);return respond({error:'Unable to load university domain requests'},500)}
+    return respond({ok:true,rows:data||[],total:count||0})
+  }
   let q=db.from('email_delivery_logs').select('id,recipient_email,email_type,provider,status,provider_message_id,error_message,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(page*limit,page*limit+limit-1)
   if(type)q=q.eq('email_type',type)
   if(status)q=q.eq('status',status)
