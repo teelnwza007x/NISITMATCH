@@ -3195,3 +3195,14 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-admin-metrics article{padding:22px;border:1px solid var(--theme-border);border-radius:18px;background:var(--theme-panel);display:grid;gap:12px}
 .nm-admin-metrics small{color:var(--theme-muted)}
 .nm-admin-metrics strong{font-size:clamp(28px,5vw,42px);font-variant-numeric:tabular-nums;color:var(--theme-accent)}
+
+/* Hangout discovery and admin moderation queue */
+.nm-hangout-discovery,.nm-admin-queue{padding:18px;border:1px solid var(--border,rgba(255,255,255,.13));border-radius:18px;background:rgba(120,120,150,.06);margin:16px 0}
+.nm-hangout-discovery label{display:grid;gap:8px;font-weight:650}
+.nm-hangout-discovery input{width:100%;padding:13px 15px;border-radius:12px;border:1px solid rgba(150,150,170,.35);background:var(--surface,#181823);color:inherit;font:inherit}
+.nm-hangout-filter-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.nm-hangout-filter-buttons button{border:1px solid rgba(150,150,170,.35);border-radius:999px;padding:9px 14px;background:transparent;color:inherit;cursor:pointer}
+.nm-hangout-filter-buttons button.active{background:var(--accent,#d458aa);border-color:transparent;color:#fff}
+.nm-admin-queue{display:grid;gap:12px}
+.nm-admin-queue article{display:grid;gap:6px;padding:14px;border-radius:12px;background:rgba(120,120,150,.1);overflow-wrap:anywhere}
+.nm-admin-queue-meta,.nm-admin-queue small,.nm-hangout-discovery small{opacity:.7;font-size:.85rem}
