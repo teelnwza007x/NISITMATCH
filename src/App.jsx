@@ -2141,103 +2141,35 @@ function PreferencesEditor({ initial, profile, onSave, onClose }) {
   </div>
 }
 
-function PremiumPage({ user, notify, onGoVisitors }) {
-  const [plan, setPlan] = useState('monthly')
+function PremiumPage({ user, onGoVisitors }) {
   const [status, setStatus] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const [checkoutSecret, setCheckoutSecret] = useState('')
-  const checkoutMount = useRef(null)
   useEffect(() => {
     let active = true
     supabase.from('premium_subscriptions').select('plan,status,ends_at').eq('user_id', user.id).maybeSingle()
-      .then(({data,error}) => { if (active && !error) setStatus(data) })
+      .then(({ data, error }) => { if (active && !error) setStatus(data) })
       .catch(() => {})
     return () => { active = false }
   }, [user.id])
-  const request = async () => {
-    setBusy(true)
-    try {
-      // Refresh before checkout so the API receives a current access token.
-      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
-      if (refreshError || !refreshed?.session?.access_token) {
-        throw new Error('เซสชันหมดอายุ กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่')
-      }
-      const session = refreshed.session
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ plan }),
-      })
-      const result = await response.json()
-      if (!response.ok || !result.clientSecret) throw new Error(result.error || 'ไม่สามารถเปิดหน้าชำระเงินได้')
-      setCheckoutSecret(result.clientSecret)
-    } catch (error) { notify(error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่') }
-    finally { setBusy(false) }
-  }
-  useEffect(() => {
-    if (!checkoutSecret || !checkoutMount.current) return
-    let cancelled = false
-    let checkout
-    const loadStripe = () => new Promise((resolve, reject) => {
-      if (window.Stripe) return resolve(window.Stripe)
-      const existing = document.querySelector('script[data-nisit-stripe]')
-      if (existing) {
-        existing.addEventListener('load', () => resolve(window.Stripe), { once: true })
-        existing.addEventListener('error', () => reject(new Error('โหลด Stripe ไม่สำเร็จ')), { once: true })
-        return
-      }
-      const script = document.createElement('script')
-      script.src = 'https://js.stripe.com/v3/'
-      script.dataset.nisitStripe = 'true'
-      script.onload = () => resolve(window.Stripe)
-      script.onerror = () => reject(new Error('โหลด Stripe ไม่สำเร็จ'))
-      document.head.appendChild(script)
-    })
-    ;(async () => {
-      try {
-        const Stripe = await loadStripe()
-        if (cancelled) return
-        const config = await fetch('/api/stripe-config')
-        const { publishableKey, error } = await config.json()
-        if (!config.ok || !publishableKey) throw new Error(error || 'ยังไม่ได้ตั้งค่า Stripe Publishable Key')
-        const stripe = Stripe(publishableKey)
-        checkout = await stripe.initEmbeddedCheckout({ clientSecret: checkoutSecret })
-        if (cancelled) { checkout.destroy(); return }
-        checkout.mount(checkoutMount.current)
-      } catch (e) { if (!cancelled) { notify(e.message); setCheckoutSecret('') } }
-    })()
-    return () => { cancelled = true; if (checkout) checkout.destroy() }
-  }, [checkoutSecret])
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const payment = params.get('premium_payment')
-    if (!payment) return
-    window.history.replaceState({}, '', window.location.pathname + window.location.hash)
-    if (payment === 'success') {
-      notify('ได้รับผลการชำระเงินแล้ว กำลังตรวจสอบและเปิด Premium อัตโนมัติ')
-      let count = 0
-      const refresh = async () => {
-        const { data } = await supabase.from('premium_subscriptions').select('plan,status,ends_at').eq('user_id',user.id).maybeSingle()
-        if (data) setStatus(data)
-        if (data?.status === 'active' && new Date(data.ends_at) > new Date()) { clearInterval(timer); notify('Premium พร้อมใช้งานแล้ว!') }
-        if (++count >= 15) clearInterval(timer)
-      }
-      const timer = setInterval(refresh, 2000)
-      refresh()
-      return () => clearInterval(timer)
-    }
-    if (payment === 'cancelled') notify('ยกเลิกการชำระเงินแล้ว คุณสามารถลองใหม่ได้')
-  }, [user.id])
-  return <div className="v76-page"><Heading kicker="NISIT MATCH / PREMIUM" title="ความสัมพันธ์ที่ลึกขึ้น" sub="เครื่องมือเพิ่มเติมสำหรับคนที่อยากค้นหาให้ตรงใจมากขึ้น" />
-    {status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date() && <div className="v76-active-plan"><Crown size={19}/> Premium เปิดใช้งานอยู่ · หมดอายุ {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
-    <div className="v76-premium-hero"><div className="v76-premium-orb"><Crown size={34}/></div><span className="v76-eyebrow">A LITTLE MORE MAGIC</span><h2>เห็นโอกาสที่คุณอาจพลาด</h2><p>ดูคนที่กดใจคุณ ดูผู้เข้าชมโปรไฟล์ และใช้ตัวช่วยค้นหาคนที่สนใจคุณจริง ๆ</p></div>
-    <div className="v76-plan-grid">
-      {[['weekly','รายสัปดาห์','เหมาะกับการลองใช้ Premium'],['monthly','รายเดือน','สำหรับคนที่อยากใช้ต่อเนื่อง']].map(([id,title,sub]) => <button type="button" key={id} className={'v76-plan-card'+(plan===id?' selected':'')} onClick={()=>setPlan(id)} aria-pressed={plan===id}><span className="v76-plan-radio">{plan===id&&<Check size={13}/>}</span><strong>{title}</strong><small>{sub}</small><span className="v76-plan-price">{id === 'weekly' ? '฿39 · 7 วัน' : '฿119 · 30 วัน'} · จ่ายครั้งเดียว</span></button>)}
+
+  return <div className="v76-page nm-coming-soon-page">
+    <Heading kicker="NISIT MATCH / PREMIUM" title="Premium Coming Soon ✨" sub="เตรียมพบกับประสบการณ์แมตช์ที่พิเศษกว่าเดิม เร็ว ๆ นี้" />
+    {status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date() &&
+      <div className="v76-active-plan"><Crown size={19}/> Premium เปิดใช้งานอยู่ · หมดอายุ {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
+    <div className="v76-premium-hero nm-coming-soon-hero">
+      <div className="v76-premium-orb"><Crown size={34}/></div>
+      <span className="v76-eyebrow">A LITTLE MORE MAGIC · COMING SOON</span>
+      <h2>สิ่งพิเศษกำลังจะมาถึง 💗</h2>
+      <p>ฟีเจอร์ Premium กำลังเตรียมเปิดให้บริการ ขณะนี้ยังไม่สามารถสมัครหรือชำระเงินได้</p>
+      <div className="nm-coming-soon-pill"><Sparkles size={17}/> เร็ว ๆ นี้ <Sparkles size={17}/></div>
     </div>
-    <div className="v76-premium-features"><div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div><div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div><div><Sparkles/><span><b>สิทธิพิเศษเพิ่มเติม</b><small>รองรับการเพิ่มฟีเจอร์ในอนาคต</small></span></div></div>
-    {!checkoutSecret && <button className="v76-primary-cta" type="button" onClick={request} disabled={busy}>{busy?'กำลังเตรียมการชำระเงิน...':'ชำระเงินผ่าน PromptPay ในเว็บไซต์'} <ArrowRight size={18}/></button>}
-    {checkoutSecret && <section className="nisit-embedded-checkout"><div className="nisit-embedded-header"><strong>ชำระเงินอย่างปลอดภัย</strong><button type="button" onClick={() => setCheckoutSecret('')}>ปิดหน้าชำระเงิน</button></div><div ref={checkoutMount}/></section>}
+    <div className="v76-premium-features">
+      <div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div>
+      <div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div>
+      <div><Sparkles/><span><b>สิทธิพิเศษเพิ่มเติม</b><small>กำลังเตรียมเปิดตัวในอนาคต</small></span></div>
+    </div>
+    <div className="nm-coming-soon-disabled" role="status"><Crown size={18}/> ยังไม่เปิดให้สมัคร Premium</div>
     <button type="button" className="v76-secondary-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูหน้าคนที่เข้าชมโปรไฟล์</button>
-    <p className="v76-disclaimer">การชำระเงินจะแสดงภายในเว็บไซต์ผ่าน Stripe Embedded Checkout ระบบเปิด Premium หลังได้รับการยืนยันชำระเงินจาก Stripe เท่านั้น หากยังไม่เปิดใช้ Webhook และรัน SQL ระบบจะยังไม่สามารถเปิดสิทธิ์ได้</p>
+    <p className="v76-disclaimer">ขณะนี้ระบบ Premium ยังไม่เปิดรับชำระเงิน โปรดติดตามประกาศเปิดให้บริการอย่างเป็นทางการ</p>
   </div>
 }
 
