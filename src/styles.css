@@ -3110,3 +3110,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 :root[data-theme] .itunes-premium.is-playing .itunes-premium-eq i{opacity:1!important}
 :root[data-theme] .itunes-premium-timeline input{accent-color:var(--theme-accent)}
 :root[data-theme] .nm-dialog-close{color:var(--theme-text)}
+
+/* Existing email signup feedback */
+.nm-existing-account{display:grid;gap:12px;margin:15px 0;padding:19px;border:1px solid var(--theme-border,#3a3049);border-radius:18px;background:var(--theme-panel,#181626);color:var(--theme-text,#fff)}
+.nm-existing-account-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:color-mix(in srgb,var(--theme-accent,#f45ca5) 17%,transparent);color:var(--theme-accent,#f45ca5)}
+.nm-existing-account h3{margin:0 0 5px;font-size:16px;color:var(--theme-text,#fff)}
+.nm-existing-account p{margin:0;color:var(--theme-muted,#aaa);font-size:13px;line-height:1.7}
+.nm-existing-account-actions{display:flex;flex-wrap:wrap;gap:9px}
+.nm-existing-account-actions button{flex:1;min-width:125px;justify-content:center}
