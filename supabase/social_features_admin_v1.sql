@@ -48,7 +48,7 @@ create or replace function public.nm_admin_metrics()
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_is_admin boolean; v_result jsonb;
 begin
- select exists(select 1 from public.admins a where a.user_id = (select auth.uid())) into v_is_admin;
+ select exists(select 1 from public.profiles a where a.id = (select auth.uid()) and a.is_admin = true) into v_is_admin;
  if not v_is_admin then raise exception 'not authorized' using errcode='42501'; end if;
  select jsonb_build_object(
    'profiles',(select count(*) from public.profiles),
