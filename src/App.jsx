@@ -2006,8 +2006,11 @@ function playNisitSound(kind) {
     }
     nmLastSound = now
     const t = ctx.currentTime + .008
+    const output = ctx.createGain()
+    output.gain.value = 2.3
+    output.connect(ctx.destination)
     // Distinct tactile sounds: soft wooden tap, bubble, paper swoosh, glass chime, and harp.
-    const tone = ({ start, end = start, delay = 0, length = .12, volume = .02, type = 'sine', attack = .008 }) => {
+    const tone = ({ start, end = start, delay = 0, length = .12, volume = .065, type = 'sine', attack = .008 }) => {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
       const begin = t + delay
@@ -2017,10 +2020,10 @@ function playNisitSound(kind) {
       gain.gain.setValueAtTime(.0001, begin)
       gain.gain.exponentialRampToValueAtTime(volume, begin + attack)
       gain.gain.exponentialRampToValueAtTime(.0001, begin + length)
-      osc.connect(gain); gain.connect(ctx.destination)
+      osc.connect(gain); gain.connect(output)
       osc.start(begin); osc.stop(begin + length + .015)
     }
-    const noise = ({ delay = 0, length = .13, volume = .012, cutoff = 1200, highpass = false }) => {
+    const noise = ({ delay = 0, length = .13, volume = .035, cutoff = 1200, highpass = false }) => {
       const samples = Math.ceil(ctx.sampleRate * length)
       const buffer = ctx.createBuffer(1, samples, ctx.sampleRate)
       const channel = buffer.getChannelData(0)
@@ -2035,7 +2038,7 @@ function playNisitSound(kind) {
       gain.gain.setValueAtTime(.0001, begin)
       gain.gain.exponentialRampToValueAtTime(volume, begin + .009)
       gain.gain.exponentialRampToValueAtTime(.0001, begin + length)
-      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination)
+      src.connect(filter); filter.connect(gain); gain.connect(output)
       src.start(begin); src.stop(begin + length + .01)
     }
     switch (kind) {
@@ -2063,8 +2066,8 @@ function playNisitSound(kind) {
         break
       default:
         // Subtle wooden tap for navigation, quiet enough for frequent use.
-        noise({ length: .048, volume: .010, cutoff: 720 })
-        tone({ start: 310, end: 240, length: .065, volume: .013 })
+        noise({ length: .065, volume: .038, cutoff: 1100 })
+        tone({ start: 480, end: 290, length: .11, volume: .075 })
     }
   } catch { /* Audio is optional; never interrupt the UI. */ }
 }
@@ -2330,7 +2333,7 @@ function SettingsPage({ user, notify }) {
     if (next) {
       try { if (!nmAudioContext) { const Ctx = window.AudioContext || window.webkitAudioContext; if (Ctx) nmAudioContext = new Ctx() } nmAudioContext?.resume().then(() => playNisitSound('like')).catch(() => {}) } catch {}
     }
-    notify(next ? 'เปิดเสียงเอฟเฟกต์แล้ว 🎵' : 'ปิดเสียงเอฟเฟกต์แล้ว')
+    notify(next ? 'เปิดเสียงเอฟเฟกต์แล้ว' : 'ปิดเสียงเอฟเฟกต์แล้ว')
   }
 
 
@@ -2394,6 +2397,7 @@ function SettingsPage({ user, notify }) {
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
       <button type="button" className={'nm-sound-toggle' + (soundsOn ? ' is-on' : '')} role="switch" aria-checked={soundsOn} aria-label="เปิดหรือปิดเสียงเอฟเฟกต์" onClick={toggleSounds}><span/></button>
+      <button type="button" className="nm-sound-test-btn" onClick={() => playNisitSound('match')} disabled={!soundsOn}><Play size={15}/> ทดลองเสียงเอฟเฟกต์</button>
     </section>
     <section className="theme-gallery" aria-label="เลือกธีมของแอป">
       <div className="theme-gallery-heading"><div><span className="theme-kicker">APPEARANCE</span><h3>ธีมของคุณ</h3><p>เลือกบรรยากาศที่ชอบ เปลี่ยนได้ทุกเมื่อ</p></div><span className="theme-selected-label">{THEME_OPTIONS.find(t => t.id === theme)?.name || 'Midnight'}</span></div>
@@ -2775,6 +2779,7 @@ export default function App() {
   const [verifiedCampusIds, setVerifiedCampusIds] = useState([])
   const [ownerPremium, setOwnerPremium] = useState(false)
   const [fl, setFl] = useState({ q: '', uni: '', min: 18, max: 40, gender: '' }), [filterOpen, setFilterOpen] = useState(false)
+  const discoverySaveRevision = useRef(0)
   const [discovery, setDiscovery] = useState(null), [discoveryReady, setDiscoveryReady] = useState(false), [discoveryEditing, setDiscoveryEditing] = useState(false)
   const [visibleDetail, setVisibleDetail] = useState(null)
   const [detailLeaving, setDetailLeaving] = useState(false)
@@ -2962,10 +2967,15 @@ const loadMatches = useCallback(async () => {
     if (!userId || !profile?.id) { setDiscoveryReady(false); return }
     let active = true
     const cached = readDiscovery(userId)
+    const revisionAtLoad = discoverySaveRevision.current
     setDiscovery(cached)
     setDiscoveryReady(true)
     supabase.from('discovery_preferences').select('preferences').eq('user_id', userId).maybeSingle().then(({data}) => {
       if (!active || !data?.preferences) return
+      // Local selections are authoritative while a save is pending or a previous sync failed.
+      if (discoverySaveRevision.current !== revisionAtLoad) return
+      const latestLocal = readDiscovery(userId)
+      if (latestLocal) return
       const remote = {...defaultDiscovery, ...data.preferences}
       setDiscovery(remote)
       try { localStorage.setItem(discoveryKey(userId), JSON.stringify(remote)) } catch {}
@@ -2973,12 +2983,13 @@ const loadMatches = useCallback(async () => {
     return () => { active = false }
   }, [userId, profile?.id])
   const saveDiscovery = async prefs => {
+    discoverySaveRevision.current += 1
     try { localStorage.setItem(discoveryKey(userId), JSON.stringify(prefs)) } catch {}
     setDiscovery(prefs)
     setDiscoveryEditing(false)
     setFl(f => ({...f, uni: '', gender: prefs.gender, min: prefs.min, max: prefs.max}))
     const {error} = await supabase.from('discovery_preferences').upsert({user_id:userId, preferences:prefs}, {onConflict:'user_id'})
-    if (error) notify('บันทึกในเครื่องแล้ว · หากต้องการซิงก์ข้ามอุปกรณ์ ให้รัน SQL ของ v11')
+    if (error) notify('บันทึกสเปคในเครื่องแล้ว แต่ซิงก์ Supabase ไม่สำเร็จ')
   }
   const campusFiltered = useCallback(p => {
     if (!discovery) return true
