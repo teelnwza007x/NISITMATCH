@@ -1963,6 +1963,32 @@ function CampusEmailVerification({ user }) {
   const [verifyStep, setVerifyStep] = useState('email')
   const [verifyBusy, setVerifyBusy] = useState(false)
   const [verifyMessage, setVerifyMessage] = useState('')
+  const [showDomainRequest, setShowDomainRequest] = useState(false)
+  const [requestedUniversity, setRequestedUniversity] = useState('')
+  const [requestedDomain, setRequestedDomain] = useState('')
+  const [domainRequestBusy, setDomainRequestBusy] = useState(false)
+  const [domainRequestMessage, setDomainRequestMessage] = useState('')
+  const submitDomainRequest = async (event) => {
+    event.preventDefault()
+    if (domainRequestBusy) return
+    const universityName = requestedUniversity.trim()
+    const domain = requestedDomain.trim().toLowerCase().replace(/^@/, '')
+    if (universityName.length < 3 || universityName.length > 150) return setDomainRequestMessage('กรุณาระบุชื่อมหาวิทยาลัยให้ถูกต้อง')
+    if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/.test(domain) || domain.length > 253) return setDomainRequestMessage('กรุณาระบุโดเมนอีเมล เช่น student.university.ac.th')
+    setDomainRequestBusy(true)
+    setDomainRequestMessage('')
+    try {
+      const { error } = await supabase.from('campus_domain_requests').insert({
+        user_id: user.id, university_name: universityName, email_domain: domain,
+      })
+      if (error) throw error
+      setDomainRequestMessage('ส่งคำขอเรียบร้อยแล้ว! ทีมงานจะตรวจสอบโดเมนก่อนเพิ่มเข้าสู่ระบบ')
+      setRequestedDomain('')
+    } catch (error) {
+      setDomainRequestMessage(error?.code === '23505' ? 'คุณเคยแจ้งโดเมนนี้แล้ว ทีมงานกำลังตรวจสอบ' : 'ส่งคำขอไม่สำเร็จ กรุณาลองใหม่ หากยังไม่ได้ให้แจ้งผู้ดูแลระบบ')
+    } finally { setDomainRequestBusy(false) }
+  }
+
   useEffect(() => {
     let active = true
     supabase.from('student_verifications').select('status,university_id,verified_email,email_domain').eq('user_id', user.id).maybeSingle()
@@ -2018,6 +2044,19 @@ function CampusEmailVerification({ user }) {
       <button type="button" className="btn btn-pink" disabled={verifyBusy || !selectedCampus} onClick={()=>requestVerification(verifyStep === 'code' ? 'verify' : 'send')}>{verifyBusy ? 'กำลังดำเนินการ...' : verifyStep === 'code' ? 'ยืนยันรหัสและล็อกมหาวิทยาลัย' : 'ส่งรหัสไปยังอีเมลมหาวิทยาลัย'}</button>
       {verifyStep === 'code' && <button type="button" className="btn btn-ghost btn-small" disabled={verifyBusy} onClick={()=>requestVerification('send')}>ส่งรหัสอีกครั้ง</button>}
       {verifyMessage && <p className="v27-verify-message" role="status">{verifyMessage}</p>}
+      <div className="nm-domain-request" style={{marginTop:18,padding:16,border:'1px solid var(--border, rgba(160,150,180,.28))',borderRadius:16}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><GraduationCap size={19}/><strong>ไม่พบโดเมนอีเมลมหาวิทยาลัยของคุณ?</strong></div>
+        <p style={{margin:'0 0 12px'}}>แจ้งชื่อมหาวิทยาลัยและโดเมนอีเมลเพื่อให้ทีมงานตรวจสอบและเพิ่มการรองรับ</p>
+        <button type="button" className="btn btn-ghost btn-small" onClick={() => { setShowDomainRequest(v => !v); setDomainRequestMessage('') }}>{showDomainRequest ? 'ปิดแบบฟอร์ม' : 'แจ้งเพิ่มโดเมนอีเมลมหาวิทยาลัย'} <ArrowRight size={15}/></button>
+        {showDomainRequest && <form onSubmit={submitDomainRequest} style={{display:'grid',gap:10,marginTop:14}}>
+          <label htmlFor="nm-request-university">ชื่อมหาวิทยาลัย</label>
+          <input id="nm-request-university" required minLength={3} maxLength={150} placeholder="เช่น มหาวิทยาลัย..." value={requestedUniversity} onChange={e=>setRequestedUniversity(e.target.value)} />
+          <label htmlFor="nm-request-domain">โดเมนอีเมลมหาวิทยาลัย (ไม่ต้องกรอกอีเมลเต็ม)</label>
+          <input id="nm-request-domain" required maxLength={254} placeholder="เช่น student.example.ac.th" value={requestedDomain} onChange={e=>setRequestedDomain(e.target.value)} />
+          <button type="submit" className="btn btn-pink" disabled={domainRequestBusy}>{domainRequestBusy ? 'กำลังส่งคำขอ...' : 'ส่งคำขอให้ทีมงานตรวจสอบ'} <Send size={16}/></button>
+          {domainRequestMessage && <p role="status" className="v27-verify-message">{domainRequestMessage}</p>}
+        </form>}
+      </div>
       <p className="v27-verify-note">ตอนนี้แสดงเฉพาะมหาวิทยาลัยที่กำหนดโดเมนอีเมลชัดเจนแล้ว เมื่อมีโดเมนอื่นที่ตรวจสอบได้จะเพิ่มเข้ารายการภายหลัง</p>
     </div>}
   </section>
