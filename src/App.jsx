@@ -1728,6 +1728,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [selfPreviewIndex, setSelfPreviewIndex] = useState(0)
   const aboutTabs = [['basic', 'ข้อมูลส่วนตัว', UserRound], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
   const [aboutMenuOpen, setAboutMenuOpen] = useState(false)
+  const selectEditTab = (tab) => { if (tab !== editTab) playNisitSound('menu'); setEditTab(tab) }
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
@@ -1885,12 +1886,12 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     <div className="nm-self-preview-actions"><button type="button" className="btn btn-ghost nm-self-preview-open" onClick={() => { setSelfPreviewIndex(0); setSelfPreviewOpen(true) }}><Eye size={18}/> ดูตัวอย่างโปรไฟล์ของฉัน <ArrowRight size={16}/></button><span>ดูหน้าตาที่คนอื่นจะเห็น โดยไม่ต้องบันทึกก่อน</span></div>
     <div className="nm-profile-editor">
       <nav className="nm-edit-tabs nm-edit-tabs-grouped" aria-label="หมวดแก้ไขโปรไฟล์">
-        <button type="button" className={editTab === 'photos' ? 'active' : ''} aria-current={editTab === 'photos' ? 'page' : undefined} onClick={() => setEditTab('photos')}><Camera size={18}/><span>รูปและวิดีโอ</span></button>
-        <button type="button" className={aboutTabs.some(([id]) => id === editTab) ? 'active' : ''} aria-expanded={aboutMenuOpen} aria-controls="nm-about-profile-tabs" onClick={() => { setAboutMenuOpen(v => !v); if (!aboutTabs.some(([id]) => id === editTab)) setEditTab('basic') }}><UserRound size={18}/><span>เกี่ยวกับฉัน</span><ChevronDown size={16} className={aboutMenuOpen ? 'nm-chevron-open' : ''}/></button>
-        {aboutMenuOpen && <div id="nm-about-profile-tabs" className="nm-edit-subtabs">{aboutTabs.map(([id, name, Icon]) => <button key={id} type="button" className={editTab === id ? 'active' : ''} aria-current={editTab === id ? 'page' : undefined} onClick={() => setEditTab(id)}><Icon size={16}/><span>{name}</span></button>)}</div>}
-        <button type="button" className={editTab === 'campus' ? 'active' : ''} aria-current={editTab === 'campus' ? 'page' : undefined} onClick={() => setEditTab('campus')}><GraduationCap size={18}/><span>การศึกษา</span></button>
+        <button type="button" className={editTab === 'photos' ? 'active' : ''} aria-current={editTab === 'photos' ? 'page' : undefined} onClick={() => selectEditTab('photos')}><Camera size={18}/><span>รูปและวิดีโอ</span></button>
+        <button type="button" className={aboutTabs.some(([id]) => id === editTab) ? 'active' : ''} aria-expanded={aboutMenuOpen} aria-controls="nm-about-profile-tabs" onClick={() => { playNisitSound('menu'); setAboutMenuOpen(v => !v); if (!aboutTabs.some(([id]) => id === editTab)) selectEditTab('basic') }}><UserRound size={18}/><span>เกี่ยวกับฉัน</span><ChevronDown size={16} className={aboutMenuOpen ? 'nm-chevron-open' : ''}/></button>
+        {aboutMenuOpen && <div id="nm-about-profile-tabs" className="nm-edit-subtabs">{aboutTabs.map(([id, name, Icon]) => <button key={id} type="button" className={editTab === id ? 'active' : ''} aria-current={editTab === id ? 'page' : undefined} onClick={() => selectEditTab(id)}><Icon size={16}/><span>{name}</span></button>)}</div>}
+        <button type="button" className={editTab === 'campus' ? 'active' : ''} aria-current={editTab === 'campus' ? 'page' : undefined} onClick={() => selectEditTab('campus')}><GraduationCap size={18}/><span>การศึกษา</span></button>
         <div className="nm-edit-nav-separator"/>
-        <button type="button" className={editTab === 'verification' ? 'active' : ''} aria-current={editTab === 'verification' ? 'page' : undefined} onClick={() => setEditTab('verification')}><ShieldCheck size={18}/><span>ยืนยันสถานะนักศึกษา</span></button>
+        <button type="button" className={editTab === 'verification' ? 'active' : ''} aria-current={editTab === 'verification' ? 'page' : undefined} onClick={() => selectEditTab('verification')}><ShieldCheck size={18}/><span>ยืนยันสถานะนักศึกษา</span></button>
       </nav>
       <div className="nm-edit-workspace">
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
@@ -1901,7 +1902,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
         {editTab === 'basic' && <>
         <label>ชื่อที่อยากให้เรียก<input required maxLength={40} value={f.display_name} onChange={set('display_name')} /></label>
-        <div className="nm-intent-editor"><strong>ตอนนี้กำลังมองหาอะไร?</strong><p>เลือกได้หนึ่งอย่าง เปลี่ยนได้ทุกเมื่อ และจะแสดงบนโปรไฟล์ของคุณ</p><div className="nm-intent-options">{RELATIONSHIP_INTENTS.map((item, index) => <button type="button" key={item.id} style={{'--intent-index':index}} className={'intent-' + item.id + (f.relationship_intent === item.id ? ' selected' : '')} aria-pressed={f.relationship_intent === item.id} onClick={() => setF(old => ({ ...old, relationship_intent: old.relationship_intent === item.id ? '' : item.id }))}><span className="nm-intent-emoji" aria-hidden="true">{(['💗','🫧','🌷','✨'][index])}</span><span>{item.label}</span>{f.relationship_intent === item.id && <span className="nm-intent-check" aria-hidden="true">✓</span>}</button>)}</div></div>
+        <div className="nm-intent-editor"><strong>ตอนนี้กำลังมองหาอะไร?</strong><p>เลือกได้หนึ่งอย่าง เปลี่ยนได้ทุกเมื่อ และจะแสดงบนโปรไฟล์ของคุณ</p><div className="nm-intent-options">{RELATIONSHIP_INTENTS.map((item, index) => <button type="button" key={item.id} style={{'--intent-index':index}} className={'intent-' + item.id + (f.relationship_intent === item.id ? ' selected' : '')} aria-pressed={f.relationship_intent === item.id} onClick={() => { playNisitSound('menu'); setF(old => ({ ...old, relationship_intent: old.relationship_intent === item.id ? '' : item.id })) }}><span className="nm-intent-emoji" aria-hidden="true">{(['💗','🫧','🌷','✨'][index])}</span><span>{item.label}</span>{f.relationship_intent === item.id && <span className="nm-intent-check" aria-hidden="true">✓</span>}</button>)}</div></div>
         <div className="form-row"><label>วันเกิด (ต้องอายุ 18+)<input type="date" required value={f.birth_date} onChange={set('birth_date')} /></label><label>เพศ<select value={f.gender} onChange={set('gender')}>{Object.entries(GENDERS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label></div>
         </>}
         {editTab === 'campus' && <>
@@ -1978,6 +1979,7 @@ function playNisitSound(kind) {
     const notes = kind === 'match' ? [[523.25,0,.13],[659.25,.13,.13],[783.99,.26,.16],[1046.5,.42,.28]]
       : kind === 'like' ? [[659.25,0,.085],[880,.09,.13]]
       : kind === 'message' ? [[784,0,.075],[987.77,.085,.11]]
+      : kind === 'menu' ? [[659.25,0,.055],[987.77,.055,.095]]
       : [[480,0,.045],[640,.045,.065]]
     for (const [frequency,delay,duration] of notes) {
       const oscillator = ctx.createOscillator()
