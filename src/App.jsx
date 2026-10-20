@@ -2229,7 +2229,7 @@ function PushPermissionCard({ user }) {
   </div>
 }
 
-function SettingsPage({ user, notify }) {
+function SettingsPage({ user, notify, onInstall, isInstalled }) {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
   })
@@ -2303,6 +2303,7 @@ function SettingsPage({ user, notify }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
+    <section className="nm-settings-install" aria-label="ติดตั้งแอป NISIT MATCH"><div className="nm-settings-install-symbol"><Globe2 size={25}/></div><div className="nm-settings-install-copy"><span className="theme-kicker">INSTALL THE APP</span><h3>ติดตั้ง NISIT MATCH</h3><p>{isInstalled ? 'กำลังใช้งานผ่านแอปที่ติดตั้งแล้ว' : 'เพิ่มแอปลงหน้าจอโฮม เปิดใช้งานง่าย ไม่ต้องค้นหาเว็บไซต์'}</p></div><button type="button" className="nm-settings-install-action" onClick={onInstall} disabled={isInstalled}>{isInstalled ? <><Check size={16}/> ติดตั้งแล้ว</> : <>ติดตั้งแอป <ArrowRight size={17}/></>}</button></section>
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
       <button type="button" className={'nm-sound-toggle' + (soundsOn ? ' is-on' : '')} role="switch" aria-checked={soundsOn} aria-label="เปิดหรือปิดเสียงเอฟเฟกต์" onClick={toggleSounds}><span/></button>
@@ -3216,8 +3217,8 @@ const loadMatches = useCallback(async () => {
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
-          {view === 'settings' && <SettingsPage user={user} notify={notify} />}
-          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button>{!isInstalled && <button type="button" className="nm-install-open-btn" onClick={openInstall}><Globe2 size={16}/> ติดตั้ง NISIT MATCH <ArrowRight size={15}/></button>}</footer>
+          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} />}
+          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
         </div>
       </main>
       {visibleDetail && createPortal(<div className={"modal-backdrop detail-backdrop hangout-member-profile-portal" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
