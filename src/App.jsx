@@ -1549,7 +1549,7 @@ function ITunesSongCard({ track, compact = false }) {
         <div className="itunes-premium-art-shine" aria-hidden="true" />
       </div>
       <div className="itunes-premium-copy">
-        <div className="itunes-premium-eyebrow"><span className="itunes-premium-heart">♥</span> MY ANTHEM <span className="itunes-premium-dot">·</span> 30s PREVIEW</div>
+        <div className="itunes-premium-eyebrow">เพลงในโปรไฟล์</div>
         <strong title={track.name}>{track.name}</strong>
         <span title={track.artist}>{track.artist}</span>
         <div className="itunes-premium-eq" ref={barsRef} aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
@@ -2067,6 +2067,21 @@ function playNisitSound(kind) {
         tone({ start: 310, end: 240, length: .065, volume: .013 })
     }
   } catch { /* Audio is optional; never interrupt the UI. */ }
+}
+// Unlock Web Audio on the first real gesture (Safari / installed iOS web apps).
+if (typeof document !== 'undefined') {
+  const unlockNisitAudio = () => {
+    if (!soundEnabled()) return
+    try {
+      const AudioContextType = window.AudioContext || window.webkitAudioContext
+      if (!AudioContextType) return
+      if (!nmAudioContext || nmAudioContext.state === 'closed') nmAudioContext = new AudioContextType()
+      if (nmAudioContext.state === 'suspended') nmAudioContext.resume().catch(() => {})
+    } catch { /* audio is optional */ }
+  }
+  document.addEventListener('pointerdown', unlockNisitAudio, { passive: true })
+  document.addEventListener('touchstart', unlockNisitAudio, { passive: true })
+  document.addEventListener('keydown', unlockNisitAudio, { passive: true })
 }
 // Capture ordinary button taps across the app, including portaled dialogs.
 if (typeof document !== 'undefined') {
