@@ -136,17 +136,79 @@ function AuthLinkScreen({ onFinished }) {
 }
 
 function AuthModal({ mode, setMode, close, notify }) {
-  const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [busy, setBusy] = useState(false), [sent, setSent] = useState(false)
-  const submit = async (e) => {
-    e.preventDefault(); setBusy(true); let r
+  const [email, setEmail] = useState('')
+  const [pw, setPw] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [awaitingVerification, setAwaitingVerification] = useState(false)
+  const [resendBusy, setResendBusy] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [verificationEmail, setVerificationEmail] = useState('')
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = window.setTimeout(() => setResendCooldown(n => Math.max(0, n - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [resendCooldown])
+  const errorText = (error) => {
+    const message = error?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
+    if (/rate limit|too many requests|429/i.test(message)) return 'ส่งอีเมลเกินกำหนดชั่วคราว กรุณารอสักพักก่อนลองใหม่'
+    if (/email not confirmed/i.test(message)) return 'บัญชียังไม่ได้ยืนยันอีเมล กรุณากดส่งอีเมลยืนยันอีกครั้ง'
+    return message
+  }
+  const resendVerification = async () => {
+    const address = (verificationEmail || email).trim().toLowerCase()
+    if (!address || resendBusy || resendCooldown > 0) return
+    setResendBusy(true)
     try {
-    if (mode === 'login') r = await supabase.auth.signInWithPassword({ email, password: pw })
-    else if (mode === 'register') {
-      r = await supabase.auth.signUp({ email, password: pw, options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` } })
-      if (!r.error && !r.data.session) notify('ส่งอีเมลยืนยันแล้ว กรุณาตรวจกล่องจดหมายแล้วกลับมาเข้าสู่ระบบ')
-    } else { r = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); if (!r.error) setSent(true) }
-    if (r.error) notify(r.error.message.includes('rate limit') ? 'ส่งอีเมลเกินกำหนดชั่วคราว กรุณารอสักพักก่อนลองใหม่' : r.error.message)
-    } catch (err) { notify(err?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่') }
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: address,
+        options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` },
+      })
+      if (error) throw error
+      setResendCooldown(60)
+      notify('รับคำขอส่งอีเมลยืนยันอีกครั้งแล้ว กรุณาตรวจกล่องจดหมายและจดหมายขยะ')
+    } catch (error) {
+      if (/rate limit|too many requests|429/i.test(error?.message || '')) setResendCooldown(60)
+      notify(errorText(error))
+    } finally { setResendBusy(false) }
+  }
+  const submit = async (e) => {
+    e.preventDefault()
+    setBusy(true)
+    try {
+      const address = email.trim().toLowerCase()
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email: address, password: pw })
+        if (error) {
+          if (/email not confirmed/i.test(error.message || '')) {
+            setVerificationEmail(address)
+            setAwaitingVerification(true)
+          }
+          notify(errorText(error))
+        }
+      } else if (mode === 'register') {
+        const { data, error } = await supabase.auth.signUp({
+          email: address, password: pw,
+          options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` },
+        })
+        if (error) throw error
+        if (!data?.session) {
+          setVerificationEmail(address)
+          setAwaitingVerification(true)
+          setResendCooldown(60)
+          notify('รับคำขอสมัครสมาชิกแล้ว หากยังไม่พบอีเมลยืนยัน กรุณาตรวจ Spam หรือกดส่งอีกครั้งหลังครบเวลารอ')
+        } else {
+          notify('สมัครสมาชิกสำเร็จแล้ว')
+        }
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(address, {
+          redirectTo: `${authRedirectUrl()}?flow=recovery`,
+        })
+        if (error) throw error
+        setSent(true)
+      }
+    } catch (error) { notify(errorText(error)) }
     finally { setBusy(false) }
   }
   const title = { login: 'ยินดีที่ได้เจอกันอีกครั้ง', register: 'เริ่มต้นเรื่องราวของคุณ', reset: 'ลืมรหัสผ่าน?' }[mode]
@@ -156,13 +218,23 @@ function AuthModal({ mode, setMode, close, notify }) {
       <div className="auth-brand"><span className="brand-icon"><img src="/nisit-match-mark.png" alt="" /></span><span>nisit <b>match</b></span></div>
       <div className={"auth-heading" + (mode === "reset" ? " nm-reset-heading" : "")}><h2>{title}</h2><p>{mode === 'reset' ? 'กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' : mode === 'register' ? 'สร้างบัญชีด้วยอีเมล แล้วตั้งโปรไฟล์ในขั้นต่อไป' : 'เข้าสู่ระบบเพื่อไปต่อจากที่ค้างไว้'}</p></div>
       {mode === 'reset' && sent ? <div className="nm-reset-sent" role="status"><div className="nm-reset-sent-halo" aria-hidden="true"/><div className="nm-reset-sent-icon"><Send size={27}/><span>✦</span></div><h3>ส่งคำขอเรียบร้อยแล้ว!</h3><p>หากอีเมลนี้มีบัญชีอยู่ เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้คุณแล้ว</p><div className="nm-reset-address">{email}</div><p className="nm-reset-tip">ลองเช็กกล่องจดหมายและจดหมายขยะด้วยนะ 💗</p><button type="button" className="btn btn-pink btn-full" onClick={() => { setSent(false); setMode('login') }}>กลับไปเข้าสู่ระบบ <ArrowRight size={16}/></button><button type="button" className="nm-reset-retry" onClick={() => setSent(false)}>เปลี่ยนอีเมล / ขอส่งใหม่</button></div> : <form className="auth-form" onSubmit={submit}>
-        <label>อีเมล<input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+        <label>อีเมล<input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); if (awaitingVerification && e.target.value.trim().toLowerCase() !== verificationEmail) setAwaitingVerification(false) }} /></label>
         {mode !== 'reset' && <label>รหัสผ่าน<input required type="password" minLength={8} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="อย่างน้อย 8 ตัวอักษร" value={pw} onChange={(e) => setPw(e.target.value)} /></label>}
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
         <button disabled={busy} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
+      {mode !== 'reset' && awaitingVerification && <div className="nm-verify-resend" role="status">
+        <div className="nm-verify-resend-icon"><Send size={23}/></div>
+        <strong>ยังไม่ได้รับอีเมลยืนยัน?</strong>
+        <p>ส่งคำขอยืนยันสำหรับ {verificationEmail} แล้ว ลองตรวจ Spam / Junk / Promotions ก่อนนะ</p>
+        <button type="button" className="btn btn-pink btn-full" onClick={resendVerification} disabled={resendBusy || resendCooldown > 0}>
+          {resendBusy ? 'กำลังส่ง…' : resendCooldown > 0 ? `ส่งอีกครั้งได้ใน ${resendCooldown} วินาที` : 'ส่งอีเมลยืนยันอีกครั้ง'}
+          <ArrowRight size={17}/>
+        </button>
+        <small>หากยังไม่เข้า อาจเกิดจากข้อจำกัดการส่งอีเมลของผู้ให้บริการ</small>
+      </div>}
       <div className="auth-switch">
-        {mode === 'login' ? <>ยังไม่มีบัญชี?<button onClick={() => setMode('register')}>สมัครสมาชิก</button><button onClick={() => setMode('reset')}>ลืมรหัสผ่าน</button></> : <>มีบัญชีอยู่แล้ว?<button onClick={() => setMode('login')}>เข้าสู่ระบบ</button></>}
+        {mode === 'login' ? <>ยังไม่มีบัญชี?<button onClick={() => { setAwaitingVerification(false); setMode('register') }}>สมัครสมาชิก</button><button onClick={() => setMode('reset')}>ลืมรหัสผ่าน</button></> : <>มีบัญชีอยู่แล้ว?<button onClick={() => setMode('login')}>เข้าสู่ระบบ</button></>}
       </div>
       <div className="auth-security"><ShieldCheck size={15} /> ข้อมูลส่วนตัวของคุณจะไม่แสดงต่อสาธารณะ</div>
     </div></div>
