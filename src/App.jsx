@@ -75,29 +75,37 @@ function AuthLinkScreen({ onFinished }) {
     let alive = true
     const params = new URLSearchParams(window.location.search)
     const hash = new URLSearchParams(window.location.hash.slice(1))
-    const error = params.get('error_description') || hash.get('error_description')
-    // The redirect flow is explicit because Supabase may consume/remove the recovery type
-    // while exchanging its auth code before this component reads the URL.
-    const recoveryLink = params.get('flow') === 'recovery' || params.get('type') === 'recovery' || hash.get('type') === 'recovery'
-    if (error) { setStatus(decodeURIComponent(error.replace(/\+/g, ' '))); return }
+    const flow = params.get('flow') || params.get('type') || hash.get('type')
+    const tokenHash = params.get('token_hash')
+    const linkError = params.get('error_description') || hash.get('error_description')
+    const showRecovery = () => { if (!alive) return; setReady(true); setCompleted(false); setStatus('สร้างรหัสผ่านใหม่เพื่อกลับมาใช้งานบัญชีของคุณ') }
     const run = async () => {
+      if (linkError) { setStatus(linkError); return }
       try {
-        // Supabase JS automatically processes the implicit token or PKCE code on initialization.
-        const { data, error: sessionError } = await supabase.auth.getSession()
-        if (!alive) return
-        if (sessionError) throw sessionError
-        if (data.session && recoveryLink) {
-          setReady(true); setStatus('ตั้งรหัสผ่านใหม่ได้เลย')
-        } else if (data.session) {
-          setStatus('ยืนยันอีเมลสำเร็จแล้ว คุณสามารถใช้งาน NISIT MATCH ได้')
-          setCompleted(true)
-        } else {
-          setStatus('ลิงก์หมดอายุหรือไม่ถูกต้อง กรุณาขอลิงก์ใหม่จากหน้าเข้าสู่ระบบ')
+        // Token-hash email links are explicitly verified here, without relying on
+        // Supabase's automatic URL processing or the timing of auth state events.
+        if (tokenHash) {
+          const otpType = flow === 'recovery' ? 'recovery' : flow === 'signup' ? 'email' : null
+          if (!otpType) throw new Error('ประเภทลิงก์ไม่ถูกต้อง กรุณาขอลิงก์ใหม่')
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType })
+          if (error) throw error
+          if (!alive) return
+          window.history.replaceState({}, '', window.location.pathname + '?flow=' + flow)
+          if (flow === 'recovery') showRecovery()
+          else { setCompleted(true); setStatus('ยืนยันอีเมลสำเร็จแล้ว เข้าสู่ระบบเพื่อเริ่มใช้งานได้เลย') }
+          return
         }
+        // Legacy links can contain a code, access_token, or recovery event.
+        const { data, error } = await supabase.auth.getSession()
+        if (error) throw error
+        if (!alive) return
+        if (!data.session) throw new Error('ลิงก์หมดอายุหรือไม่ถูกต้อง กรุณาขอลิงก์ใหม่')
+        if (flow === 'recovery' || hash.get('type') === 'recovery') showRecovery()
+        else { setCompleted(true); setStatus('ยืนยันอีเมลสำเร็จแล้ว เข้าสู่ระบบเพื่อเริ่มใช้งานได้เลย') }
       } catch (err) { if (alive) setStatus(err.message || 'ตรวจสอบลิงก์ไม่สำเร็จ') }
     }
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (alive && event === 'PASSWORD_RECOVERY') { setReady(true); setCompleted(false); setStatus('ตั้งรหัสผ่านใหม่ได้เลย') }
+      if (event === 'PASSWORD_RECOVERY') showRecovery()
     })
     run()
     return () => { alive = false; listener.subscription.unsubscribe() }
@@ -128,7 +136,7 @@ function AuthLinkScreen({ onFinished }) {
 }
 
 function AuthModal({ mode, setMode, close, notify }) {
-  const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [busy, setBusy] = useState(false)
+  const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [busy, setBusy] = useState(false), [sent, setSent] = useState(false)
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); let r
     try {
@@ -136,7 +144,7 @@ function AuthModal({ mode, setMode, close, notify }) {
     else if (mode === 'register') {
       r = await supabase.auth.signUp({ email, password: pw, options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` } })
       if (!r.error && !r.data.session) notify('ส่งอีเมลยืนยันแล้ว กรุณาตรวจกล่องจดหมายแล้วกลับมาเข้าสู่ระบบ')
-    } else { r = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); if (!r.error) notify('ส่งลิงก์รีเซ็ตรหัสผ่านแล้ว') }
+    } else { r = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); if (!r.error) setSent(true) }
     if (r.error) notify(r.error.message.includes('rate limit') ? 'ส่งอีเมลเกินกำหนดชั่วคราว กรุณารอสักพักก่อนลองใหม่' : r.error.message)
     } catch (err) { notify(err?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่') }
     finally { setBusy(false) }
@@ -146,13 +154,13 @@ function AuthModal({ mode, setMode, close, notify }) {
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}><div className="auth-modal">
       <button className="modal-close icon-btn" onClick={close}><X /></button>
       <div className="auth-brand"><span className="brand-icon"><img src="/nisit-match-mark.png" alt="" /></span><span>nisit <b>match</b></span></div>
-      <div className="auth-heading"><h2>{title}</h2><p>{mode === 'reset' ? 'กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' : mode === 'register' ? 'สร้างบัญชีด้วยอีเมล แล้วตั้งโปรไฟล์ในขั้นต่อไป' : 'เข้าสู่ระบบเพื่อไปต่อจากที่ค้างไว้'}</p></div>
-      <form className="auth-form" onSubmit={submit}>
+      <div className={"auth-heading" + (mode === "reset" ? " nm-reset-heading" : "")}><h2>{title}</h2><p>{mode === 'reset' ? 'กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' : mode === 'register' ? 'สร้างบัญชีด้วยอีเมล แล้วตั้งโปรไฟล์ในขั้นต่อไป' : 'เข้าสู่ระบบเพื่อไปต่อจากที่ค้างไว้'}</p></div>
+      {mode === 'reset' && sent ? <div className="nm-reset-sent" role="status"><div className="nm-reset-sent-halo" aria-hidden="true"/><div className="nm-reset-sent-icon"><Send size={27}/><span>✦</span></div><h3>ส่งคำขอเรียบร้อยแล้ว!</h3><p>หากอีเมลนี้มีบัญชีอยู่ เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้คุณแล้ว</p><div className="nm-reset-address">{email}</div><p className="nm-reset-tip">ลองเช็กกล่องจดหมายและจดหมายขยะด้วยนะ 💗</p><button type="button" className="btn btn-pink btn-full" onClick={() => { setSent(false); setMode('login') }}>กลับไปเข้าสู่ระบบ <ArrowRight size={16}/></button><button type="button" className="nm-reset-retry" onClick={() => setSent(false)}>เปลี่ยนอีเมล / ขอส่งใหม่</button></div> : <form className="auth-form" onSubmit={submit}>
         <label>อีเมล<input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         {mode !== 'reset' && <label>รหัสผ่าน<input required type="password" minLength={8} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="อย่างน้อย 8 ตัวอักษร" value={pw} onChange={(e) => setPw(e.target.value)} /></label>}
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
-        <button disabled={busy} className="btn btn-pink btn-full btn-lg">{busy ? 'กำลังดำเนินการ...' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
-      </form>
+        <button disabled={busy} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
+      </form>}
       <div className="auth-switch">
         {mode === 'login' ? <>ยังไม่มีบัญชี?<button onClick={() => setMode('register')}>สมัครสมาชิก</button><button onClick={() => setMode('reset')}>ลืมรหัสผ่าน</button></> : <>มีบัญชีอยู่แล้ว?<button onClick={() => setMode('login')}>เข้าสู่ระบบ</button></>}
       </div>
