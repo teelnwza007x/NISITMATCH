@@ -1728,6 +1728,24 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [profileVideos, setProfileVideos] = useState([])
   const [newVideos, setNewVideos] = useState([])
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
+  const [photoOrder, setPhotoOrder] = useState([])
+  const draggingPhoto = useRef(null)
+  const holdTimer = useRef(null)
+  const photoKeys = [...photos, ...newPhotos.map(x => x.key)]
+  const orderedKeys = [...photoKeys].sort((a,b) => (photoOrder.includes(a) ? photoOrder.indexOf(a) : photoOrder.length + photoKeys.indexOf(a)) - (photoOrder.includes(b) ? photoOrder.indexOf(b) : photoOrder.length + photoKeys.indexOf(b)))
+  const reorderPhoto = (from, to) => {
+    if (!from || !to || from === to || !photoKeys.includes(from) || !photoKeys.includes(to)) return
+    const next = [...orderedKeys]; next.splice(next.indexOf(from), 1); next.splice(next.indexOf(to), 0, from)
+    setPhotoOrder(next); setMainPhoto(next[0])
+  }
+  const releasePhoto = e => {
+    clearTimeout(holdTimer.current)
+    if (draggingPhoto.current) {
+      const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-photo-key]')?.dataset.photoKey
+      reorderPhoto(draggingPhoto.current, target)
+    }
+    draggingPhoto.current = null
+  }
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
   const [editTab, setEditTab] = useState(initialEditTab)
   const [selfPreviewOpen, setSelfPreviewOpen] = useState(false)
@@ -1747,6 +1765,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         if (d.song !== undefined) setSong(d.song)
         if (Array.isArray(d.newPhotos)) setNewPhotos(d.newPhotos.filter(x => x.file instanceof Blob).map(x => ({ ...x, url: URL.createObjectURL(x.file) })))
         if (typeof d.mainPhoto === 'string') setMainPhoto(d.mainPhoto)
+        if (Array.isArray(d.photoOrder)) setPhotoOrder(d.photoOrder)
       }
       setDraftReady(true)
     }).catch(err => { console.warn('Draft restore unavailable:', err); if (alive) setDraftReady(true) })
@@ -1757,12 +1776,12 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     const revision = ++draftRevision.current
     const timer = setTimeout(() => {
       if (skipDraftSave.current || revision !== draftRevision.current) return
-      draftAction(user.id, 'write', { version: 1, f, photos, mainPhoto, song,
+      draftAction(user.id, 'write', { version: 1, f, photos, mainPhoto, photoOrder, song,
         newPhotos: newPhotos.map(({ key, file }) => ({ key, file }))
       }).catch(err => console.warn('Draft autosave unavailable:', err))
     }, 350)
     return () => clearTimeout(timer)
-  }, [draftReady, user.id, f, photos, mainPhoto, song, newPhotos])
+  }, [draftReady, user.id, f, photos, mainPhoto, photoOrder, song, newPhotos])
   // Release preview URLs when the editor unmounts.
   const photoUrls = useRef([])
   useEffect(() => { photoUrls.current = newPhotos.map(p => p.url) }, [newPhotos])
@@ -1821,6 +1840,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     notify('ลบวิดีโอแล้ว')
   }
   const removePhoto = (key) => {
+    if (photos.length + newPhotos.length <= 1) return notify('ต้องมีรูปโปรไฟล์อย่างน้อย 1 รูป กรุณาเพิ่มรูปใหม่ก่อนลบรูปสุดท้าย')
     const remaining = [...photos.filter(x => x !== key), ...newPhotos.filter(x => x.key !== key).map(x => x.key)]
     setPhotos(old => old.filter(x => x !== key)); setNewPhotos(old => old.filter(x => x.key !== key))
     if (mainPhoto === key) setMainPhoto(remaining[0] || '')
@@ -1830,6 +1850,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     if (!profileVerificationLoaded) return notify('กำลังตรวจสอบสถานะอีเมลมหาวิทยาลัย กรุณารอสักครู่')
     const lockedUniversityId = profileEmailVerified && verifiedUniversityId ? verifiedUniversityId : ''
     const u = UNIVERSITIES.find((x) => x.id === (lockedUniversityId || f.uni))
+    if (photos.length + newPhotos.length === 0) { setEditTab('photos'); return notify('กรุณาเพิ่มรูปโปรไฟล์อย่างน้อย 1 รูปก่อนบันทึก') }
     if (!f.display_name.trim()) { setEditTab('basic'); return notify('กรุณากรอกชื่อที่อยากให้เรียก') }
     if (!u) { setEditTab('campus'); return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ') }
     if (!f.birth_date || ageOf(f.birth_date) < 18) { setEditTab('basic'); return notify('ต้องมีอายุอย่างน้อย 18 ปี') }
@@ -1844,8 +1865,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       if (uploadError) { setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
       uploaded.push(path); keyMap[item.key] = path
     }
-    const avatar_path = keyMap[mainPhoto] || mainPhoto || uploaded[0] || null
-    const photo_paths = [...new Set(uploaded)].slice(0, 6)
+    const photo_paths = [...new Set(orderedKeys.map(key => keyMap[key] || key).filter(key => uploaded.includes(key)))].slice(0, 6)
+    const avatar_path = keyMap[mainPhoto] || mainPhoto || photo_paths[0] || null
     const payload = { display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
@@ -1864,7 +1885,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     skipDraftSave.current = true
     draftRevision.current++
     await draftAction(user.id, 'delete').catch(err => console.warn('Draft cleanup unavailable:', err))
-    setPhotos(photo_paths); setNewPhotos([]); newVideos.forEach(item => URL.revokeObjectURL(item.url)); setNewVideos([]); setMainPhoto(avatar_path || '')
+    setPhotos(photo_paths); setPhotoOrder(photo_paths); setNewPhotos([]); newVideos.forEach(item => URL.revokeObjectURL(item.url)); setNewVideos([]); setMainPhoto(avatar_path || '')
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
   const toggle = (i) => setF({ ...f, interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i].slice(0, 12) })
@@ -1902,7 +1923,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       <div className="nm-edit-workspace">
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
-        <div className="photo-editor"><b>รูปและวิดีโอโปรไฟล์ ({mediaSlotCount}/6)</b><p>รูปภาพและวิดีโอใช้ 6 ช่องร่วมกัน · แตะดาวเพื่อกำหนดรูปหลัก</p><div className="photo-grid">{[...photos.map(key => ({key, url: pub(key), type: 'image'})), ...newPhotos.map(item => ({...item, type: 'image'})), ...profileVideos.map(item => ({key: item.id, url: mediaPub(item.storage_path), type: 'video', existing: item})), ...newVideos.map(item => ({...item, type: 'video'}))].map(item => <div className="photo-tile v83-media-tile" key={item.key}>{item.type === 'video' ? <video src={item.url} muted playsInline controls preload="metadata" aria-label="วิดีโอโปรไฟล์"/> : <img src={item.url} alt="รูปโปรไฟล์" onError={e => { if (/\.(heic|heif)(?:$|\?)/i.test(item.url)) e.currentTarget.alt = 'ไฟล์ HEIC อาจต้องเลือกส่งเป็นวิดีโอ Live Photo หรือแปลงเป็น JPG'; }} />}{item.type === 'image' && <button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button>}{item.type === 'video' ? <button type="button" className="photo-remove" onClick={() => item.existing ? removeExistingVideo(item.existing) : removeNewVideo(item.key)} title="ลบวิดีโอ">×</button> : <button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button>}</div>)}{mediaSlotCount < 6 && <label className="photo-add v83-media-add"><Camera size={21}/><Video size={20}/><span>เพิ่มรูป / วิดีโอ</span><input type="file" accept="image/*,video/*,.heic,.heif" multiple onChange={e => {addMedia(e.target.files); e.target.value = ''}} /></label>}</div><small className="v83-media-note">รองรับรูปและวิดีโอรวม 6 รายการ · iPhone Live Photo: ตัวเลือกไฟล์บนเว็บอาจส่งมาเฉพาะภาพนิ่งและไม่เปิดให้เว็บดึง MOV คู่กันอัตโนมัติ ให้เปิดรูปใน Photos → Share → Save as Video แล้วอัปโหลดวิดีโอที่ได้ · วิดีโอ MOV/MP4 จะเล่นวนอัตโนมัติเมื่อเปิดดูรายการนั้น (ปิดเสียง)</small></div>
+        <div className="photo-editor"><b>รูปและวิดีโอโปรไฟล์ ({mediaSlotCount}/6)</b><p>รูปภาพและวิดีโอใช้ 6 ช่องร่วมกัน · แตะดาวเพื่อกำหนดรูปหลัก · กดค้างแล้วลากรูปไปช่องที่ต้องการ</p><div className="photo-grid">{[...orderedKeys.map(key => { const fresh = newPhotos.find(x => x.key === key); return fresh ? {...fresh, type: 'image'} : {key, url: pub(key), type: 'image'} }), ...profileVideos.map(item => ({key: item.id, url: mediaPub(item.storage_path), type: 'video', existing: item})), ...newVideos.map(item => ({...item, type: 'video'}))].map(item => <div className="photo-tile v83-media-tile" key={item.key} data-photo-key={item.type === "image" ? item.key : undefined} draggable={item.type === "image"} onDragStart={e => { draggingPhoto.current = item.key; e.dataTransfer.effectAllowed = "move" }} onDragOver={e => { if (item.type === "image") e.preventDefault() }} onDrop={e => { e.preventDefault(); reorderPhoto(draggingPhoto.current, item.key); draggingPhoto.current = null }} onDragEnd={() => { draggingPhoto.current = null }} onPointerDown={e => { if (item.type !== "image" || e.target.closest("button")) return; clearTimeout(holdTimer.current); holdTimer.current = setTimeout(() => { draggingPhoto.current = item.key }, 350) }} onPointerUp={releasePhoto} onPointerCancel={() => { clearTimeout(holdTimer.current); draggingPhoto.current = null }}>{item.type === 'video' ? <video src={item.url} muted playsInline controls preload="metadata" aria-label="วิดีโอโปรไฟล์"/> : <img src={item.url} alt="รูปโปรไฟล์" onError={e => { if (/\.(heic|heif)(?:$|\?)/i.test(item.url)) e.currentTarget.alt = 'ไฟล์ HEIC อาจต้องเลือกส่งเป็นวิดีโอ Live Photo หรือแปลงเป็น JPG'; }} />}{item.type === 'image' && <button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button>}{item.type === 'video' ? <button type="button" className="photo-remove" onClick={() => item.existing ? removeExistingVideo(item.existing) : removeNewVideo(item.key)} title="ลบวิดีโอ">×</button> : <button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button>}</div>)}{mediaSlotCount < 6 && <label className="photo-add v83-media-add"><Camera size={21}/><Video size={20}/><span>เพิ่มรูป / วิดีโอ</span><input type="file" accept="image/*,video/*,.heic,.heif" multiple onChange={e => {addMedia(e.target.files); e.target.value = ''}} /></label>}</div><small className="v83-media-note">รองรับรูปและวิดีโอรวม 6 รายการ · iPhone Live Photo: ตัวเลือกไฟล์บนเว็บอาจส่งมาเฉพาะภาพนิ่งและไม่เปิดให้เว็บดึง MOV คู่กันอัตโนมัติ ให้เปิดรูปใน Photos → Share → Save as Video แล้วอัปโหลดวิดีโอที่ได้ · วิดีโอ MOV/MP4 จะเล่นวนอัตโนมัติเมื่อเปิดดูรายการนั้น (ปิดเสียง)</small></div>
       </section>}
       <form className="form-panel nm-tab-form" onSubmit={save} noValidate>
         {editTab === 'basic' && <div className="panel-heading"><div><h2>ข้อมูลส่วนตัว</h2><p>อัปเดตข้อมูลให้เป็นปัจจุบันอยู่เสมอ</p></div><span className="edit-badge">EDIT PROFILE</span></div>}
