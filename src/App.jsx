@@ -1997,36 +1997,73 @@ function playNisitSound(kind) {
     const AudioContextType = window.AudioContext || window.webkitAudioContext
     if (!AudioContextType) return
     const now = performance.now()
-    if (now - nmLastSound < 95) return
+    if (now - nmLastSound < (kind === 'menu' ? 70 : 90)) return
     if (!nmAudioContext) nmAudioContext = new AudioContextType()
     const ctx = nmAudioContext
     if (ctx.state === 'suspended') ctx.resume().catch(() => {})
     nmLastSound = now
-    const t = ctx.currentTime + .012
-    // Short, soft sine layers with rounded envelopes; no pixel/chiptune oscillators.
-    // Playful, tiny two-tone "peep" with rounded, gentle sine notes.
-    const patterns = {
-      menu: [[720, 830, 0, .085, .024], [960, 1030, .055, .09, .014]],
-      like: [[680, 900, 0, .13, .030], [1040, 1170, .09, .14, .019]],
-      send: [[790, 1040, 0, .105, .026], [1080, 1220, .075, .10, .016]],
-      message: [[880, 1040, 0, .11, .022], [1080, 1180, .07, .09, .012]],
-      match: [[660, 880, 0, .16, .026], [880, 1100, .11, .17, .023], [1100, 1320, .24, .22, .019]]
-    }
-    for (const [start, end, delay, duration, volume] of (patterns[kind] || patterns.menu)) {
+    const t = ctx.currentTime + .008
+    // Distinct tactile sounds: soft wooden tap, bubble, paper swoosh, glass chime, and harp.
+    const tone = ({ start, end = start, delay = 0, length = .12, volume = .02, type = 'sine', attack = .008 }) => {
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(start, t + delay)
-      osc.frequency.exponentialRampToValueAtTime(end, t + delay + duration * .72)
-      gain.gain.setValueAtTime(.0001, t + delay)
-      gain.gain.exponentialRampToValueAtTime(volume, t + delay + .014)
-      gain.gain.exponentialRampToValueAtTime(.0001, t + delay + duration)
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.start(t + delay)
-      osc.stop(t + delay + duration + .01)
+      const begin = t + delay
+      osc.type = type
+      osc.frequency.setValueAtTime(Math.max(1, start), begin)
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, end), begin + length)
+      gain.gain.setValueAtTime(.0001, begin)
+      gain.gain.exponentialRampToValueAtTime(volume, begin + attack)
+      gain.gain.exponentialRampToValueAtTime(.0001, begin + length)
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.start(begin); osc.stop(begin + length + .015)
     }
-  } catch { /* Optional audio must not block UI. */ }
+    const noise = ({ delay = 0, length = .13, volume = .012, cutoff = 1200, highpass = false }) => {
+      const samples = Math.ceil(ctx.sampleRate * length)
+      const buffer = ctx.createBuffer(1, samples, ctx.sampleRate)
+      const channel = buffer.getChannelData(0)
+      for (let i = 0; i < samples; i++) channel[i] = (Math.random() * 2 - 1)
+      const src = ctx.createBufferSource()
+      src.buffer = buffer
+      const filter = ctx.createBiquadFilter()
+      filter.type = highpass ? 'highpass' : 'lowpass'
+      filter.frequency.value = cutoff
+      const gain = ctx.createGain()
+      const begin = t + delay
+      gain.gain.setValueAtTime(.0001, begin)
+      gain.gain.exponentialRampToValueAtTime(volume, begin + .009)
+      gain.gain.exponentialRampToValueAtTime(.0001, begin + length)
+      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination)
+      src.start(begin); src.stop(begin + length + .01)
+    }
+    switch (kind) {
+      case 'send':
+        // A soft paper flutter and gentle airy tail, not a pitched beep.
+        noise({ length: .16, volume: .012, cutoff: 1550, highpass: true })
+        tone({ start: 330, end: 220, delay: .045, length: .15, volume: .011 })
+        break
+      case 'like':
+        // Round, bouncy water-drop plop.
+        tone({ start: 460, end: 250, length: .17, volume: .036 })
+        tone({ start: 690, end: 410, delay: .085, length: .16, volume: .018 })
+        break
+      case 'message':
+        // Light, glassy shimmer on an incoming message.
+        tone({ start: 880, end: 875, length: .26, volume: .016 })
+        tone({ start: 1320, end: 1310, delay: .06, length: .30, volume: .009 })
+        break
+      case 'match':
+        // Soft harp-like rising celebration.
+        tone({ start: 392, length: .30, volume: .028 })
+        tone({ start: 494, delay: .105, length: .32, volume: .025 })
+        tone({ start: 587, delay: .22, length: .36, volume: .022 })
+        tone({ start: 784, delay: .34, length: .42, volume: .016 })
+        break
+      default:
+        // Subtle wooden tap for navigation, quiet enough for frequent use.
+        noise({ length: .048, volume: .010, cutoff: 720 })
+        tone({ start: 310, end: 240, length: .065, volume: .013 })
+    }
+  } catch { /* Audio is optional; never interrupt the UI. */ }
 }
 // Capture ordinary button taps across the app, including portaled dialogs.
 if (typeof document !== 'undefined') {
