@@ -1956,6 +1956,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   su: { name: 'มหาวิทยาลัยศิลปากร', domains: ['su.ac.th', 'silpakorn.edu'] },
   spu: { name: 'มหาวิทยาลัยศรีปทุม', domains: ['spumail.net', 'spulive.net'] },
   bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net'] },
+  rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
