@@ -1682,7 +1682,7 @@ const RELATIONSHIP_INTENTS = [{ id: 'serious', label: 'ความสัมพ�
 const intentLabel = id => RELATIONSHIP_INTENTS.find(item => item.id === id)?.label || ''
 const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [], relationship_intent: p?.relationship_intent || '' })
 
-function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium = false }) {
+function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium = false, initialEditTab = 'photos' }) {
   const [profileEmailVerified, setProfileEmailVerified] = useState(false)
   const [profileVerificationLoaded, setProfileVerificationLoaded] = useState(false)
   const [verifiedUniversityId, setVerifiedUniversityId] = useState('')
@@ -1723,7 +1723,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [newVideos, setNewVideos] = useState([])
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
   const [uniQuery, setUniQuery] = useState(''), [uniType, setUniType] = useState('ทั้งหมด')
-  const [editTab, setEditTab] = useState('photos')
+  const [editTab, setEditTab] = useState(initialEditTab)
   const [selfPreviewOpen, setSelfPreviewOpen] = useState(false)
   const [selfPreviewIndex, setSelfPreviewIndex] = useState(0)
   const aboutTabs = [['basic', 'ข้อมูลส่วนตัว', UserRound], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
@@ -2447,7 +2447,7 @@ const mapsSearchUrl = (name, area='') => `https://www.google.com/maps/search/?ap
 
 const mapsEmbedUrl = (name, area='') => `https://www.google.com/maps?q=${encodeURIComponent([name,area].filter(Boolean).join(' '))}&output=embed`
 
-function HangoutPage({ user, profile, notify, onJoinedHangout }) {
+function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
   const [campusVerification, setCampusVerification] = useState(null)
   const [campusVerificationLoading, setCampusVerificationLoading] = useState(true)
   const isCampusVerified = campusVerification?.status === 'verified'
@@ -2561,7 +2561,7 @@ function HangoutPage({ user, profile, notify, onJoinedHangout }) {
     setChatMessages(old=>old.some(m=>m.id===data.id)?old:[...old,data]); setChatDraft('')
   }
   if (campusVerificationLoading) return <div className="v76-page"><div className="page-center"><span className="spin"/><p>กำลังตรวจสอบการยืนยันอีเมลมหาวิทยาลัย…</p></div></div>
-  if (!isCampusVerified) return <div className="v76-page hangout-verification-required"><Heading kicker="CAMPUS VERIFIED ONLY" title="Hangout สำหรับนิสิต/นักศึกษาที่ยืนยันแล้ว" sub="เพื่อความปลอดภัย การดูนัด สร้างนัด เข้าร่วม และแชท Hangout ต้องยืนยันอีเมลมหาวิทยาลัยก่อน"/><section className="v76-hangout-safety"><ShieldCheck size={22}/><span><b>ต้องยืนยันอีเมลมหาวิทยาลัยก่อน</b><small>บัญชีนี้ยังไม่พบสถานะยืนยันที่สำเร็จ ไปที่โปรไฟล์หรือการตั้งค่าเพื่อยืนยันอีเมลมหาวิทยาลัย แล้วกลับมาที่ Hangout อีกครั้ง</small></span></section><button type="button" className="v76-primary-cta" onClick={()=>notify('ไปที่ โปรไฟล์ > ยืนยันอีเมลมหาวิทยาลัย เพื่อดำเนินการให้เสร็จสมบูรณ์')}><ShieldCheck size={17}/> วิธีการยืนยันอีเมลมหาวิทยาลัย <ArrowRight size={17}/></button></div>
+  if (!isCampusVerified) return <div className="v76-page hangout-verification-required"><Heading kicker="CAMPUS VERIFIED ONLY" title="Hangout สำหรับนิสิต/นักศึกษาที่ยืนยันแล้ว" sub="เพื่อความปลอดภัย การดูนัด สร้างนัด เข้าร่วม และแชท Hangout ต้องยืนยันอีเมลมหาวิทยาลัยก่อน"/><section className="v76-hangout-safety"><ShieldCheck size={22}/><span><b>ต้องยืนยันอีเมลมหาวิทยาลัยก่อน</b><small>บัญชีนี้ยังไม่พบสถานะยืนยันที่สำเร็จ ไปที่โปรไฟล์หรือการตั้งค่าเพื่อยืนยันอีเมลมหาวิทยาลัย แล้วกลับมาที่ Hangout อีกครั้ง</small></span></section><button type="button" className="v76-primary-cta" onClick={onGoVerify}><ShieldCheck size={17}/> ไปหน้ายืนยันอีเมลมหาวิทยาลัย <ArrowRight size={17}/></button></div>
   return <div className="v76-page"><Heading kicker="MEET IRL" title="Hangout กับคนใหม่ ๆ" sub="นัดเจอกันในพื้นที่สาธารณะ ดูจำนวนผู้เข้าร่วม คุยกันในห้องกลุ่ม และเปิดแผนที่ได้จากในเว็บ"><button className="btn btn-pink" onClick={()=>setShowCreate(v=>!v)}><CalendarDays size={17}/> สร้าง Hangout</button></Heading>
     <div className="v76-hangout-safety"><ShieldCheck size={19}/><span><b>เจอกันอย่างปลอดภัย</b><small>เลือกสถานที่สาธารณะ แจ้งเพื่อนที่ไว้ใจ และอย่าโอนเงินให้คนที่เพิ่งรู้จัก</small></span></div>
     {showCreate&&<form className="v76-hangout-form" onSubmit={create}><div className="v76-form-heading"><h2>สร้างนัด Hangout</h2><button type="button" className="icon-btn" onClick={()=>setShowCreate(false)}><X size={19}/></button></div><label>ชื่อนัด<input required maxLength="70" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="เช่น หลังเลิกเรียนไปนั่งชิลกัน"/></label>
@@ -2579,6 +2579,7 @@ export default function App() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
+  const [profileEntryTab, setProfileEntryTab] = useState('photos')
   const [newMatch, setNewMatch] = useState(null)
   useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
   const previousUnreadMessages = useRef(null)
@@ -2992,7 +2993,7 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  const go = (v) => { if (v === 'search') v = 'home'; setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v === 'search') v = 'home'; if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const shown = (people || []).filter((p) => campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
   const filteredPeople = (people || []).filter(campusFiltered)
   const nearbyFallback = discovery?.mode === 'nearby' && (people || []).length > 0 && filteredPeople.length === 0
@@ -3030,11 +3031,11 @@ const loadMatches = useCallback(async () => {
           </>}
           {view === 'likes' && <PremiumListPage kind="likes" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
           {view === 'visitors' && <PremiumListPage kind="visitors" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
-          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} onJoinedHangout={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
+          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} onJoinedHangout={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} onGoVerify={() => { setProfileEntryTab('verification'); go('profile') }} />}
           {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
           {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={() => { loadUnreadMessages(); loadUnread() }} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
-          {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} />}
+          {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => { setGuideStep(0); setGuideOpen(true) }}>คู่มือและวิธีเพิ่มแอปลงหน้าจอโฮม</button></footer>
         </div>
