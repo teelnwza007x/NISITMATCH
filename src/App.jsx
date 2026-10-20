@@ -2000,7 +2000,10 @@ function playNisitSound(kind) {
     if (now - nmLastSound < (kind === 'menu' ? 70 : 90)) return
     if (!nmAudioContext) nmAudioContext = new AudioContextType()
     const ctx = nmAudioContext
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+    if (ctx.state !== 'running') {
+      ctx.resume().then(() => { if (ctx.state === 'running') playNisitSound(kind) }).catch(() => {})
+      return
+    }
     nmLastSound = now
     const t = ctx.currentTime + .008
     // Distinct tactile sounds: soft wooden tap, bubble, paper swoosh, glass chime, and harp.
@@ -2067,7 +2070,7 @@ function playNisitSound(kind) {
 }
 // Capture ordinary button taps across the app, including portaled dialogs.
 if (typeof document !== 'undefined') {
-  document.addEventListener('pointerdown', event => {
+  document.addEventListener('click', event => {
     if (!event.isTrusted || !soundEnabled()) return
     const target = event.target
     if (!(target instanceof Element)) return
@@ -2116,6 +2119,7 @@ function CampusEmailVerification({ user }) {
   const [campusEmail, setCampusEmail] = useState('')
   const [campusCode, setCampusCode] = useState('')
   const [campusUniversity, setCampusUniversity] = useState('')
+  const [campusSearch, setCampusSearch] = useState('')
   const [verifyStep, setVerifyStep] = useState('email')
   const [verifyBusy, setVerifyBusy] = useState(false)
   const [verifyMessage, setVerifyMessage] = useState('')
@@ -2192,10 +2196,20 @@ function CampusEmailVerification({ user }) {
     <p>เพื่อป้องกันการใช้สิทธิ์ซ้ำ อีเมลที่ยืนยันสำเร็จจะใช้ได้เพียงบัญชีเดียว และเปลี่ยนมหาวิทยาลัยที่ยืนยันไม่ได้</p>
     <div className="v26-verify-row">{isVerified ? <span className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/> {studentTerm(verification.university_id)}ยืนยันแล้ว · ล็อกมหาวิทยาลัย</span> : <span className="v26-status">ยังไม่ยืนยันอีเมลมหาวิทยาลัย</span>}</div>
     {isVerified ? <div className="v27-verify-success" role="status"><ShieldCheck size={18}/><div><b>{VERIFIED_CAMPUS_DOMAINS[verification.university_id]?.name || uniName(verification.university_id)}</b><p>อีเมลยืนยัน: {verification.verified_email || `*@${verification.email_domain}`}</p><small>มหาวิทยาลัยและอีเมลยืนยันนี้เปลี่ยนไม่ได้ หากมีปัญหาให้ติดต่อผู้ดูแล</small></div></div> : <div className="v27-verify-form">
+      <div className="nm-campus-picker-heading"><span className="nm-campus-picker-icon"><GraduationCap size={21}/></span><div><strong>เลือกสถาบันของคุณ</strong><p>ค้นหาชื่อมหาวิทยาลัยหรือโดเมนอีเมล แล้วเลือกจากหมวดหมู่</p></div></div>
+      <label htmlFor="v27-campus-search">ค้นหามหาวิทยาลัย</label>
+      <input id="v27-campus-search" type="search" value={campusSearch} onChange={e => setCampusSearch(e.target.value)} placeholder="เช่น มหิดล, แม่ฟ้าหลวง, mu.ac.th" autoComplete="off"/>
       <label htmlFor="v27-campus">เลือกมหาวิทยาลัยที่ต้องการยืนยัน</label>
       <select id="v27-campus" value={campusUniversity} onChange={e => {setCampusUniversity(e.target.value); setCampusEmail(''); setVerifyStep('email'); setCampusCode(''); setVerifyMessage('')}}>
         <option value="">เลือกมหาวิทยาลัย</option>
-        {Object.entries(VERIFIED_CAMPUS_DOMAINS).map(([id, campus]) => <option key={id} value={id}>{campus.name}</option>)}
+        {[
+          ['มหาวิทยาลัยของรัฐ', ['ku','chula','tu','buu','swu','su','nu','up','mu','mfu']],
+          ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
+          ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc']]
+        ].map(([group, ids]) => {
+          const filtered = ids.filter(id => VERIFIED_CAMPUS_DOMAINS[id] && (VERIFIED_CAMPUS_DOMAINS[id].name + ' ' + id + ' ' + VERIFIED_CAMPUS_DOMAINS[id].domains.join(' ')).toLowerCase().includes(campusSearch.trim().toLowerCase()))
+          return filtered.length ? <optgroup key={group} label={group}>{filtered.map(id => <option key={id} value={id}>{VERIFIED_CAMPUS_DOMAINS[id].name}</option>)}</optgroup> : null
+        })}
       </select>
       {selectedCampus && <p className="v27-domain-hint">รองรับเฉพาะโดเมน: <b>{allowedDomains.map(x => '@' + x).join(' · ')}</b></p>}
       <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย</label>
