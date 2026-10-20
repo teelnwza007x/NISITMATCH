@@ -3118,3 +3118,18 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-existing-account p{margin:0;color:var(--theme-muted,#aaa);font-size:13px;line-height:1.7}
 .nm-existing-account-actions{display:flex;flex-wrap:wrap;gap:9px}
 .nm-existing-account-actions button{flex:1;min-width:125px;justify-content:center}
+
+/* Education: optional university/faculty choice and theme-responsive selection. */
+.nm-campus-unspecified{display:flex;align-items:center;width:100%;gap:13px;text-align:left;margin:0 0 15px;padding:15px 17px;border:1px solid var(--theme-border);border-radius:17px;background:var(--theme-panel);color:var(--theme-text);transition:border-color .2s,background-color .2s,transform .2s}
+.nm-campus-unspecified:hover{border-color:var(--theme-accent);transform:translateY(-1px)}
+.nm-campus-unspecified.selected{border-color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 12%,var(--theme-panel))}
+.nm-campus-unspecified-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:color-mix(in srgb,var(--theme-accent) 14%,var(--theme-panel));color:var(--theme-accent)}
+.nm-campus-unspecified>span:nth-child(2){flex:1;min-width:0;display:grid;gap:4px}
+.nm-campus-unspecified b{font-size:14px;color:var(--theme-text)}
+.nm-campus-unspecified small{font-size:12px;color:var(--theme-muted)}
+.nm-campus-unspecified>svg{color:var(--theme-accent)}
+:root[data-theme] .choice-section,:root[data-theme] .faculty-section{border-color:var(--theme-border);color:var(--theme-text)}
+:root[data-theme] .choice-heading h3,:root[data-theme] .choice-heading p,:root[data-theme] .faculty-option,:root[data-theme] .university-option{color:var(--theme-text)}
+:root[data-theme] .faculty-option,:root[data-theme] .university-option,:root[data-theme] .uni-search,:root[data-theme] .major-field input{background:var(--theme-panel);border-color:var(--theme-border)}
+:root[data-theme] .faculty-option.selected,:root[data-theme] .university-option.selected{background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel));border-color:var(--theme-accent);color:var(--theme-text)}
+:root[data-theme] .faculty-option.selected svg,:root[data-theme] .university-option.selected svg,:root[data-theme] .choice-step,:root[data-theme] .choice-count{color:var(--theme-accent)}
