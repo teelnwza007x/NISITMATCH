@@ -3206,3 +3206,6 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-admin-queue{display:grid;gap:12px}
 .nm-admin-queue article{display:grid;gap:6px;padding:14px;border-radius:12px;background:rgba(120,120,150,.1);overflow-wrap:anywhere}
 .nm-admin-queue-meta,.nm-admin-queue small,.nm-hangout-discovery small{opacity:.7;font-size:.85rem}
+
+.swipe-controls .swipe-control.undo{color:#f5bc67;border-color:rgba(245,188,103,.45);background:rgba(245,188,103,.1)}
+.swipe-controls .swipe-control.undo:disabled{opacity:.35;cursor:not-allowed}
