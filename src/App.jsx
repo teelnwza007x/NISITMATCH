@@ -2858,13 +2858,40 @@ const loadMatches = useCallback(async () => {
     return true
   }, [discovery, profile?.university_id])
   const discoveryRequest = useRef(0)
-  const loadPeople = useCallback(async () => {
+  const seenSwipes = useRef(new Set())
+  const discoveryRanks = useRef(new Map())
+  const discoverySession = useRef('')
+  const loadPeople = useCallback(async ({ silent = false } = {}) => {
     const request = ++discoveryRequest.current
     const { data, error } = await supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null })
     if (request !== discoveryRequest.current) return
-    if (error) { notify(error.message); return }
-    setPeople(data || [])
-  }, [discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify])
+    if (error) { if (!silent) notify(error.message); return }
+    // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
+    const sessionKey = userId || ''
+    if (discoverySession.current !== sessionKey) {
+      discoverySession.current = sessionKey
+      discoveryRanks.current = new Map()
+      seenSwipes.current = new Set()
+    }
+    const unique = [...new Map((data || []).filter(p => p?.id && p.id !== userId && !seenSwipes.current.has(p.id)).map(p => [p.id, p])).values()]
+    const ranks = discoveryRanks.current
+    for (const p of unique) if (!ranks.has(p.id)) ranks.set(p.id, Math.random())
+    unique.sort((a,b) => ranks.get(a.id) - ranks.get(b.id))
+    setPeople(current => {
+      if (!silent || !current?.length) return unique
+      const byId = new Map(unique.map(p => [p.id, p]))
+      const stable = current.filter(p => byId.has(p.id)).map(p => ({...p, ...byId.get(p.id)}))
+      const oldIds = new Set(stable.map(p => p.id))
+      return [...stable, ...unique.filter(p => !oldIds.has(p.id))]
+    })
+  }, [discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify, userId])
+  useEffect(() => {
+    if (!userId || !profile) return
+    const refresh = () => { if (document.visibilityState === 'visible') loadPeople({ silent: true }) }
+    const interval = window.setInterval(refresh, 20000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', refresh) }
+  }, [userId, !!profile, loadPeople])
   useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
   useEffect(() => { if (profile) { loadMatches(); loadPeople() } }, [profile, loadMatches, loadPeople])
   // Public Premium status for swipe cards: only a boolean is returned by the RPC.
@@ -2930,6 +2957,7 @@ const loadMatches = useCallback(async () => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
     const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
     if (error) return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
+    seenSwipes.current.add(p.id)
     setLastSwipe({ person: p, at: Date.now(), matched: false })
     // Keep the current profile mounted while the swipe-out transition completes.
     await new Promise(resolve => setTimeout(resolve, 520))
@@ -2947,6 +2975,7 @@ const loadMatches = useCallback(async () => {
     if (!lastSwipe || Date.now()-lastSwipe.at > 120000) { setLastSwipe(null); return notify('ย้อนกลับได้ภายใน 2 นาทีหลังปัด') }
     const { data, error } = await supabase.rpc('v60_undo_swipe', { p_target: lastSwipe.person.id })
     if (error || !data) return notify(error?.message || 'ไม่สามารถย้อนกลับได้ หากเกิด Match แล้วจะย้อนกลับไม่ได้')
+    seenSwipes.current.delete(lastSwipe.person.id)
     setPeople(old => [lastSwipe.person, ...(old || []).filter(p=>p.id!==lastSwipe.person.id)])
     setLastSwipe(null); notify('ย้อนกลับการปัดล่าสุดแล้ว')
   }
