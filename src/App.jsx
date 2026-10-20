@@ -1552,9 +1552,15 @@ function ITunesSongCard({ track, compact = false }) {
       const audio = audioRef.current
       if (waveform && audio && !audio.paused) {
         const frame = Math.min(Math.floor(audio.currentTime * waveform.windowsPerSecond), waveform.levels.length / 12 - 1)
+        // A short stagger creates a left-to-right travelling waveform.
+        // Every bar still follows real decoded audio, sampled at a slightly
+        // earlier playback position instead of moving all bars in lockstep.
         for (let bar = 0; bar < bars.length; bar++) {
-          const rms = waveform.levels[Math.max(0, frame) * 12 + bar] || 0
-          bars[bar].style.transform = 'scaleY(' + Math.min(1, Math.max(.12, Math.sqrt(rms / waveform.peak))).toFixed(3) + ')'
+          const delayedTime = Math.max(0, audio.currentTime - bar * 0.055)
+          const delayedFrame = Math.min(Math.floor(delayedTime * waveform.windowsPerSecond), waveform.levels.length / 12 - 1)
+          const rms = waveform.levels[Math.max(0, delayedFrame) * 12 + bar] || 0
+          const height = Math.min(1, Math.max(.12, Math.sqrt(rms / waveform.peak)))
+          bars[bar].style.transform = 'scaleY(' + height.toFixed(3) + ')'
         }
       }
       frameId = requestAnimationFrame(tick)
