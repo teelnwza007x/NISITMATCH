@@ -1331,7 +1331,16 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const cancelRecord = () => { discardRecord.current = true; if (recorder.current?.state === 'recording') recorder.current.stop(); setRecording(false); setMicStream(null); setRecordSeconds(0) }
   useEffect(() => () => { if (recorder.current?.state === 'recording') { recorder.current.onstop = null; recorder.current.stop(); recorder.current.stream?.getTracks().forEach(t => t.stop()) } }, [])
   const block = async () => { if (!sel || !confirm(`ต้องการบล็อก ${partnerName(sel.p)} ใช่ไหม?`)) return; const { error } = await supabase.from('blocks').insert({ blocker: me, blocked: sel.p.id }); if (error) return notify(error.message); setSelectedId(null); reload() }
-  const report = async () => { if (!sel) return; const reason = prompt('เหตุผลในการรายงาน'); if (!reason) return; const { error } = await supabase.from('reports').insert({ reporter: me, reported: sel.p.id, reason: reason.slice(0,500) }); notify(error ? error.message : 'ส่งรายงานแล้ว') }
+  const report = async () => {
+    if (!sel) return
+    const categories = ['ข้อความคุกคามหรือไม่เหมาะสม', 'บัญชีปลอมหรือแอบอ้าง', 'สแปมหรือหลอกลวง', 'เนื้อหาทางเพศที่ไม่ยินยอม', 'การข่มขู่หรือความปลอดภัย', 'อื่น ๆ']
+    const input = window.prompt('เลือกเหตุผลที่ต้องการรายงาน (พิมพ์หมายเลข 1–6 หรือระบุเหตุผลเอง)\\n' + categories.map((name, index) => (index + 1) + '. ' + name).join('\\n'))
+    if (input == null || !input.trim()) return
+    const choice = Number(input.trim())
+    const reason = (Number.isInteger(choice) && choice >= 1 && choice <= categories.length ? categories[choice - 1] : input.trim()).slice(0, 500)
+    const { error } = await supabase.from('reports').insert({ reporter: me, reported: sel.p.id, reason })
+    notify(error ? 'ส่งรายงานไม่สำเร็จ กรุณาลองใหม่' : 'ส่งรายงานแล้ว ขอบคุณที่ช่วยดูแลความปลอดภัยของชุมชน')
+  }
   return (<>
     {!sel && <Heading kicker="YOUR CONNECTIONS" title="ข้อความ" sub="เลือกคนที่ต้องการพูดคุย" />}
     {sel ? createPortal(<div className={"chat-layout chat-theme-" + chatTheme + " " + (sel ? "chat-room-open chat-fullscreen" : "chat-inbox-open") + (sel && chatViewport?.keyboardOpen ? " chat-keyboard-open" : "")} style={sel && chatViewport ? { "--chat-viewport-height": `${chatViewport.height}px`, "--chat-viewport-top": `${chatViewport.top}px` } : undefined}>
