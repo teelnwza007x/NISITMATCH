@@ -1988,7 +1988,7 @@ const THEME_OPTIONS = [
   { id: 'lavender', name: 'Lavender', detail: 'ม่วงละมุน นุ่มนวล', colors: ['#1b162a','#b299ed','#efacd7'] },
 ]
 const SOUND_SETTING_KEY = 'nisit-match-sound-v1'
-const soundEnabled = () => { try { return localStorage.getItem(SOUND_SETTING_KEY) !== 'off' } catch { return false } }
+const soundEnabled = () => { try { return localStorage.getItem(SOUND_SETTING_KEY) !== 'off' } catch { return true } }
 let nmAudioContext = null
 let nmLastSound = 0
 function playNisitSound(kind) {
@@ -2856,12 +2856,18 @@ const loadMatches = useCallback(async () => {
   const discoveryRequest = useRef(0)
   const seenSwipes = useRef(new Set())
   const discoveryRanks = useRef(new Map())
+  const discoveryInFlight = useRef(false)
+  const [discoveryLimited, setDiscoveryLimited] = useState(false)
   const discoverySession = useRef('')
   const loadPeople = useCallback(async ({ silent = false } = {}) => {
+    if (discoveryInFlight.current) return
+    discoveryInFlight.current = true
     const request = ++discoveryRequest.current
     const { data, error } = await supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null })
+    discoveryInFlight.current = false
     if (request !== discoveryRequest.current) return
     if (error) { if (!silent) notify(error.message); return }
+    setDiscoveryLimited((data || []).length <= 1)
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
     const sessionKey = userId || ''
     if (discoverySession.current !== sessionKey) {
@@ -2871,7 +2877,13 @@ const loadMatches = useCallback(async () => {
     }
     const unique = [...new Map((data || []).filter(p => p?.id && p.id !== userId && !seenSwipes.current.has(p.id)).map(p => [p.id, p])).values()]
     const ranks = discoveryRanks.current
-    for (const p of unique) if (!ranks.has(p.id)) ranks.set(p.id, Math.random())
+    const rankFor = id => {
+      let hash = 2166136261
+      const key = sessionKey + ':' + id
+      for (let i = 0; i < key.length; i++) hash = Math.imul(hash ^ key.charCodeAt(i), 16777619)
+      return hash >>> 0
+    }
+    for (const p of unique) if (!ranks.has(p.id)) ranks.set(p.id, rankFor(p.id))
     unique.sort((a,b) => ranks.get(a.id) - ranks.get(b.id))
     setPeople(current => {
       if (!silent || !current?.length) return unique
@@ -3065,7 +3077,7 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  const go = (v) => { if (v === 'search') v = 'home'; if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const shown = (people || []).filter((p) => campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
   const filteredPeople = (people || []).filter(campusFiltered)
   const nearbyFallback = discovery?.mode === 'nearby' && (people || []).length > 0 && filteredPeople.length === 0
@@ -3081,13 +3093,14 @@ const loadMatches = useCallback(async () => {
   if (discoveryReady && !discovery) return <DiscoverySetup initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
 
   const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['likes', 'คนที่กดใจ', HeartHandshake], ['visitors', 'คนที่เข้าชม', EyeIcon], ['hangout', 'Hangout', CalendarDays], ['premium', 'Premium', Crown], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
-  const empty = <div className="empty-state"><div className="empty-icon"><Search /></div><h3>ยังไม่มีสมาชิกให้แสดง</h3><p>ตอนนี้ยังไม่มีสมาชิกคนอื่นที่ตรงกับตัวกรอง ลองปรับตัวกรอง หรือชวนเพื่อนมาสมัคร</p></div>
+  const empty = <div className="empty-state"><div className="empty-icon"><Search /></div><h3>ยังไม่มีสมาชิกให้แสดง</h3><p>ตอนนี้ยังไม่มีสมาชิกคนอื่นที่ตรงกับตัวกรอง ลองปรับตัวกรอง หรือชวนเพื่อนมาสมัคร</p><button type="button" className="btn btn-ghost" onClick={() => loadPeople()}>ลองค้นหาอีกครั้ง</button></div>
   return (
     <div className={"app-shell" + (view === 'home' ? " home-swipe-locked" : "")}>
       <aside className={'sidebar ' + (nav ? 'show' : '')}><Brand onClick={() => go('home')} /><div className="side-label">เมนูหลัก</div>
         {items.map(([id, label, I]) => <button key={id} className={'nav-item ' + (id === 'premium' ? 'premium-nav-item ' : '') + (view === id ? 'active' : '') + (id === 'messages' && unreadMessages > 0 ? ' has-unread-messages' : '')} onClick={() => go(id)}><I size={18} />{label}{id === 'messages' && unreadMessages > 0 && <span className="nav-count">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}{id === 'notifs' && unread > 0 && <span className="nav-count">{unread}</span>}</button>)}
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
+      {view === "home" && discoveryLimited && <div className="nm-discovery-notice" role="status"><Users size={15}/><span>ระบบค้นหาส่งสมาชิกกลับมาน้อยมาก หากเห็นคนเดิมซ้ำต้องตรวจเงื่อนไข discover ใน Supabase</span></div>}
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
         {[["home","ปัด",Heart],["likes","คนที่กดใจ",HeartHandshake],["messages","ข้อความ",MessageCircle],["hangout","Hangout",CalendarDays],["profile","โปรไฟล์",UserRound],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
       </nav>
