@@ -1929,6 +1929,41 @@ const THEME_OPTIONS = [
   { id: 'sage', name: 'Sage', detail: 'เขียวธรรมชาติ มินิมอล', colors: ['#15231f','#89b99e','#d3d5a2'] },
   { id: 'lavender', name: 'Lavender', detail: 'ม่วงละมุน นุ่มนวล', colors: ['#1b162a','#b299ed','#efacd7'] },
 ]
+const SOUND_SETTING_KEY = 'nisit-match-sound-v1'
+const soundEnabled = () => { try { return localStorage.getItem(SOUND_SETTING_KEY) === 'on' } catch { return false } }
+let nmAudioContext = null
+let nmLastSound = 0
+function playNisitSound(kind) {
+  if (!soundEnabled() || typeof window === 'undefined') return
+  try {
+    const AudioContextType = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextType) return
+    const now = performance.now()
+    if (now - nmLastSound < 110) return
+    nmLastSound = now
+    if (!nmAudioContext) nmAudioContext = new AudioContextType()
+    if (nmAudioContext.state === 'suspended') { nmAudioContext.resume().catch(() => {}); return }
+    const ctx = nmAudioContext
+    const t = ctx.currentTime
+    const notes = kind === 'match' ? [[523.25,0,.13],[659.25,.13,.13],[783.99,.26,.16],[1046.5,.42,.28]]
+      : kind === 'like' ? [[659.25,0,.085],[880,.09,.13]]
+      : kind === 'message' ? [[784,0,.075],[987.77,.085,.11]]
+      : [[480,0,.045],[640,.045,.065]]
+    for (const [frequency,delay,duration] of notes) {
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+      oscillator.type = kind === 'match' ? 'sine' : 'triangle'
+      oscillator.frequency.setValueAtTime(frequency,t+delay)
+      gain.gain.setValueAtTime(.0001,t+delay)
+      gain.gain.exponentialRampToValueAtTime(kind === 'match' ? .075 : .045,t+delay+.014)
+      gain.gain.exponentialRampToValueAtTime(.0001,t+delay+duration)
+      oscillator.connect(gain)
+      gain.connect(ctx.destination)
+      oscillator.start(t+delay)
+      oscillator.stop(t+delay+duration+.015)
+    }
+  } catch { /* Audio is optional; never interrupt core app actions. */ }
+}
 const THEME_KEY = 'nisit-match-theme-v1'
 function applyTheme(theme) {
   const next = THEME_OPTIONS.some(item => item.id === theme) ? theme : 'midnight'
@@ -2072,6 +2107,17 @@ function SettingsPage({ user, notify }) {
     try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
   })
   const chooseTheme = (id) => { setTheme(id); applyTheme(id) }
+  const [soundsOn, setSoundsOn] = useState(soundEnabled)
+  const toggleSounds = () => {
+    const next = !soundsOn
+    try { localStorage.setItem(SOUND_SETTING_KEY, next ? 'on' : 'off') } catch {}
+    setSoundsOn(next)
+    if (next) {
+      try { if (!nmAudioContext) { const Ctx = window.AudioContext || window.webkitAudioContext; if (Ctx) nmAudioContext = new Ctx() } nmAudioContext?.resume().then(() => playNisitSound('like')).catch(() => {}) } catch {}
+    }
+    notify(next ? 'เปิดเสียงเอฟเฟกต์แล้ว 🎵' : 'ปิดเสียงเอฟเฟกต์แล้ว')
+  }
+
 
   const [privacy, setPrivacy] = useState({ mode: 'visible' })
   const [privacyBusy, setPrivacyBusy] = useState(false)
@@ -2130,6 +2176,10 @@ function SettingsPage({ user, notify }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
+    <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
+      <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
+      <button type="button" className={'nm-sound-toggle' + (soundsOn ? ' is-on' : '')} role="switch" aria-checked={soundsOn} aria-label="เปิดหรือปิดเสียงเอฟเฟกต์" onClick={toggleSounds}><span/></button>
+    </section>
     <section className="theme-gallery" aria-label="เลือกธีมของแอป">
       <div className="theme-gallery-heading"><div><span className="theme-kicker">APPEARANCE</span><h3>ธีมของคุณ</h3><p>เลือกบรรยากาศที่ชอบ เปลี่ยนได้ทุกเมื่อ</p></div><span className="theme-selected-label">{THEME_OPTIONS.find(t => t.id === theme)?.name || 'Midnight'}</span></div>
       <div className="theme-options">{THEME_OPTIONS.map(t => <button type="button" key={t.id} className={'theme-option' + (theme === t.id ? ' is-selected' : '')} aria-pressed={theme === t.id} onClick={() => chooseTheme(t.id)}>
@@ -2492,6 +2542,12 @@ export default function App() {
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [newMatch, setNewMatch] = useState(null)
+  useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
+  const previousUnreadMessages = useRef(null)
+  useEffect(() => {
+    if (previousUnreadMessages.current !== null && unreadMessages > previousUnreadMessages.current && document.visibilityState === 'visible') playNisitSound('message')
+    previousUnreadMessages.current = unreadMessages
+  }, [unreadMessages])
   const [lastSwipe, setLastSwipe] = useState(null)
   const [superBusy, setSuperBusy] = useState(false)
   const [reportTarget, setReportTarget] = useState(null)
@@ -2930,7 +2986,7 @@ const loadMatches = useCallback(async () => {
             <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             {nearbyFallback && <p className="nearby-fallback-note">ยังไม่พบคนในรัศมีที่ตั้งไว้ จึงแสดงโปรไฟล์อื่นให้ปัดได้ก่อน · ปรับระยะทางได้ในตั้งค่าสเปก</p>}
-            {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => swipe(x, true)} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
+            {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
