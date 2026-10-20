@@ -2776,3 +2776,15 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .nm-sound-toggle.is-on span{transform:translateX(22px)}
 .nm-sound-toggle:focus-visible{outline:3px solid #ee65a4;outline-offset:3px}
 @media(max-width:420px){.nm-sound-settings{padding:14px 12px;gap:10px}.nm-sound-settings-info{gap:9px}.nm-sound-settings-icon{width:38px;height:38px}.nm-sound-settings-info h3{font-size:14px}.nm-sound-settings-info p{font-size:11px}}
+
+/* Compact grouped profile editor navigation */
+.nm-edit-tabs-grouped{flex-wrap:wrap;overflow:visible;align-items:center;gap:10px;padding-bottom:12px}
+.nm-edit-tabs-grouped>button{flex:1 1 170px;min-width:0;white-space:normal;text-align:center}
+.nm-edit-tabs-grouped>button:last-child{flex:1 1 220px}
+.nm-edit-tabs-grouped .nm-edit-nav-separator{height:24px;width:1px;background:rgba(205,185,245,.25);flex:0 0 1px}
+.nm-edit-tabs-grouped .nm-edit-subtabs{order:5;flex:1 0 100%;display:flex;gap:8px;flex-wrap:wrap;padding:10px;border:1px solid rgba(205,185,245,.15);border-radius:16px;background:rgba(20,19,37,.6);animation:nm-profile-subtabs-in .2s ease-out}
+.nm-edit-tabs-grouped .nm-edit-subtabs button{flex:1 1 140px;padding:10px 12px}
+.nm-edit-tabs-grouped .nm-chevron-open{transform:rotate(180deg)}
+@keyframes nm-profile-subtabs-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:650px){.nm-edit-tabs-grouped{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nm-edit-tabs-grouped>button{width:100%;min-height:54px;padding:10px 8px;font-size:12px}.nm-edit-tabs-grouped .nm-edit-nav-separator{display:none}.nm-edit-tabs-grouped .nm-edit-subtabs{grid-column:1/-1;order:initial;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:8px}.nm-edit-tabs-grouped .nm-edit-subtabs button{min-width:0;flex:auto;font-size:11px;padding:10px 5px;gap:5px;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.nm-edit-tabs-grouped .nm-edit-subtabs{animation:none}}
