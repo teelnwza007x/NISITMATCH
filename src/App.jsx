@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
 import { authRedirectUrl, isAuthCallbackPath, clearAuthCallbackUrl } from './authRedirect'
 import './authLink.css'
