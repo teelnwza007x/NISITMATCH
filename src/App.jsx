@@ -3217,10 +3217,11 @@ const loadMatches = useCallback(async () => {
           </>}
           {view === 'likes' && <PremiumListPage kind="likes" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
           {view === 'visitors' && <PremiumListPage kind="visitors" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
-          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} onJoinedHangout={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} onGoVerify={() => { setProfileEntryTab('verification'); go('profile') }} />}
+          {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} onJoinedHangout={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} onGoVerify={() => go('verification')} />}
           {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
           {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={() => { loadUnreadMessages(); loadUnread() }} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
+          {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} />}
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button onClick={() => { setGuideStep(0); setGuideOpen(true) }}>คู่มือและวิธีเพิ่มแอปลงหน้าจอโฮม</button></footer>
