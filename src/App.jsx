@@ -142,6 +142,7 @@ function AuthModal({ mode, setMode, close, notify }) {
   const [sent, setSent] = useState(false)
   const [awaitingVerification, setAwaitingVerification] = useState(false)
   const [resendBusy, setResendBusy] = useState(false)
+  const [resendFeedback, setResendFeedback] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
   const [verificationEmail, setVerificationEmail] = useState('')
   const submitInFlight = useRef(false)
@@ -176,6 +177,7 @@ function AuthModal({ mode, setMode, close, notify }) {
     if (!address || resendInFlight.current || resendBusy || resendCooldown > 0) return
     resendInFlight.current = true
     startResendCooldown(address)
+    setResendFeedback('')
     setResendBusy(true)
     try {
       const { error } = await supabase.auth.resend({
@@ -184,8 +186,10 @@ function AuthModal({ mode, setMode, close, notify }) {
         options: { emailRedirectTo: `${authRedirectUrl()}?flow=signup` },
       })
       if (error) throw error
+      setResendFeedback('ส่งคำขอสำเร็จแล้ว โปรดตรวจ Inbox, Spam และ Junk หากผู้ให้บริการส่งล่าช้า ลิงก์อาจมาถึงภายหลัง')
       notify('รับคำขอส่งอีเมลยืนยันอีกครั้งแล้ว กรุณาตรวจกล่องจดหมายและจดหมายขยะ')
     } catch (error) {
+      setResendFeedback(errorText(error))
       notify(errorText(error))
     } finally { resendInFlight.current = false; setResendBusy(false) }
   }
@@ -246,7 +250,7 @@ function AuthModal({ mode, setMode, close, notify }) {
         <button disabled={busy || (mode === 'register' && registrationComplete)} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'register' && registrationComplete ? 'สมัครแล้ว กรุณายืนยันอีเมล' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
       {mode !== 'reset' && awaitingVerification && <section className="nm-verify-resend" aria-labelledby="nm-verify-resend-title">
-        <div className="nm-verify-resend-icon" aria-hidden="true"><Send size={22}/></div>
+        <div className="nm-verify-resend-icon" aria-hidden="true"><Send size={22}/></div><span className="nm-verify-kicker">NISIT MATCH · EMAIL VERIFICATION</span>
         <div className="nm-verify-resend-copy">
           <h3 id="nm-verify-resend-title">ยังไม่ได้รับอีเมลยืนยัน?</h3>
           <p>เราได้รับคำขอยืนยันบัญชีของคุณแล้ว</p>
@@ -256,6 +260,7 @@ function AuthModal({ mode, setMode, close, notify }) {
         <button type="button" className="btn btn-pink btn-full nm-verify-resend-button" onClick={resendVerification} disabled={resendBusy || resendCooldown > 0}>
           {resendBusy ? <><Send size={17}/> กำลังส่งอีเมล…</> : resendCooldown > 0 ? <><Clock size={17}/> ส่งอีกครั้งได้ใน {resendCooldown} วินาที</> : <><Send size={17}/> ส่งอีเมลยืนยันอีกครั้ง</>}
         </button>
+        {resendFeedback && <p className="nm-verify-resend-feedback" role="status" aria-live="polite">{resendFeedback}</p>}
         <p className="nm-verify-resend-footnote">หากยังไม่ได้รับ อาจมีข้อจำกัดจากผู้ให้บริการอีเมล กรุณารอสักครู่แล้วลองใหม่</p>
       </section>}
       <div className="auth-switch">
