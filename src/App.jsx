@@ -1726,7 +1726,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [editTab, setEditTab] = useState('photos')
   const [selfPreviewOpen, setSelfPreviewOpen] = useState(false)
   const [selfPreviewIndex, setSelfPreviewIndex] = useState(0)
-  const editTabs = [['photos', 'รูปและวิดีโอ', Camera], ['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2], ['verification', 'ยืนยันเมลมหาวิทยาลัย', ShieldCheck]]
+  const aboutTabs = [['basic', 'ข้อมูลส่วนตัว', UserRound], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
+  const [aboutMenuOpen, setAboutMenuOpen] = useState(false)
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
     let alive = true
@@ -1883,7 +1884,14 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     <Heading kicker={onboarding ? 'WELCOME' : 'THIS IS YOU'} title={onboarding ? 'สร้างโปรไฟล์ของคุณ' : 'โปรไฟล์ของฉัน'} sub="เล่าเรื่องของคุณในแบบที่เป็นตัวเอง" />
     <div className="nm-self-preview-actions"><button type="button" className="btn btn-ghost nm-self-preview-open" onClick={() => { setSelfPreviewIndex(0); setSelfPreviewOpen(true) }}><Eye size={18}/> ดูตัวอย่างโปรไฟล์ของฉัน <ArrowRight size={16}/></button><span>ดูหน้าตาที่คนอื่นจะเห็น โดยไม่ต้องบันทึกก่อน</span></div>
     <div className="nm-profile-editor">
-      <nav className="nm-edit-tabs" aria-label="หมวดแก้ไขโปรไฟล์" role="tablist">{editTabs.map(([id, name, Icon]) => <button key={id} type="button" role="tab" aria-selected={editTab === id} className={editTab === id ? 'active' : ''} onClick={() => setEditTab(id)}><Icon size={17}/><span>{name}</span></button>)}</nav>
+      <nav className="nm-edit-tabs nm-edit-tabs-grouped" aria-label="หมวดแก้ไขโปรไฟล์">
+        <button type="button" className={editTab === 'photos' ? 'active' : ''} aria-current={editTab === 'photos' ? 'page' : undefined} onClick={() => setEditTab('photos')}><Camera size={18}/><span>รูปและวิดีโอ</span></button>
+        <button type="button" className={aboutTabs.some(([id]) => id === editTab) ? 'active' : ''} aria-expanded={aboutMenuOpen} aria-controls="nm-about-profile-tabs" onClick={() => { setAboutMenuOpen(v => !v); if (!aboutTabs.some(([id]) => id === editTab)) setEditTab('basic') }}><UserRound size={18}/><span>เกี่ยวกับฉัน</span><ChevronDown size={16} className={aboutMenuOpen ? 'nm-chevron-open' : ''}/></button>
+        {aboutMenuOpen && <div id="nm-about-profile-tabs" className="nm-edit-subtabs">{aboutTabs.map(([id, name, Icon]) => <button key={id} type="button" className={editTab === id ? 'active' : ''} aria-current={editTab === id ? 'page' : undefined} onClick={() => setEditTab(id)}><Icon size={16}/><span>{name}</span></button>)}</div>}
+        <button type="button" className={editTab === 'campus' ? 'active' : ''} aria-current={editTab === 'campus' ? 'page' : undefined} onClick={() => setEditTab('campus')}><GraduationCap size={18}/><span>การศึกษา</span></button>
+        <div className="nm-edit-nav-separator"/>
+        <button type="button" className={editTab === 'verification' ? 'active' : ''} aria-current={editTab === 'verification' ? 'page' : undefined} onClick={() => setEditTab('verification')}><ShieldCheck size={18}/><span>ยืนยันสถานะนักศึกษา</span></button>
+      </nav>
       <div className="nm-edit-workspace">
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกรูปหลักและเพิ่มรูปได้สูงสุด 6 รูป</p></div></div>
