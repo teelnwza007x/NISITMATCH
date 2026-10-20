@@ -443,7 +443,7 @@ body{background:radial-gradient(ellipse at 82% 0%,rgba(42,117,255,.2),transparen
 .itunes-premium-play svg{width:15px;height:15px;display:block}
 .itunes-premium-play:hover:not(:disabled){transform:translateY(-1px) scale(1.03)}
 .itunes-premium-eq{height:17px;gap:2px;align-items:center}
-.itunes-premium-eq i{height:4px;min-height:3px;width:2px;transition:height .09s linear;animation:none!important}
+.itunes-premium-eq i{height:4px;min-height:3px;width:2px;transition:height .09s linear}
 .itunes-premium.compact .itunes-premium-artwrap,.swipe-song .itunes-premium-artwrap{flex-basis:42px;width:42px;height:42px}
 .itunes-premium.compact .itunes-premium-main{gap:9px}
 .itunes-premium.compact .itunes-premium-eq{height:14px}
@@ -3018,3 +3018,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .itunes-song-card.is-playing .itunes-premium-eq i{animation-play-state:running;animation-delay:calc(var(--bar)*-67ms)}
 @keyframes nm-music-wave{from{height:4px}to{height:15px}}
 @media(prefers-reduced-motion:reduce){.itunes-song-card .itunes-premium-eq i{animation:none!important}.app-footer .nm-install-open-btn{transition:none}}
+
+/* Restore animated profile music bars: override the legacy animation:none rule. */
+.itunes-song-card.itunes-premium .itunes-premium-eq i{animation:nm-music-wave 850ms ease-in-out infinite alternate;animation-play-state:paused;will-change:height}
+.itunes-song-card.itunes-premium.is-playing .itunes-premium-eq i{animation-play-state:running;animation-delay:calc(var(--bar) * -85ms)}
+@media(prefers-reduced-motion:reduce){.itunes-song-card.itunes-premium .itunes-premium-eq i{animation:none;will-change:auto}}
