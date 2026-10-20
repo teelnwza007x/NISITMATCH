@@ -2036,7 +2036,7 @@ function CampusEmailVerification({ user }) {
     const domain = requestedDomain.trim().toLowerCase().replace(/^@+/, '')
     const universityName = requestedUniversity.trim() || 'ไม่ระบุ (' + domain + ')'
     if (universityName.length > 150) return setDomainRequestMessage('ชื่อมหาวิทยาลัยยาวเกินไป')
-    if (!/^[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/.test(domain) || domain.length > 253) return setDomainRequestMessage('กรุณากรอกเฉพาะโดเมน เช่น @nu.ac.th')
+    if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(domain) || domain.length > 253) return setDomainRequestMessage('กรุณากรอกเฉพาะโดเมน เช่น @nu.ac.th')
     setDomainRequestBusy(true)
     setDomainRequestMessage('')
     try {
