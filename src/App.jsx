@@ -2897,6 +2897,16 @@ export default function App() {
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
   const user = session?.user
   const userId = user?.id
+  useEffect(() => {
+    if (!user || profile === undefined) return
+    if (window.location.pathname === '/admin') setView(profile?.is_admin ? 'admin' : 'home')
+  },[user?.id,profile?.is_admin,profile === undefined])
+  useEffect(() => {
+    const onBack = () => { if (window.location.pathname !== '/admin') setView(old => old === 'admin' ? 'settings' : old) }
+    window.addEventListener('popstate',onBack)
+    return ()=>window.removeEventListener('popstate',onBack)
+  },[])
+
   // Presence is opt-in and is never exposed directly from the table.
   useEffect(() => {
     if (!userId) return
@@ -3365,7 +3375,7 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  const go = (v) => { if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (window.location.pathname === '/admin') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const shown = (people || []).filter((p) => matchesSelectedGender(p) && campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
   const filteredPeople = (people || []).filter(p => matchesSelectedGender(p) && campusFiltered(p))
