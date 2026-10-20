@@ -3042,3 +3042,71 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .itunes-song-card.itunes-premium.is-playing .itunes-premium-eq i{animation-play-state:running;opacity:1}
 @keyframes nm-eq-v3{0%{transform:scaleY(.23)}38%{transform:scaleY(.95)}70%{transform:scaleY(.45)}100%{transform:scaleY(.75)}}
 @media(prefers-reduced-motion:reduce){.itunes-song-card.itunes-premium .itunes-premium-eq i{animation:none;transform:scaleY(.35);will-change:auto}}
+
+/* Theme integration v120: all shared app surfaces use the chosen palette.
+   Keep media/photos unchanged; apply tokens to controls, cards and overlays. */
+:root[data-theme]{
+ --nm-ui-primary:var(--theme-accent);--nm-ui-secondary:var(--theme-accent2);
+ --nm-ui-bg:var(--theme-bg);--nm-ui-surface:var(--theme-panel);
+ --nm-ui-text:var(--theme-text);--nm-ui-muted:var(--theme-muted);
+ --nm-ui-border:var(--theme-border);
+ color-scheme:dark;
+}
+:root[data-theme="rose"]{color-scheme:light}
+:root[data-theme] .nm-settings-install,
+:root[data-theme] .nm-dialog.nm-install-dialog,
+:root[data-theme] .itunes-song-card.itunes-premium,
+:root[data-theme] .nm-sound-settings,
+:root[data-theme] .v26-settings-section,
+:root[data-theme] .settings-card,
+:root[data-theme] .settings-danger{
+ background:var(--theme-panel)!important;
+ border-color:var(--theme-border)!important;
+ color:var(--theme-text)!important;
+}
+:root[data-theme] .nm-settings-install-copy h3,
+:root[data-theme] .nm-install-dialog h2,
+:root[data-theme] .nm-sound-settings h3,
+:root[data-theme] .itunes-premium-copy strong,
+:root[data-theme] .itunes-premium-copy span,
+:root[data-theme] .itunes-premium-eyebrow{
+ color:var(--theme-text)!important;
+}
+:root[data-theme] .nm-settings-install-copy p,
+:root[data-theme] .nm-install-dialog p,
+:root[data-theme] .nm-install-dialog>small,
+:root[data-theme] .nm-sound-settings p,
+:root[data-theme] .itunes-premium-footer,
+:root[data-theme] .itunes-premium-timeline{
+ color:var(--theme-muted)!important;
+}
+:root[data-theme] .nm-install-steps>div{
+ background:color-mix(in srgb,var(--theme-accent) 7%,var(--theme-panel))!important;
+ border-color:var(--theme-border)!important;
+}
+:root[data-theme] .nm-install-steps span,
+:root[data-theme] .nm-install-steps strong{color:var(--theme-text)!important}
+:root[data-theme] .nm-install-kicker,
+:root[data-theme] .nm-settings-install-copy .theme-kicker{color:var(--theme-accent)!important}
+:root[data-theme] .nm-settings-install-symbol,
+:root[data-theme] .nm-install-icon,
+:root[data-theme] .nm-install-steps b{
+ background:color-mix(in srgb,var(--theme-accent) 17%,var(--theme-panel))!important;
+ color:var(--theme-accent)!important;
+}
+:root[data-theme] .nm-settings-install-action,
+:root[data-theme] .nm-install-done,
+:root[data-theme] .itunes-premium-play{
+ background:linear-gradient(125deg,var(--theme-accent),var(--theme-accent2))!important;
+ color:var(--theme-bg)!important;
+}
+:root[data-theme] .itunes-premium-eq i{
+ background:linear-gradient(180deg,var(--theme-accent),var(--theme-accent2))!important;
+ animation:none!important;
+ transition:none!important;
+ transform-origin:center!important;
+}
+:root[data-theme] .itunes-premium-eq{opacity:1!important}
+:root[data-theme] .itunes-premium.is-playing .itunes-premium-eq i{opacity:1!important}
+:root[data-theme] .itunes-premium-timeline input{accent-color:var(--theme-accent)}
+:root[data-theme] .nm-dialog-close{color:var(--theme-text)}
