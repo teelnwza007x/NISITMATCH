@@ -1470,6 +1470,22 @@ function ITunesSongCard({ track, compact = false }) {
   const sourceRef = useRef(null)
   const safeUrl = url => /^https:\/\//i.test(url || '') ? url : ''
   const preview = safeUrl(track?.preview)
+  const [resolvedPreview, setResolvedPreview] = useState(preview)
+  const [previewError, setPreviewError] = useState(false)
+  useEffect(() => {
+    setResolvedPreview(preview)
+    setPreviewError(false)
+  }, [track?.id, preview])
+  useEffect(() => {
+    if (preview || !track?.id) return
+    let active = true
+    const controller = new AbortController()
+    fetch('https://itunes.apple.com/lookup?' + new URLSearchParams({ id: String(track.id), entity: 'song', country: 'TH' }), { signal: controller.signal })
+      .then(r => { if (!r.ok) throw new Error('Music lookup failed'); return r.json() })
+      .then(data => { if (active) setResolvedPreview(safeUrl(data?.results?.find(x => x.previewUrl)?.previewUrl)) })
+      .catch(() => {})
+    return () => { active = false; controller.abort() }
+  }, [track?.id, preview])
   useEffect(() => {
     const audio = audioRef.current
     if (audio) { audio.pause(); audio.currentTime = 0 }
@@ -1527,11 +1543,11 @@ function ITunesSongCard({ track, compact = false }) {
   const formatTime = n => { const v = Math.floor(Number.isFinite(n) ? n : 0); return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` }
   const toggle = async () => {
     const audio = audioRef.current
-    if (!audio || !preview) return
+    if (!audio || !resolvedPreview) return
     if (audio.paused) {
       // Stop another song preview if the user starts a different card.
       document.querySelectorAll('.itunes-song-card audio').forEach(other => { if (other !== audio) other.pause() })
-      try { await audio.play() } catch { setPlaying(false) }
+      try { await audio.play() } catch { setPlaying(false); setPreviewError(true) }
     } else audio.pause()
   }
   const seek = e => {
@@ -1554,15 +1570,16 @@ function ITunesSongCard({ track, compact = false }) {
         <span title={track.artist}>{track.artist}</span>
         <div className="itunes-premium-eq" ref={barsRef} aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
       </div>
-      <button className={'itunes-premium-play music-smooth-toggle' + (playing ? ' music-smooth-toggle--playing' : '')} type="button" onClick={toggle} disabled={!preview} aria-pressed={playing} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={preview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}><span className="music-smooth-icon music-smooth-icon--play" aria-hidden="true"><Play size={15} strokeWidth={2.6} fill="currentColor" /></span><span className="music-smooth-icon music-smooth-icon--pause" aria-hidden="true"><Pause size={15} strokeWidth={2.6} fill="currentColor" /></span></button>
+      <button className={'itunes-premium-play music-smooth-toggle' + (playing ? ' music-smooth-toggle--playing' : '')} type="button" onClick={toggle} disabled={!resolvedPreview} aria-pressed={playing} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={resolvedPreview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}><span className="music-smooth-icon music-smooth-icon--play" aria-hidden="true"><Play size={15} strokeWidth={2.6} fill="currentColor" /></span><span className="music-smooth-icon music-smooth-icon--pause" aria-hidden="true"><Pause size={15} strokeWidth={2.6} fill="currentColor" /></span></button>
     </div>
-    {preview && <div className="itunes-premium-timeline">
+    {resolvedPreview && <div className="itunes-premium-timeline">
       <span>{formatTime(position)}</span>
       <input className={seeking ? "music-seek-active" : ""} type="range" min="0" max="100" step="0.1" value={progress} onPointerDown={startSeek} onPointerUp={endSeek} onPointerCancel={endSeek} onBlur={endSeek} onChange={seek} style={{'--progress': `${progress}%`}} aria-label="เลื่อนตำแหน่งเพลง" />
       <span>{formatTime(duration)}</span>
     </div>}
+    {previewError && <small className="itunes-preview-error">ไม่สามารถโหลดตัวอย่างเพลงได้ในขณะนี้ ลองใหม่อีกครั้ง</small>}
     {!compact && <div className="itunes-premium-footer"><span>♫ เพลงที่บอกความเป็นฉัน</span>{safeUrl(track.url) && <a href={safeUrl(track.url)} target="_blank" rel="noopener noreferrer">Apple Music ↗</a>}</div>}
-    {preview && <audio ref={audioRef} src={preview} crossOrigin="anonymous" preload="none" playsInline onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setPosition(0) }} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => { const d=e.currentTarget.duration; if(Number.isFinite(d) && d>0) setDuration(d) }} />}
+    {resolvedPreview && <audio ref={audioRef} src={resolvedPreview} preload="metadata" playsInline onPlay={() => { setPlaying(true); setPreviewError(false) }} onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setPosition(0) }} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onError={() => { setPlaying(false); setPreviewError(true) }} onLoadedMetadata={e => { const d=e.currentTarget.duration; if(Number.isFinite(d) && d>0) setDuration(d) }} />}
   </section>
 }
 
