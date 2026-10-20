@@ -1516,7 +1516,7 @@ function ITunesSongCard({ track, compact = false }) {
         <div className="itunes-premium-eyebrow">เพลงในโปรไฟล์</div>
         <strong title={track.name}>{track.name}</strong>
         <span title={track.artist}>{track.artist}</span>
-        <div className="itunes-premium-eq" aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{'--bar': i}} />)}</div>
+        <div className="itunes-premium-eq" aria-label={playing ? 'กำลังเล่นเพลง' : 'ตัวอย่างเพลง'}>{Array.from({length: 12}, (_, i) => <i key={i} style={{animationDelay: `-${(i * 0.113).toFixed(3)}s`, animationDuration: `${0.58 + (i % 5) * 0.13}s`}} />)}</div>
       </div>
       <button className={'itunes-premium-play music-smooth-toggle' + (playing ? ' music-smooth-toggle--playing' : '')} type="button" onClick={toggle} disabled={!resolvedPreview} aria-pressed={playing} aria-label={playing ? 'หยุดเพลงชั่วคราว' : 'เล่นตัวอย่างเพลง'} title={resolvedPreview ? (playing ? 'Pause' : 'Play preview') : 'เพลงนี้ไม่มีตัวอย่าง'}><span className="music-smooth-icon music-smooth-icon--play" aria-hidden="true"><Play size={15} strokeWidth={2.6} fill="currentColor" /></span><span className="music-smooth-icon music-smooth-icon--pause" aria-hidden="true"><Pause size={15} strokeWidth={2.6} fill="currentColor" /></span></button>
     </div>
