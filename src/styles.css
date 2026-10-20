@@ -2811,3 +2811,15 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .nm-edit-tabs-grouped>button:has(.lucide-graduation-cap).active{box-shadow:0 8px 24px color-mix(in srgb,var(--accent,#ec77b3) 18%,transparent)}
 @media(max-width:550px){.nm-intent-editor-fresh .nm-intent-options{grid-template-columns:1fr}.nm-intent-editor-fresh .nm-intent-options button{min-height:68px}}
 @media(prefers-reduced-motion:reduce){.nm-intent-editor-fresh .nm-intent-options button,.nm-intent-editor-fresh .nm-intent-emoji{transition:none}}
+
+
+/* Theme-aware confirmation resend panel */
+.auth-modal .nm-verify-resend{position:relative;isolation:isolate;overflow:hidden;color:var(--text,#f8f5fa);background:radial-gradient(ellipse at 15% 0%,rgba(242,96,163,.17),transparent 62%),linear-gradient(145deg,rgba(137,121,165,.13),rgba(125,125,145,.045));border:1px solid rgba(238,118,164,.3);box-shadow:0 15px 38px rgba(0,0,0,.12)}
+.auth-modal .nm-verify-resend::before{content:"";position:absolute;z-index:-1;inset:-1px;pointer-events:none;background:radial-gradient(circle at 90% 10%,rgba(255,124,192,.1),transparent 40%)}
+.auth-modal .nm-verify-kicker{font-size:9px;font-weight:800;letter-spacing:.15em;color:#f080b6;margin:0 0 10px}
+.auth-modal .nm-verify-resend-copy>p,.auth-modal .nm-verify-resend-footnote{color:inherit;opacity:.75}
+.auth-modal .nm-verify-resend-email{background:rgba(135,135,155,.1);border-color:rgba(215,148,185,.25)}
+.auth-modal .nm-verify-resend-email strong{color:inherit}
+.auth-modal .nm-verify-resend-feedback{width:100%;margin:12px 0 0;padding:11px 12px;border-radius:12px;background:rgba(120,185,155,.1);border:1px solid rgba(120,185,155,.28);font-size:12px;line-height:1.7;text-align:left}
+.auth-modal .nm-verify-resend-button:focus-visible{outline:3px solid #f080b6;outline-offset:3px}
+@media(prefers-reduced-motion:no-preference){.auth-modal .nm-verify-resend-icon{animation:nmVerifyFloat 3.5s ease-in-out infinite}@keyframes nmVerifyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}}
