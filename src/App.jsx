@@ -2026,6 +2026,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
+  up: { name: 'มหาวิทยาลัยพะเยา', domains: ['up.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
