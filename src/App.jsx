@@ -2120,6 +2120,26 @@ function CampusEmailVerification({ user }) {
   const [campusCode, setCampusCode] = useState('')
   const [campusUniversity, setCampusUniversity] = useState('')
   const [campusSearch, setCampusSearch] = useState('')
+  const [campusPickerOpen, setCampusPickerOpen] = useState(false)
+  const campusGroups = [
+    ['มหาวิทยาลัยของรัฐ', ['ku','chula','tu','buu','swu','su','nu','up','mu','mfu']],
+    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
+    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc']]
+  ]
+  const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
+  const campusResults = campusGroups.map(([title, ids]) => [title, ids.filter(id => {
+    const campus = VERIFIED_CAMPUS_DOMAINS[id]
+    return campus && (!normalizedCampusQuery || [campus.name, id, ...campus.domains].join(' ').toLocaleLowerCase('th').includes(normalizedCampusQuery))
+  })]).filter(([, ids]) => ids.length)
+  const chooseCampus = id => {
+    setCampusUniversity(id)
+    setCampusSearch('')
+    setCampusPickerOpen(false)
+    setCampusEmail('')
+    setVerifyStep('email')
+    setCampusCode('')
+    setVerifyMessage('')
+  }
   const [verifyStep, setVerifyStep] = useState('email')
   const [verifyBusy, setVerifyBusy] = useState(false)
   const [verifyMessage, setVerifyMessage] = useState('')
@@ -2197,20 +2217,27 @@ function CampusEmailVerification({ user }) {
     <div className="v26-verify-row">{isVerified ? <span className="nm-verified-badge" role="status"><ShieldCheck size={17} strokeWidth={2.2}/> {studentTerm(verification.university_id)}ยืนยันแล้ว · ล็อกมหาวิทยาลัย</span> : <span className="v26-status">ยังไม่ยืนยันอีเมลมหาวิทยาลัย</span>}</div>
     {isVerified ? <div className="v27-verify-success" role="status"><ShieldCheck size={18}/><div><b>{VERIFIED_CAMPUS_DOMAINS[verification.university_id]?.name || uniName(verification.university_id)}</b><p>อีเมลยืนยัน: {verification.verified_email || `*@${verification.email_domain}`}</p><small>มหาวิทยาลัยและอีเมลยืนยันนี้เปลี่ยนไม่ได้ หากมีปัญหาให้ติดต่อผู้ดูแล</small></div></div> : <div className="v27-verify-form">
       <div className="nm-campus-picker-heading"><span className="nm-campus-picker-icon"><GraduationCap size={21}/></span><div><strong>เลือกสถาบันของคุณ</strong><p>ค้นหาชื่อมหาวิทยาลัยหรือโดเมนอีเมล แล้วเลือกจากหมวดหมู่</p></div></div>
-      <label htmlFor="v27-campus-search">ค้นหามหาวิทยาลัย</label>
-      <input id="v27-campus-search" type="search" value={campusSearch} onChange={e => setCampusSearch(e.target.value)} placeholder="เช่น มหิดล, แม่ฟ้าหลวง, mu.ac.th" autoComplete="off"/>
-      <label htmlFor="v27-campus">เลือกมหาวิทยาลัยที่ต้องการยืนยัน</label>
-      <select id="v27-campus" value={campusUniversity} onChange={e => {setCampusUniversity(e.target.value); setCampusEmail(''); setVerifyStep('email'); setCampusCode(''); setVerifyMessage('')}}>
-        <option value="">เลือกมหาวิทยาลัย</option>
-        {[
-          ['มหาวิทยาลัยของรัฐ', ['ku','chula','tu','buu','swu','su','nu','up','mu','mfu']],
-          ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
-          ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc']]
-        ].map(([group, ids]) => {
-          const filtered = ids.filter(id => VERIFIED_CAMPUS_DOMAINS[id] && (VERIFIED_CAMPUS_DOMAINS[id].name + ' ' + id + ' ' + VERIFIED_CAMPUS_DOMAINS[id].domains.join(' ')).toLowerCase().includes(campusSearch.trim().toLowerCase()))
-          return filtered.length ? <optgroup key={group} label={group}>{filtered.map(id => <option key={id} value={id}>{VERIFIED_CAMPUS_DOMAINS[id].name}</option>)}</optgroup> : null
-        })}
-      </select>
+      <label htmlFor="v27-campus-search">ค้นหาและเลือกมหาวิทยาลัย</label>
+      <div className="nm-campus-search-wrap">
+        <Search size={18} aria-hidden="true"/>
+        <input id="v27-campus-search" type="search" role="combobox" aria-autocomplete="list" aria-controls="nm-campus-results" aria-expanded={campusPickerOpen} value={campusSearch} onFocus={() => setCampusPickerOpen(true)} onChange={e => { setCampusSearch(e.target.value); setCampusPickerOpen(true) }} onKeyDown={e => {
+          if (e.key === 'Escape') setCampusPickerOpen(false)
+          if (e.key === 'Enter' && campusPickerOpen && campusResults[0]?.[1]?.[0]) { e.preventDefault(); chooseCampus(campusResults[0][1][0]) }
+        }} placeholder="พิมพ์ชื่อมหาลัย เช่น มหิดล หรือ mu.ac.th" autoComplete="off"/>
+        {campusSearch && <button type="button" className="nm-campus-clear" onClick={() => {setCampusSearch(''); setCampusPickerOpen(true)}} aria-label="ล้างคำค้นหา"><X size={16}/></button>}
+      </div>
+      {selectedCampus && <button type="button" className="nm-campus-current" onClick={() => setCampusPickerOpen(v => !v)}><GraduationCap size={18}/><span><strong>{selectedCampus.name}</strong><small>{selectedCampus.domains.map(d => '@'+d).join(' · ')}</small></span><span className="nm-campus-change">เปลี่ยน</span></button>}
+      {campusPickerOpen && <div id="nm-campus-results" className="nm-campus-results" role="listbox" aria-label="ผลการค้นหามหาวิทยาลัย">
+        {campusResults.length ? campusResults.map(([title, ids]) => <div className="nm-campus-group" key={title}>
+          <div className="nm-campus-group-title">{title}</div>
+          {ids.map(id => <button key={id} type="button" role="option" aria-selected={campusUniversity === id} className={'nm-campus-result' + (campusUniversity === id ? ' selected' : '')} onClick={() => chooseCampus(id)}>
+            <span className="nm-campus-result-icon"><GraduationCap size={17}/></span>
+            <span className="nm-campus-result-label"><strong>{VERIFIED_CAMPUS_DOMAINS[id].name}</strong><small>{VERIFIED_CAMPUS_DOMAINS[id].domains.map(d => '@' + d).join(' · ')}</small></span>
+            {campusUniversity === id ? <Check size={18}/> : <ArrowRight size={16}/>}
+          </button>)}
+        </div>) : <div className="nm-campus-no-results"><Search size={22}/><strong>ไม่พบมหาวิทยาลัยที่ค้นหา</strong><span>ลองใช้ชื่อภาษาไทยหรือโดเมนอีเมล เช่น @mu.ac.th</span></div>}
+      </div>}
+      {!selectedCampus && !campusPickerOpen && <button type="button" className="nm-campus-open" onClick={() => setCampusPickerOpen(true)}>แตะเพื่อดูมหาวิทยาลัยทั้งหมด <ArrowRight size={17}/></button>}
       {selectedCampus && <p className="v27-domain-hint">รองรับเฉพาะโดเมน: <b>{allowedDomains.map(x => '@' + x).join(' · ')}</b></p>}
       <label htmlFor="v27-campus-email">อีเมลมหาวิทยาลัย</label>
       <input id="v27-campus-email" type="email" inputMode="email" autoComplete="email" placeholder={selectedCampus ? selectedCampus.domains.map(d => `ชื่อผู้ใช้@${d}`).join(' หรือ ') : 'เลือกมหาวิทยาลัยก่อน'} value={campusEmail} onChange={e=>{setCampusEmail(e.target.value); setVerifyMessage('')}} disabled={!selectedCampus || verifyStep === 'code'} />
