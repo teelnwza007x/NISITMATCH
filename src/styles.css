@@ -2823,3 +2823,22 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .auth-modal .nm-verify-resend-feedback{width:100%;margin:12px 0 0;padding:11px 12px;border-radius:12px;background:rgba(120,185,155,.1);border:1px solid rgba(120,185,155,.28);font-size:12px;line-height:1.7;text-align:left}
 .auth-modal .nm-verify-resend-button:focus-visible{outline:3px solid #f080b6;outline-offset:3px}
 @media(prefers-reduced-motion:no-preference){.auth-modal .nm-verify-resend-icon{animation:nmVerifyFloat 3.5s ease-in-out infinite}@keyframes nmVerifyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}}
+
+
+/* Unified theme tokens for interactive surfaces across the app */
+:root[data-theme="midnight"]{--nm-ui-accent:#f45ca5;--nm-ui-secondary:#a38aff;--nm-ui-surface:#171b2a;--nm-ui-text:#f9f5fc;--nm-ui-muted:#aeb4c6}
+:root[data-theme="rose"]{--nm-ui-accent:#c94d86;--nm-ui-secondary:#a86ec6;--nm-ui-surface:#fff8fc;--nm-ui-text:#362334;--nm-ui-muted:#765d71}
+:root[data-theme="ocean"]{--nm-ui-accent:#4ab8d5;--nm-ui-secondary:#83b5e7;--nm-ui-surface:#11283b;--nm-ui-text:#f1faff;--nm-ui-muted:#abc9d9}
+:root[data-theme="sage"]{--nm-ui-accent:#94c7ab;--nm-ui-secondary:#d3d5a2;--nm-ui-surface:#1a3029;--nm-ui-text:#f1fcf4;--nm-ui-muted:#b6cfc0}
+:root[data-theme="lavender"]{--nm-ui-accent:#c2a2ff;--nm-ui-secondary:#efacd7;--nm-ui-surface:#241c37;--nm-ui-text:#fbf5ff;--nm-ui-muted:#c6b8dc}
+:root[data-theme] .nm-verify-resend{border-color:color-mix(in srgb,var(--nm-ui-accent) 38%,transparent);background:radial-gradient(ellipse at 15% 0,color-mix(in srgb,var(--nm-ui-accent) 18%,transparent),transparent 65%),color-mix(in srgb,var(--nm-ui-surface) 92%,transparent);color:var(--nm-ui-text)}
+:root[data-theme] .nm-verify-kicker,:root[data-theme] .nm-verify-resend-icon{color:var(--nm-ui-accent)}
+:root[data-theme] .nm-verify-resend-icon{background:color-mix(in srgb,var(--nm-ui-accent) 16%,var(--nm-ui-surface));box-shadow:0 7px 24px color-mix(in srgb,var(--nm-ui-accent) 18%,transparent)}
+:root[data-theme] .nm-verify-resend-email{background:color-mix(in srgb,var(--nm-ui-surface) 85%,transparent);border-color:color-mix(in srgb,var(--nm-ui-accent) 25%,transparent)}
+:root[data-theme] .nm-verify-resend-feedback{border-color:color-mix(in srgb,var(--nm-ui-accent) 30%,transparent);background:color-mix(in srgb,var(--nm-ui-accent) 10%,transparent)}
+:root[data-theme] .nm-sound-settings{border-color:color-mix(in srgb,var(--nm-ui-accent) 26%,transparent);background:linear-gradient(125deg,color-mix(in srgb,var(--nm-ui-accent) 12%,transparent),color-mix(in srgb,var(--nm-ui-secondary) 8%,transparent))}
+:root[data-theme] .nm-sound-settings-icon{background:color-mix(in srgb,var(--nm-ui-accent) 15%,transparent);color:var(--nm-ui-accent)}
+:root[data-theme] .nm-sound-toggle.is-on{background:var(--nm-ui-accent);border-color:var(--nm-ui-accent)}
+:root[data-theme] .nm-edit-tabs-grouped .nm-edit-subtabs{background:color-mix(in srgb,var(--nm-ui-surface) 90%,transparent);border-color:color-mix(in srgb,var(--nm-ui-accent) 23%,transparent)}
+:root[data-theme] .nm-intent-editor-fresh{border-color:color-mix(in srgb,var(--nm-ui-accent) 30%,transparent)}
+:root[data-theme] .nm-verify-resend-button:focus-visible,:root[data-theme] .nm-sound-toggle:focus-visible{outline-color:var(--nm-ui-accent)}
