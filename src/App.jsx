@@ -2771,6 +2771,19 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
+    <style>{`@media (max-width: 640px) {
+      .nm-admin-dashboard { min-width: 0; width: 100%; overflow-x: hidden; padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+      .nm-admin-dashboard .nm-admin-navigation { gap: 14px !important; }
+      .nm-admin-dashboard .nm-admin-tabs { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px !important; overflow: visible; }
+      .nm-admin-dashboard .nm-admin-tabs button { min-width: 0; min-height: 48px; white-space: normal; line-height: 1.3; padding: 10px 8px; border-radius: 13px; font-size: 13px; text-align: center; }
+      .nm-admin-dashboard .nm-admin-navigation > div:last-child { display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 8px !important; }
+      .nm-admin-dashboard .nm-admin-navigation > div:last-child button { min-width: 0; width: 100%; min-height: 44px; justify-content: space-between; text-align: left; }
+      .nm-admin-dashboard .nm-admin-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .nm-admin-dashboard .nm-admin-metrics article { min-width: 0; padding: 14px 10px; }
+      .nm-admin-dashboard .nm-admin-overview, .nm-admin-dashboard .nm-admin-queue { min-width: 0; max-width: 100%; }
+      .nm-admin-dashboard .nm-admin-queue { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .nm-admin-dashboard button { touch-action: manipulation; }
+    }`}</style>
     <div className="nm-admin-navigation" style={{display:'grid',gap:12,marginBottom:20}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><strong style={{fontSize:17}}>ศูนย์จัดการระบบ</strong><p style={{margin:'4px 0 0',fontSize:13,opacity:.7}}>เลือกงานที่ต้องการจัดการได้จากหมวดด้านล่าง</p></div><span style={{fontSize:12,opacity:.65}}>สำหรับผู้ดูแลระบบ</span></div>
       <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ" style={{display:'flex',flexWrap:'wrap',gap:8}}>
