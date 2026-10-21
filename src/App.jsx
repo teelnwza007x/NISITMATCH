@@ -2314,10 +2314,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         <button type="button" className={aboutTabs.some(([id]) => id === editTab) ? 'active' : ''} aria-expanded={aboutMenuOpen} aria-controls="nm-about-profile-tabs" onClick={() => { playNisitSound('menu'); setAboutMenuOpen(v => !v); if (!aboutTabs.some(([id]) => id === editTab)) selectEditTab('basic') }}><UserRound size={18}/><span>เกี่ยวกับฉัน</span><ChevronDown size={16} className={aboutMenuOpen ? 'nm-chevron-open' : ''}/></button>
         {aboutMenuOpen && <div id="nm-about-profile-tabs" className="nm-edit-subtabs">{aboutTabs.map(([id, name, Icon]) => <button key={id} type="button" className={editTab === id ? 'active' : ''} aria-current={editTab === id ? 'page' : undefined} onClick={() => selectEditTab(id)}><Icon size={16}/><span>{name}</span></button>)}</div>}
         <button type="button" className={editTab === 'campus' ? 'active' : ''} aria-current={editTab === 'campus' ? 'page' : undefined} onClick={() => selectEditTab('campus')}><GraduationCap size={18}/><span>การศึกษา</span></button>
-        <button type="button" className={editTab === 'verification' ? 'active' : ''} aria-current={editTab === 'verification' ? 'page' : undefined} onClick={() => selectEditTab('verification')}><GraduationCap size={18}/><span>ยืนยันสถานะนักศึกษา</span></button>
         <div className="nm-edit-nav-separator"/>
         <div className="nm-edit-category-label">บัญชีและความปลอดภัย</div>
         <button type="button" className={editTab === 'account-email' ? 'active' : ''} aria-current={editTab === 'account-email' ? 'page' : undefined} onClick={() => selectEditTab('account-email')}><ShieldCheck size={18}/><span>ยืนยันอีเมลบัญชี</span></button>
+        <button type="button" className={editTab === 'verification' ? 'active' : ''} aria-current={editTab === 'verification' ? 'page' : undefined} onClick={() => selectEditTab('verification')}><GraduationCap size={18}/><span>ยืนยันอีเมลมหาวิทยาลัย</span></button>
       </nav>
       <div className="nm-edit-workspace">
       {editTab === 'account-email' && <AccountEmailVerification user={user} notify={notify} />}
