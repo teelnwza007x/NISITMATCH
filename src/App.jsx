@@ -3116,8 +3116,8 @@ function TapSoundVideo({ className, src, label, onPointerDown, onPointerUp, ...r
     if (video.paused) video.play().catch(() => {})
   }
   return <div className="nm-tap-sound-wrap" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-    <video {...rest} ref={videoRef} className={className} src={src} muted playsInline loop autoPlay preload="metadata" onCanPlay={e => { const p = e.currentTarget.play(); if (p?.catch) p.catch(() => {}) }} aria-label={label} controls={false}/>
-    <button type="button" className="nm-video-sound-button" aria-label={soundOn ? "ปิดเสียงวิดีโอ" : "เปิดเสียงวิดีโอ"} aria-pressed={soundOn} onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} onClick={toggleSound}>{soundOn ? <Volume2 size={19}/> : <VolumeX size={19}/>}</button>
+    <video {...rest} ref={videoRef} className={className} src={src} muted playsInline loop autoPlay preload="metadata" onCanPlay={e => { const p = e.currentTarget.play(); if (p?.catch) p.catch(() => {}) }} aria-label={label} controls={false} onClick={toggleSound}/>
+    {showFeedback && <span className="nm-tap-sound-feedback" aria-hidden="true" key={soundOn ? "sound-on" : "sound-off"}>{soundOn ? <Volume2 size={30} strokeWidth={1.8}/> : <VolumeX size={30} strokeWidth={1.8}/>}</span>}
   </div>
 }
 
