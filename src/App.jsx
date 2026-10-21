@@ -1,3 +1,4 @@
+import AdminPremiumDirectory from './components/AdminPremiumDirectory'
 import './dailyRewards.css'
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
@@ -2758,7 +2759,8 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
-    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button><button type="button" className={adminTab === 'profiles' ? 'is-active' : ''} onClick={() => setAdminTab('profiles')}>โปรไฟล์สมาชิก</button><button type="button" className={adminTab === 'hangouts' ? 'is-active' : ''} onClick={() => setAdminTab('hangouts')}>ห้อง Hangout</button></nav>
+    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "premium" ? "is-active" : ""} onClick={() => setAdminTab("premium")}>สมาชิก Premium</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button><button type="button" className={adminTab === 'profiles' ? 'is-active' : ''} onClick={() => setAdminTab('profiles')}>โปรไฟล์สมาชิก</button><button type="button" className={adminTab === 'hangouts' ? 'is-active' : ''} onClick={() => setAdminTab('hangouts')}>ห้อง Hangout</button></nav>
+    {adminTab === 'premium' && <AdminPremiumDirectory/>}
     {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
     {adminTab === 'hangouts' && <AdminDirectory kind="hangouts"/>}
     {adminTab === "email" && <EmailCenter />}
