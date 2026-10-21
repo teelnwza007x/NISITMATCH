@@ -3471,6 +3471,8 @@ function AppContent() {
   const userId = user?.id
   const [dailyOpen, setDailyOpen] = useState(false)
   const [referralEventOpen, setReferralEventOpen] = useState(false)
+  const [eventSlide, setEventSlide] = useState(0)
+  const eventTouchStart = useRef(null)
   const [referralEventNeverShow, setReferralEventNeverShow] = useState(false)
   useEffect(() => {
     if (!userId || !profile?.id) { setReferralEventOpen(false); return }
@@ -4131,12 +4133,28 @@ const loadMatches = useCallback(async () => {
       {referralEventOpen && !dailyOpen && createPortal(<div className="nm-referral-event-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeReferralEvent() }}>
         <section className="nm-referral-event" role="dialog" aria-modal="true" aria-labelledby="nm-referral-event-title">
           <button type="button" className="nm-referral-event-close" aria-label="ปิดกิจกรรมชวนเพื่อน" onClick={closeReferralEvent}><X size={20}/></button>
-          <div className="nm-referral-event-glow"><Sparkles size={25}/><Crown size={52}/><Sparkles size={25}/></div>
-          <span className="nm-referral-event-kicker">SPECIAL EVENT · INVITE & EARN</span>
-          <h2 id="nm-referral-event-title">ชวนเพื่อน รับ Premium ฟรี!</h2>
-          <p>ชวนเพื่อนมาเจอคนที่ใช่ และรับสิทธิพิเศษเมื่อเพื่อนยืนยันอีเมลมหาวิทยาลัยสำเร็จ</p>
-          <div className="nm-referral-event-rewards"><div><small>คุณได้รับ</small><strong>7 วัน</strong><span>Premium ฟรี</span></div><div><small>เพื่อนที่ถูกชวน</small><strong>3 วัน</strong><span>Premium ฟรี</span></div></div>
-          <button type="button" className="nm-referral-event-cta" onClick={() => { closeReferralEvent(); go('premium') }}><Gift size={20}/> ดูรหัสชวนเพื่อน <ArrowRight size={19}/></button>
+          <div className="nm-referral-event-slides" onTouchStart={e => { eventTouchStart.current = e.touches[0]?.clientX ?? null }} onTouchEnd={e => { if (eventTouchStart.current == null) return; const dx = e.changedTouches[0].clientX - eventTouchStart.current; if (Math.abs(dx) > 45) setEventSlide(dx < 0 ? 1 : 0); eventTouchStart.current = null }}>
+            {eventSlide === 0 ? <>
+              <div className="nm-referral-event-glow"><Sparkles size={25}/><Crown size={52}/><Sparkles size={25}/></div>
+              <span className="nm-referral-event-kicker">SPECIAL EVENT · INVITE & EARN</span>
+              <h2 id="nm-referral-event-title">ชวนเพื่อน รับ Premium ฟรี!</h2>
+              <p>ชวนเพื่อนมาเจอคนที่ใช่ และรับสิทธิพิเศษเมื่อเพื่อนยืนยันอีเมลมหาวิทยาลัยสำเร็จ</p>
+              <div className="nm-referral-event-rewards"><div><small>คุณได้รับ</small><strong>7 วัน</strong><span>Premium ฟรี</span></div><div><small>เพื่อนที่ถูกชวน</small><strong>3 วัน</strong><span>Premium ฟรี</span></div></div>
+              <button type="button" className="nm-referral-event-cta" onClick={() => { closeReferralEvent(); go('premium') }}><Gift size={20}/> ดูรหัสชวนเพื่อน <ArrowRight size={19}/></button>
+            </> : <>
+              <div className="nm-referral-event-glow"><Sparkles size={25}/><MailCheck size={52}/><Sparkles size={25}/></div>
+              <span className="nm-referral-event-kicker">SPECIAL EVENT · EMAIL REWARD</span>
+              <h2 id="nm-referral-event-title">ยืนยันอีเมล รับ Premium ฟรี!</h2>
+              <p>ยืนยันอีเมลบัญชีด้วย OTP 6 หลัก เพื่อรับ Premium ฟรี 3 วัน เพียงครั้งเดียวต่อบัญชี</p>
+              <div className="nm-referral-event-rewards"><div><small>ยืนยันอีเมลบัญชี</small><strong>3 วัน</strong><span>Premium ฟรี</span></div></div>
+              <button type="button" className="nm-referral-event-cta" onClick={() => { closeReferralEvent(); setProfileEntryTab('account-email'); go('profile') }}><MailCheck size={20}/> ไปยืนยันอีเมล <ArrowRight size={19}/></button>
+            </>}
+          </div>
+          <div className="nm-event-pagination" aria-label="เลือกหน้ากิจกรรม">
+            <button type="button" aria-label="กิจกรรมชวนเพื่อน" aria-current={eventSlide === 0 ? 'page' : undefined} className={eventSlide === 0 ? 'active' : ''} onClick={() => setEventSlide(0)} />
+            <button type="button" aria-label="กิจกรรมยืนยันอีเมล" aria-current={eventSlide === 1 ? 'page' : undefined} className={eventSlide === 1 ? 'active' : ''} onClick={() => setEventSlide(1)} />
+            <button type="button" className="nm-event-next" onClick={() => setEventSlide(eventSlide === 0 ? 1 : 0)}>{eventSlide === 0 ? 'ปัดซ้ายเพื่อดูอีกกิจกรรม →' : '← กลับไปกิจกรรมชวนเพื่อน'}</button>
+          </div>
           <label className="nm-referral-event-optout"><input type="checkbox" checked={referralEventNeverShow} onChange={e => setReferralEventNeverShow(e.target.checked)}/> ไม่ต้องแสดงกิจกรรมนี้อีก</label>
           <button type="button" className="nm-referral-event-later" onClick={closeReferralEvent}>ไว้ทีหลัง · ปิดหน้าต่าง</button>
         </section>
