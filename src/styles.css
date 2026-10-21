@@ -3750,3 +3750,10 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-edit-tabs-grouped .nm-edit-nav-separator{display:block;flex:0 0 100%;width:100%;height:1px;margin:14px 0 2px;background:linear-gradient(90deg,transparent,rgba(205,185,245,.28),transparent)}
 .nm-edit-tabs-grouped .nm-edit-category-label{flex:0 0 100%;width:100%;box-sizing:border-box}
 @media(max-width:650px){.nm-edit-tabs-grouped .nm-edit-nav-separator{display:block;grid-column:1/-1;width:100%;height:1px;margin:10px 0 0}.nm-edit-tabs-grouped .nm-edit-category-label{grid-column:1/-1}}
+
+/* Two-page referral and email reward event */
+.nm-event-pagination{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap;margin:13px 0 5px}
+.nm-event-pagination>button:not(.nm-event-next){width:9px;height:9px;border:0;border-radius:50%;padding:0;background:rgba(190,175,210,.45);cursor:pointer}
+.nm-event-pagination>button.active:not(.nm-event-next){width:24px;border-radius:9px;background:#e97be9}
+.nm-event-pagination .nm-event-next{width:100%;border:0;background:transparent;color:inherit;opacity:.8;font-size:12px;padding:8px;cursor:pointer}
+.nm-referral-event-slides{touch-action:pan-y;min-width:0}
