@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   for (const item of queue || []) {
     const { data: subs, error: subError } = await db.from('push_subscriptions').select('endpoint,p256dh,auth').eq('user_id',item.user_id)
     if (subError) continue
-    if (item.type !== 'match' && item.type !== 'interest') {
+    if (!['match', 'interest', 'admin_report', 'admin_domain'].includes(item.type)) {
       await db.from('push_queue').update({ processed_at: new Date().toISOString() }).eq('id', item.id)
       continue
     }
@@ -34,7 +34,19 @@ Deno.serve(async (req) => {
         continue
       }
     }
-    const payload = JSON.stringify({ title: 'NISIT MATCH', body: item.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : 'มีคนกำลังสนใจคุณอยู่', tag: 'nisit-'+item.id })
+    const adminType = item.type === 'admin_report' || item.type === 'admin_domain'
+    if (adminType) {
+      const { data: admin } = await db.from('profiles').select('is_admin').eq('id', item.user_id).maybeSingle()
+      if (admin?.is_admin !== true) {
+        await db.from('push_queue').update({ processed_at: new Date().toISOString() }).eq('id', item.id)
+        continue
+      }
+    }
+    const body = item.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!'
+      : item.type === 'interest' ? 'มีคนกำลังสนใจคุณอยู่'
+      : item.type === 'admin_report' ? 'มีรายงานสมาชิกใหม่รอตรวจสอบ'
+      : 'มีคำขอโดเมนมหาวิทยาลัยใหม่'
+    const payload = JSON.stringify({ title: adminType ? 'NISIT MATCH · Admin' : 'NISIT MATCH', body, tag: 'nisit-'+item.id })
     let transientFailure = false
     for (const s of subs || []) {
       try {
