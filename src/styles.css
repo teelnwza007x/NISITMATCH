@@ -3566,3 +3566,9 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nm-referral-event-pop{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes nm-referral-event-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 @media(prefers-reduced-motion:reduce){.nm-referral-event-backdrop,.nm-referral-event,.nm-referral-event-glow{animation:none}}
+
+/* Keep the sound slider and its thumb inside narrow settings cards, including iPhone Safari. */
+.nm-sound-settings{min-width:0}
+.nm-sound-volume{box-sizing:border-box;min-width:0;max-width:100%;width:100%}
+.nm-sound-volume input[type="range"]{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;margin:6px 0;padding:0;touch-action:pan-y}
+.nm-sound-volume span{min-width:0;flex-wrap:wrap}
