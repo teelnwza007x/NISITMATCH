@@ -79,6 +79,8 @@ Deno.serve(async req => {
   if(await hash(`${user.id}:${mail}:${code}:${pepper}`)!==old.code_hash) return reply({error:'รหัสไม่ถูกต้อง'},400)
   const {error:saveError}=await db.from('student_verifications').upsert({user_id:user.id,email_domain:domain,verified_email:mail,university_id,status:'verified',requested_at:new Date().toISOString(),reviewed_at:new Date().toISOString()},{onConflict:'user_id'})
   if(saveError) throw saveError
+  const {error:auditError}=await db.from('student_otp_verified_audit').upsert({user_id:user.id,university_id,verified_email:mail,verified_at:new Date().toISOString()},{onConflict:'user_id'})
+  if(auditError){console.error('OTP audit write failed',auditError.message);return reply({error:'ยืนยันสำเร็จ แต่บันทึกหลักฐาน OTP ไม่สำเร็จ กรุณาติดต่อผู้ดูแล'},500)}
   await db.from('student_email_otp_challenges').delete().eq('user_id',user.id)
   return reply({ok:true})
  } catch(e) { console.error(e); return reply({error:'ระบบยืนยันขัดข้อง กรุณาลองใหม่'},500) }
