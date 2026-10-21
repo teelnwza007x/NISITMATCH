@@ -2732,7 +2732,8 @@ function ReferralPanel({ user }) {
     <p>เพื่อนยืนยันอีเมลมหาวิทยาลัยสำเร็จ คนชวนรับ 7 วัน เพื่อนรับ 3 วัน</p>
     {code && <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginTop:16}}>
       <strong style={{letterSpacing:2}}>{code}</strong>
-      <button type="button" className="v76-secondary-link" onClick={async () => { try { await navigator.clipboard.writeText(link); setMessage('คัดลอกลิงก์แล้ว') } catch { setMessage(link) } }}>คัดลอกลิงก์เชิญ</button>
+      <button type="button" className="v76-secondary-link" onClick={async () => { try { await navigator.clipboard.writeText(code); setMessage('คัดลอกรหัสชวนเพื่อนแล้ว') } catch { setMessage('คัดลอกอัตโนมัติไม่ได้ กรุณาเลือกรหัสด้านบนเพื่อคัดลอก') } }}>คัดลอกรหัสเชิญ</button>
+      <button type="button" className="v76-secondary-link" onClick={async () => { try { await navigator.clipboard.writeText(link); setMessage('คัดลอกลิงก์ชวนเพื่อนแล้ว') } catch { setMessage('คัดลอกลิงก์ไม่ได้ กรุณาลองใหม่') } }}>คัดลอกลิงก์</button>
     </div>}
     <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
       <input aria-label="รหัสชวนเพื่อน" placeholder="กรอกรหัสที่เพื่อนส่งมา" value={input} onChange={e=>setInput(e.target.value.toUpperCase())} maxLength={20} style={{flex:'1 1 180px',minWidth:0,padding:12,borderRadius:12}} />
