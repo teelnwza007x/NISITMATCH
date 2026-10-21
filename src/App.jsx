@@ -3268,6 +3268,15 @@ export default function App() {
   }
 
   const [dailyOpen, setDailyOpen] = useState(false)
+  const [dailyClaimed, setDailyClaimed] = useState(true)
+  useEffect(() => {
+    let active = true
+    const refresh = async () => { const { data, error } = await supabase.rpc('nm_daily_status'); if (active) setDailyClaimed(error ? true : !!data?.today_claimed) }
+    refresh()
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { active = false; document.removeEventListener('visibilitychange', onVisible) }
+  }, [user?.id, dailyOpen])
   const [newMatch, setNewMatch] = useState(null)
   useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
   const previousUnreadMessages = useRef(null)
@@ -3831,7 +3840,7 @@ const loadMatches = useCallback(async () => {
       <main className="main-area">
         <div className="page-content">
           {view === 'home' && <>
-            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button type="button" aria-label="เปิด Daily Login" className="btn btn-ghost" style={{borderRadius:16,color:'#fff',border:'1px solid rgba(255,142,209,.75)',background:'linear-gradient(120deg,#a72878,#6d2a9b)',boxShadow:'0 5px 22px rgba(231,53,154,.38)',display:'inline-flex',alignItems:'center',gap:8,fontWeight:800}} onClick={() => setDailyOpen(true)}><Gift size={21} strokeWidth={2.5}/><span>Daily Login</span><Sparkles size={14}/></button><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
+            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button type="button" aria-label="เปิด Daily Login" className={'btn btn-ghost nm-daily-trigger' + (!dailyClaimed ? ' nm-daily-unclaimed' : '')} style={{borderRadius:16,color:'#fff',border:'1px solid rgba(255,142,209,.75)',background:'linear-gradient(120deg,#a72878,#6d2a9b)',boxShadow:'0 5px 22px rgba(231,53,154,.38)',display:'inline-flex',alignItems:'center',gap:8,fontWeight:800}} onClick={() => setDailyOpen(true)}><Gift size={21} strokeWidth={2.5}/><span>Daily Login</span><Sparkles size={14}/></button><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             {dailyOpen && createPortal(<div role="presentation" onClick={() => setDailyOpen(false)} style={{position:'fixed',inset:0,zIndex:100010,background:'rgba(7,4,16,.84)',backdropFilter:'blur(10px)',display:'flex',justifyContent:'center',alignItems:'center',padding:'max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom))',overflowY:'auto'}}>
               <div role="dialog" aria-modal="true" aria-label="รางวัลล็อกอินรายวัน" onClick={e => e.stopPropagation()} style={{position:'relative',width:'100%',maxWidth:420,maxHeight:'calc(100dvh - 48px)',overflowY:'auto',borderRadius:26,padding:6,background:'linear-gradient(145deg,#f15bb5,#7542b8,#39214c)',boxShadow:'0 24px 85px rgba(0,0,0,.65),0 0 45px rgba(229,62,157,.2)'}}>
                 <button type="button" aria-label="ปิด Daily Login" onClick={() => setDailyOpen(false)} style={{position:'absolute',top:17,right:17,zIndex:2,border:0,borderRadius:99,background:'rgba(255,255,255,.15)',color:'#fff',padding:8,display:'flex'}}><X size={20}/></button>
