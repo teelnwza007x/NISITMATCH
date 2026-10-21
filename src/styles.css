@@ -3293,3 +3293,14 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-referral-terms-button{margin-top:18px;padding:14px 0;width:100%;display:flex;gap:10px;align-items:center;text-align:left;background:none;border:0;border-top:1px solid rgba(255,255,255,.14);color:#ffe0ee;cursor:pointer;font-weight:700}.nm-referral-terms-button span{margin-left:auto;font-size:22px}.nm-referral-terms{padding:4px 4px 12px;color:#e3d4e3;font-size:13px;line-height:1.8}.nm-referral-terms ol{padding-left:24px}.nm-referral-terms li{margin:7px 0}.nm-referral-feedback{margin:12px 0 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.09);color:#ffe1ed;overflow-wrap:anywhere}
 @media(max-width:390px){.nm-referral-card{padding:16px}.nm-referral-rewards>div{padding:12px}.nm-referral-buttons button{flex:1 1 100%}}
 @media(prefers-reduced-motion:reduce){.nm-referral-card button{transition:none}}
+
+
+/* Referral status and feedback */
+.nm-referral-status{display:flex;flex-direction:column;gap:6px;margin-top:17px;padding:16px 18px;border-radius:16px;border:1px solid rgba(255,255,255,.16);line-height:1.6}
+.nm-referral-status strong{font-size:16px}.nm-referral-status span{font-size:13px}
+.nm-referral-status--success{background:rgba(35,174,111,.14);border-color:rgba(90,232,158,.4);color:#b5ffda}
+.nm-referral-status--pending{background:rgba(244,174,63,.11);border-color:rgba(250,202,103,.35);color:#ffe4a9}
+.nm-referral-feedback{border:1px solid rgba(255,255,255,.14)}
+.nm-referral-feedback--success{background:rgba(35,174,111,.15);border-color:rgba(90,232,158,.35);color:#b5ffda}
+.nm-referral-feedback--warning{background:rgba(244,174,63,.12);border-color:rgba(250,202,103,.35);color:#ffe4a9}
+.nm-referral-feedback--error{background:rgba(235,72,103,.13);border-color:rgba(255,124,143,.35);color:#ffc4ce}
