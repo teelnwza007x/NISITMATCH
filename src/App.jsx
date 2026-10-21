@@ -3720,7 +3720,20 @@ const loadMatches = useCallback(async () => {
     document.addEventListener('visibilitychange', refresh)
     return () => document.removeEventListener('visibilitychange', refresh)
   }, [view, userId, !!profile, loadPeople])
-  useEffect(() => { if (!userId) { setProfile(undefined); return } setProfile(undefined); loadProfile(); loadUnread() }, [userId, loadProfile, loadUnread])
+  // A token refresh must not blank the entire app or trigger another profile fetch.
+  const loadedProfileUserRef = useRef(null)
+  useEffect(() => {
+    if (!userId) {
+      loadedProfileUserRef.current = null
+      setProfile(undefined)
+      return
+    }
+    if (loadedProfileUserRef.current === userId) return
+    loadedProfileUserRef.current = userId
+    setProfile(undefined)
+    loadProfile()
+    loadUnread()
+  }, [userId, loadProfile, loadUnread])
   useEffect(() => { if (profile) loadMatches() }, [profile, loadMatches])
   useEffect(() => {
     if (!profile || !discoveryReady || !discovery) return
@@ -3932,8 +3945,7 @@ const loadMatches = useCallback(async () => {
   }, [userId, profile?.id, profileVisited, view])
   const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (window.location.pathname === '/admin') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile') setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
-  const shown = (people || []).filter((p) => matchesSelectedGender(p) && campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
-  const filteredPeople = (people || []).filter(p => matchesSelectedGender(p) && campusFiltered(p))
+  const filteredPeople = useMemo(() => (people || []).filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)), [people, discovery?.gender, campusFiltered])
   // Never bypass the chosen campus radius when no nearby profile exists.
   const swipePeople = filteredPeople
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
