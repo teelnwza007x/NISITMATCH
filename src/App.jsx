@@ -1037,6 +1037,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const end = useRef(null)
   const scrollBox = useRef(null)
   const fileInput = useRef(null)
+  const cameraInput = useRef(null)
   const stickToBottom = useRef(true)
   const forceNextScroll = useRef(false)
   const lastMessageId = useRef(null)
@@ -1447,7 +1448,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         {replyTo && <div className="chat-reply-composer"><Reply size={16}/><span><b>กำลังตอบกลับ</b><small>{quoteFor(replyTo)}</small></span><button type="button" onClick={() => setReplyTo(null)} aria-label="ยกเลิกตอบกลับ"><X size={17}/></button></div>}
         <form className="chat-compose" onSubmit={send}>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
-          <button type="button" className="chat-media-btn" title="ส่งรูปภาพ" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
+          <button type="button" className="chat-media-btn" title="เลือกรูปจากคลัง" aria-label="เลือกรูปจากคลัง" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
+          <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f, "image"); e.target.value = "" }}/>
+          <button type="button" className="chat-media-btn" title="ถ่ายรูปส่งในแชต" aria-label="เปิดกล้องถ่ายรูปส่งในแชต" disabled={uploading || recording} onClick={() => cameraInput.current?.click()}><Camera size={20}/></button>
           {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')} / 1:00</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading || micBusy} onClick={toggleRecord} aria-label="เริ่มอัดข้อความเสียง"><Mic size={20}/></button><input className="chat-text-input" value={text} onChange={e => onCompose(e.target.value)} onFocus={() => { if (stickToBottom.current) requestAnimationFrame(() => scrollToLatest(false)) }} placeholder="พิมพ์ข้อความ..." aria-label="พิมพ์ข้อความ" maxLength={2000} autoComplete="off"/><button className="send-btn" type="submit" title="ส่งข้อความ" aria-label="ส่งข้อความ" disabled={!text.trim() || uploading}><Send size={19}/></button></>}
         </form>
         {uploading && <div className="chat-upload-status">กำลังอัปโหลดไฟล์...</div>}
