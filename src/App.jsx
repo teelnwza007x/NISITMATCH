@@ -2059,7 +2059,7 @@ function AccountEmailVerification({ user, notify }) {
       {sent && <label>รหัส OTP 6 หลัก<input inputMode="numeric" pattern="[0-9]*" maxLength={6} autoComplete="one-time-code" placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}/></label>}
       <div className="nm-account-otp-actions">
         {sent && <button type="button" className="btn btn-pink" disabled={busy || code.length !== 6} onClick={() => request('verify')}>{busy ? 'กำลังตรวจสอบ...' : 'ยืนยันรหัส OTP'}</button>}
-        <button type="button" className="btn btn-outline" disabled={busy || cooldown > 0} onClick={() => request('send')}>{cooldown ? 'ขอรหัสใหม่ใน ' + cooldown + ' วินาที' : sent ? 'ส่งรหัสใหม่' : 'ส่งรหัสยืนยันอีเมล'}</button>
+        <button type="button" className="btn btn-pink nm-account-otp-send" disabled={busy || cooldown > 0} onClick={() => request('send')}>{cooldown ? 'ขอรหัสใหม่ใน ' + cooldown + ' วินาที' : sent ? 'ส่งรหัสใหม่' : 'ส่งรหัสยืนยันอีเมล'}</button>
       </div>
     </>}
   </section>
