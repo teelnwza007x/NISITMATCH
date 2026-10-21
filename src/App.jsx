@@ -2389,7 +2389,10 @@ function AdminDirectory({ kind }) {
     setError('')
     const rpc = kind === 'profiles' ? 'nm_admin_profiles' : 'nm_admin_hangouts'
     const params = { p_limit: 20, p_offset: page * 20, ...(kind === 'profiles' ? { p_search: search, p_gender: gender } : {}) }
-    supabase.rpc(rpc, params).then(({data,error}) => {
+    Promise.race([
+      supabase.rpc(rpc, params),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่')), 15000))
+    ]).then(({data,error}) => {
       if (!active) return
       if (error) { setError(error.message); setRows([]) }
       else { setRows(data || []); setTotal(Number(data?.[0]?.total_count || 0)) }
@@ -2839,9 +2842,16 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
   const chooseVenue = venue => { setForm(old => ({...old, venue:venue.name, city:venue.city})); setVenueQuery(venue.name); setShowVenuePicker(false) }
   const refresh = useCallback(async () => {
     if (!isCampusVerified) { setEvents([]); setJoined([]); setCounts({}); setLoading(false); return }
-    const {data,error} = await supabase.from('hangout_events').select('id,creator_id,title,venue,city,starts_at,capacity,description,created_at,status').eq('status','open').gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true}).limit(40)
-    if (error) { setLoading(false); if (!String(error.message||'').includes('does not exist')) notify('โหลด Hangout ไม่สำเร็จ: '+error.message+' · ตรวจว่าได้รัน SQL v81 แล้ว'); return }
-    const list=data||[]; setEvents(list); setLoading(false)
+    let data, error
+    try {
+      const result = await Promise.race([
+        supabase.from('hangout_events').select('id,creator_id,title,venue,city,starts_at,capacity,description,created_at,status').eq('status','open').gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true}).limit(40),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+      ])
+      data = result.data; error = result.error
+    } catch (e) { error = e }
+    if (error) { setLoading(false); if (!String(error.message||'').includes('does not exist')) notify(error.message === 'timeout' ? 'โหลด Hangout ช้าเกินไป กรุณาลองใหม่' : 'โหลด Hangout ไม่สำเร็จ: '+error.message); return }
+    const list=(data||[]).filter(event => event.status === 'open' && new Date(event.starts_at).getTime() > Date.now()); setEvents(list); setLoading(false)
     const {data:mine,error:mineError} = await supabase.from('hangout_rsvps').select('event_id').eq('user_id',user.id)
     if (!mineError) setJoined((mine||[]).map(x=>x.event_id))
     if(list.length){ const {data:rsvps,error:rsvpError}=await supabase.from('hangout_rsvps').select('event_id'); if(!rsvpError){const c={}; (rsvps||[]).forEach(x=>c[x.event_id]=(c[x.event_id]||0)+1); setCounts(c)} }
