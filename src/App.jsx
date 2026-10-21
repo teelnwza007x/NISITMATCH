@@ -1559,9 +1559,12 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
 function Notifs({ me, refresh, go }) {
   const [rows, setRows] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const load = useCallback(async () => {
+    setLoadError('')
     const { data, error } = await supabase.from('notifications').select('*').eq('user_id', me).in('type', ['interest', 'match', 'hangout_message']).order('created_at', { ascending: false }).limit(50)
     if (!error) setRows(data || [])
+    else { setRows([]); setLoadError('โหลดการแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่') }
   }, [me])
   useEffect(() => { load() }, [load])
   const allRead = rows !== null && rows.every(n => n.read)
@@ -1574,6 +1577,7 @@ function Notifs({ me, refresh, go }) {
   }
   return (<>
     <Heading kicker="STAY IN THE LOOP" title="การแจ้งเตือน" sub="ติดตามคนที่สนใจคุณ การแมตช์ และข้อความใหม่ในห้อง Hangout"><button className="btn btn-ghost" disabled={busy || rows === null || allRead} onClick={readAll}><Check size={16} /> {allRead ? 'อ่านทั้งหมดแล้ว' : busy ? 'กำลังบันทึก...' : 'อ่านทั้งหมด'}</button></Heading>
+    {loadError && <div role="alert" style={{padding:14,marginBottom:12}}>{loadError} <button type="button" className="btn btn-ghost" onClick={load}>ลองใหม่</button></div>}
     {rows === null ? <div className="page-center"><span className="spin" /></div> : !rows.length ? <div className="empty-state"><div className="empty-icon"><Bell /></div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีคนสนใจคุณ แมตช์ใหม่ หรือข้อความในห้อง Hangout จะขึ้นที่นี่</p></div> :
       <div className="notif-list">{rows.map((n) => <div key={n.id} className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => {
         if (!n.read) {
@@ -2560,6 +2564,7 @@ function AdminDashboard({ onBack }) {
   const [busy, setBusy] = useState(false)
   const reload = useCallback(async () => {
     setBusy(true)
+    setError('')
     const [summary, queue] = await Promise.all([
       supabase.rpc('nm_admin_metrics'),
       supabase.rpc('nm_admin_report_queue')
@@ -2567,6 +2572,7 @@ function AdminDashboard({ onBack }) {
     if (summary.error) setError('โหลดสถิติไม่ได้ กรุณาตรวจสิทธิ์ Admin และรัน SQL social_features_admin_v1.sql')
     else { setMetrics(summary.data); setError('') }
     if (!queue.error) setReports(Array.isArray(queue.data) ? queue.data : [])
+    else setReports([])
     setBusy(false)
   }, [])
   useEffect(() => { reload() }, [reload])
@@ -2579,7 +2585,8 @@ function AdminDashboard({ onBack }) {
     {adminTab === "email" && <EmailCenter />}
     {adminTab === "payments" && <div role="status" style={{padding:24,borderRadius:16,background:"#251b30",color:"#e6d8ed"}}><h3>ระบบชำระเงินปิดให้บริการชั่วคราว</h3><p>ยังไม่เปิดรับชำระเงินผ่าน PromptPay หรือช่องทางอื่น ข้อมูลการชำระเงินเดิมยังคงอยู่</p></div>}
     {adminTab === "overview" && <div className="nm-admin-overview">
-    <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>↻ รีเฟรชข้อมูล</button>
+    <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{busy ? 'กำลังรีเฟรช…' : '↻ รีเฟรชข้อมูล'}</button>
+    <p style={{fontSize:12,opacity:.7}}>ข้อมูลจาก Supabase ณ เวลาที่รีเฟรช ไม่ใช่สถิติแบบเรียลไทม์</p>
     {error && <p role="alert">{error}</p>}
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
     <section className="nm-admin-queue"><h3>รายงานล่าสุด</h3><p>ใช้ตรวจสอบรายงานก่อนดำเนินการ ไม่มีการเปิดเผยข้อมูลส่วนตัวของผู้รายงาน</p>
@@ -3243,7 +3250,7 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
   </div>
 }
 
-export default function App() {
+function AppContent() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
@@ -3896,10 +3903,27 @@ const loadMatches = useCallback(async () => {
         ][guideStep]}</p></div>
         <div className="nm-guide-v2-actions"><button type="button" className="nm-guide-v2-back" onClick={guideStep===0?closeGuide:()=>setGuideStep(x=>x-1)}>{guideStep===0?'ไว้ทีหลัง':'ย้อนกลับ'}</button><button type="button" className="nm-guide-v2-next" onClick={guideStep===5?closeGuide:()=>setGuideStep(x=>x+1)}>{guideStep===5?'เริ่มใช้งาน':'ถัดไป'} <ArrowRight size={18}/></button></div>
       </div></div>, document.body)}
-      {newMatch && <div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog"><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>}
+      {newMatch && createPortal(<div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog"><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>, document.body)}
       {Toast}
     </div>
   )
 }
 
 
+
+// Keep unexpected rendering failures from taking down the entire application shell.
+class AppErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error, info) { console.error('NISIT MATCH render error', error, info) }
+  render() {
+    if (!this.state.error) return this.props.children
+    return <main role="alert" style={{minHeight:'100dvh',display:'grid',placeContent:'center',gap:16,padding:24,textAlign:'center',background:'#130f1c',color:'#fff'}}>
+      <ShieldCheck size={42} style={{margin:'auto',color:'#f9a8d4'}}/>
+      <h1 style={{fontSize:22,margin:0}}>เกิดข้อผิดพลาดในการแสดงผล</h1>
+      <p style={{opacity:.8,margin:0}}>ลองโหลดแอปใหม่อีกครั้ง หากยังพบปัญหากรุณาติดต่อผู้ดูแล</p>
+      <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>โหลดแอปใหม่</button>
+    </main>
+  }
+}
+export default function App() { return <AppErrorBoundary><AppContent/></AppErrorBoundary> }
