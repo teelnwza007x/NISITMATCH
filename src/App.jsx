@@ -2130,8 +2130,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [editTab, setEditTab] = useState(initialEditTab)
   const [selfPreviewOpen, setSelfPreviewOpen] = useState(false)
   const [selfPreviewIndex, setSelfPreviewIndex] = useState(0)
-  const aboutTabs = [['basic', 'ข้อมูลส่วนตัว', UserRound], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
-  const [aboutMenuOpen, setAboutMenuOpen] = useState(false)
+  const aboutTabs = [['basic', 'ข้อมูลส่วนตัว', UserRound], ['campus', 'การศึกษา', GraduationCap], ['interests', 'ความสนใจ', Heart], ['music', 'เพลงโปรด', Music2]]
+  const [aboutMenuOpen, setAboutMenuOpen] = useState(initialEditTab === 'campus' || ['basic', 'interests', 'music'].includes(initialEditTab))
   const selectEditTab = (tab) => { if (tab !== editTab) playNisitSound('menu'); setEditTab(tab) }
   // Restore a draft before any autosave runs; never overwrite a saved draft with initial values.
   useEffect(() => {
@@ -2313,7 +2313,6 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         <button type="button" className={editTab === 'photos' ? 'active' : ''} aria-current={editTab === 'photos' ? 'page' : undefined} onClick={() => selectEditTab('photos')}><Camera size={18}/><span>รูปและวิดีโอ</span></button>
         <button type="button" className={aboutTabs.some(([id]) => id === editTab) ? 'active' : ''} aria-expanded={aboutMenuOpen} aria-controls="nm-about-profile-tabs" onClick={() => { playNisitSound('menu'); setAboutMenuOpen(v => !v); if (!aboutTabs.some(([id]) => id === editTab)) selectEditTab('basic') }}><UserRound size={18}/><span>เกี่ยวกับฉัน</span><ChevronDown size={16} className={aboutMenuOpen ? 'nm-chevron-open' : ''}/></button>
         {aboutMenuOpen && <div id="nm-about-profile-tabs" className="nm-edit-subtabs">{aboutTabs.map(([id, name, Icon]) => <button key={id} type="button" className={editTab === id ? 'active' : ''} aria-current={editTab === id ? 'page' : undefined} onClick={() => selectEditTab(id)}><Icon size={16}/><span>{name}</span></button>)}</div>}
-        <button type="button" className={editTab === 'campus' ? 'active' : ''} aria-current={editTab === 'campus' ? 'page' : undefined} onClick={() => selectEditTab('campus')}><GraduationCap size={18}/><span>การศึกษา</span></button>
         <div className="nm-edit-nav-separator"/>
         <div className="nm-edit-category-label">บัญชีและความปลอดภัย</div>
         <button type="button" className={editTab === 'account-email' ? 'active' : ''} aria-current={editTab === 'account-email' ? 'page' : undefined} onClick={() => selectEditTab('account-email')}><ShieldCheck size={18}/><span>ยืนยันอีเมลบัญชี</span></button>
