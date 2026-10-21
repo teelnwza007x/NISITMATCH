@@ -3636,19 +3636,55 @@ function AppContent() {
   const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false).in('type', ['interest', 'match', 'hangout_message']); setUnread(count || 0) }, [userId])
   // Message badges are separate from activity notifications: unread chat messages
   // animate the Messages tab, without generating a noisy notification for each text.
+  const unreadRequestRef = useRef({ userId: null, pending: false, queued: false, generation: 0 })
   const loadUnreadMessages = useCallback(async () => {
-    if (!userId) { setUnreadMessages(0); return }
-    const { data: rooms, error: roomsError } = await supabase.from('matches')
-      .select('id').or(`user_a.eq.${userId},user_b.eq.${userId}`)
-    let directCount = 0
-    if (!roomsError && rooms?.length) {
-      const { count, error } = await supabase.from('messages')
-        .select('id', { count: 'exact', head: true })
-        .in('match_id', rooms.map(r => r.id))
-        .neq('sender_id', userId).is('read_at', null)
-      if (!error) directCount = count || 0
+    const state = unreadRequestRef.current
+    if (!userId) {
+      state.generation++
+      state.userId = null
+      state.queued = false
+      setUnreadMessages(0)
+      return
     }
-    setUnreadMessages(directCount)
+    if (state.userId !== userId) {
+      state.generation++
+      state.userId = userId
+      state.pending = false
+      state.queued = false
+    }
+    if (state.pending) { state.queued = true; return }
+    state.pending = true
+    const generation = state.generation
+    try {
+      const { data: rooms, error: roomsError } = await supabase.from('matches')
+        .select('id').or(`user_a.eq.${userId},user_b.eq.${userId}`)
+      if (roomsError) return
+      let directCount = 0
+      if (rooms?.length) {
+        const { count, error } = await supabase.from('messages')
+          .select('id', { count: 'exact', head: true })
+          .in('match_id', rooms.map(r => r.id))
+          .neq('sender_id', userId).is('read_at', null)
+        if (error) return
+        directCount = count || 0
+      }
+      if (state.generation === generation && state.userId === userId) {
+        setUnreadMessages(current => current === directCount ? current : directCount)
+      }
+    } catch (error) {
+      console.warn('Unread message refresh failed:', error)
+    } finally {
+      if (state.generation === generation) {
+        state.pending = false
+        if (state.queued) {
+          state.queued = false
+          // Coalesce bursts of realtime events into a single follow-up refresh.
+          queueMicrotask(() => {
+            if (unreadRequestRef.current.generation === generation) loadUnreadMessages()
+          })
+        }
+      }
+    }
   }, [userId])
   useEffect(() => {
     if (!userId) { setUnreadMessages(0); return }
