@@ -2492,7 +2492,7 @@ function CampusEmailVerification({ user }) {
   const campusGroups = [
     ['มหาวิทยาลัยของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
-    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit']]
+    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
   const campusResults = campusGroups.map(([title, ids]) => [title, ids.filter(id => {
