@@ -3768,3 +3768,12 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-account-otp-actions,.v27-verify-form{min-width:0;max-width:100%;box-sizing:border-box}
 .nm-account-otp-actions .btn,.v27-verify-form > .btn{display:flex;align-items:center;justify-content:center;width:100%;max-width:100%;min-width:0;box-sizing:border-box;margin-left:0;margin-right:0;white-space:normal;text-align:center;overflow:hidden}
 .nm-account-otp-actions .nm-account-otp-send{min-height:51px;border-radius:13px}
+
+/* Profile clips: let taps reach the video (the older swipe rule disabled them). */
+.swipe-card .nm-tap-sound-wrap>.swipe-media-video{pointer-events:auto;touch-action:pan-y}
+.nm-tap-sound-wrap>video::-webkit-media-controls,
+.nm-tap-sound-wrap>video::-webkit-media-controls-enclosure,
+.nm-tap-sound-wrap>video::-webkit-media-controls-panel{display:none!important;opacity:0!important}
+.nm-tap-sound-wrap>video::-webkit-media-controls-overlay-play-button{display:none!important}
+.nm-tap-sound-feedback{animation:nm-sound-pop .2s ease-out,nm-sound-fade .3s ease-in .62s forwards}
+@keyframes nm-sound-fade{to{opacity:0}}
