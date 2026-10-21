@@ -394,6 +394,22 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos]
+  // Warm only the next two profile covers and the next photo on the current card.
+  // Keep references alive until the deck changes; don't preload videos or all six images.
+  useEffect(() => {
+    if (typeof window === 'undefined' || document.visibilityState !== 'visible') return
+    const paths = [
+      ...people.slice(1, 3).map(p => p.avatar_path || p.photo_paths?.[0]),
+      photos[1],
+    ].filter(Boolean)
+    const images = [...new Set(paths)].map(path => {
+      const img = new Image()
+      img.decoding = 'async'
+      img.src = pub(path)
+      return img
+    })
+    return () => { images.forEach(img => { img.onload = null; img.onerror = null }) }
+  }, [people[0]?.id, people[1]?.id, people[2]?.id, photos[1]])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
