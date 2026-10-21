@@ -8,6 +8,12 @@ import './authLink.css'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
 import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
 
+// Safari on LAN HTTP does not expose crypto.randomUUID (secure-context API).
+const makeClientId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+}
+
 const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(b), c => c.charCodeAt(0)) }
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
@@ -834,7 +840,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     if (type === 'audio' && !['audio/webm','audio/mp4','audio/ogg','audio/mpeg','audio/x-m4a'].includes(file.type.split(';')[0])) return notify('ไฟล์เสียงไม่รองรับ')
     setHangoutUploading(true)
     const extension = (file.name?.split('.').pop() || (type === 'audio' ? 'webm' : 'jpg')).replace(/[^a-z0-9]/gi, '').toLowerCase()
-    const path = `${targetEvent.id}/${crypto.randomUUID()}.${extension}`
+    const path = `${targetEvent.id}/${makeClientId()}.${extension}`
     const { error: uploadError } = await supabase.storage.from('chat-media').upload(path, file, { contentType: file.type.split(';')[0], upsert: false })
     if (uploadError) { setHangoutUploading(false); return notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message + ' · ตรวจ SQL v89') }
     const body = type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง'
@@ -1235,7 +1241,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const body = text.trim()
     const targetRoom = roomId
     if (!body || !targetRoom) return
-    const tempId = 'pending-' + crypto.randomUUID()
+    const tempId = 'pending-' + makeClientId()
     const optimistic = {
       id: tempId, match_id: targetRoom, sender_id: me, body, reply_to: replyTo?.id || null,
       created_at: new Date().toISOString(), pending: true
@@ -1315,7 +1321,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     if (type === 'audio' && !['audio/webm','audio/mp4','audio/ogg','audio/mpeg','audio/x-m4a'].includes(file.type.split(';')[0])) return notify('ไฟล์เสียงไม่รองรับ')
     setUploading(true)
     const extension = (file.name?.split('.').pop() || (type === 'audio' ? 'webm' : 'jpg')).replace(/[^a-z0-9]/gi, '').toLowerCase()
-    const path = `${targetRoom}/${crypto.randomUUID()}.${extension}`
+    const path = `${targetRoom}/${makeClientId()}.${extension}`
     const { error: uploadError } = await supabase.storage.from('chat-media').upload(path, file, { contentType: file.type.split(';')[0], upsert: false })
     if (uploadError) { setUploading(false); return notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message) }
     const { error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body: type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง', attachment_type: type, attachment_path: path })
@@ -1917,7 +1923,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const filteredUniversities = UNIVERSITIES.filter((u) => (uniType === 'ทั้งหมด' || u.type === uniType) && u.name.toLowerCase().includes(uniQuery.trim().toLowerCase()))
   const preview = newPhotos.find(x => x.key === mainPhoto)?.url || pub(mainPhoto) || ph(f.display_name)
   const appendCropped = (file) => {
-    const key = `new-${crypto.randomUUID()}`
+    const key = `new-${makeClientId()}`
     const item = { key, file, url: URL.createObjectURL(file) }
     setNewPhotos(old => [...old, item])
     if (!mainPhoto && photos.length === 0 && newPhotos.length === 0) setMainPhoto(key)
@@ -1959,12 +1965,12 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     // a separate crop dialog for each file. The existing editor can still reorder
     // photos and choose the main image after import.
     if (validImages.length) {
-      const additions = validImages.map(file => ({ key: `new-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file) }))
+      const additions = validImages.map(file => ({ key: `new-${makeClientId()}`, file, url: URL.createObjectURL(file) }))
       setNewPhotos(old => [...old, ...additions])
       if (!mainPhoto && photos.length === 0 && newPhotos.length === 0) setMainPhoto(additions[0].key)
       notify(`เพิ่มรูปภาพ ${additions.length} รูปแล้ว · กดบันทึกเพื่อยืนยัน`)
     }
-    setNewVideos(old => [...old, ...validVideos.map(file => ({ key: `video-${crypto.randomUUID()}`, file, url: URL.createObjectURL(file), livePhoto: pairedHeics.some(still => base(still) === base(file)) }))])
+    setNewVideos(old => [...old, ...validVideos.map(file => ({ key: `video-${makeClientId()}`, file, url: URL.createObjectURL(file), livePhoto: pairedHeics.some(still => base(still) === base(file)) }))])
   }
   const removeNewVideo = key => setNewVideos(old => old.filter(item => { if (item.key === key) URL.revokeObjectURL(item.url); return item.key !== key }))
   const removeExistingVideo = async item => {
@@ -1995,7 +2001,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     const keyMap = {}
     for (const item of newPhotos) {
       const ext = item.file.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const path = `${user.id}/photo-${crypto.randomUUID()}.${ext}`
+      const path = `${user.id}/photo-${makeClientId()}.${ext}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, item.file, { contentType: item.file.type })
       if (uploadError) { setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
       uploaded.push(path); keyMap[item.key] = path
@@ -2009,7 +2015,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     if (error) { setBusy(false); return notify(error.code === '23503' ? 'ไม่พบมหาวิทยาลัยในฐานข้อมูล กรุณารันไฟล์ supabase/sync_universities.sql ก่อน' : 'บันทึกไม่สำเร็จ: ' + error.message) }
     for (const item of newVideos) {
       const ext = (item.file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const path = `${user.id}/clip-${crypto.randomUUID()}.${ext}`
+      const path = `${user.id}/clip-${makeClientId()}.${ext}`
       const { error: videoUploadError } = await supabase.storage.from('profile-media').upload(path, item.file, { contentType: item.file.type || ({mov:'video/quicktime',mp4:'video/mp4',m4v:'video/x-m4v',webm:'video/webm'}[ext] || 'application/octet-stream'), upsert: false })
       if (videoUploadError) { setBusy(false); return notify(`อัปโหลดวิดีโอไม่สำเร็จ: ${videoUploadError.message} · ตรวจว่ารัน SQL v76 แล้ว`) }
       const { data: mediaRow, error: mediaError } = await supabase.from('profile_media').insert({ profile_id: user.id, media_type: 'video', storage_path: path }).select('id,media_type,storage_path,created_at').single()
