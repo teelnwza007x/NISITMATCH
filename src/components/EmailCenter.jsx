@@ -7,15 +7,27 @@ const names={signup_verify:'ยืนยันสมัครสมาชิก'
 const theme={surface:'var(--theme-panel)',border:'1px solid var(--theme-border)',muted:'var(--theme-muted)',accent:'var(--theme-accent)'}
 const date=s=>s?new Date(s).toLocaleString('th-TH'):'—'
 const button=(active=false)=>({border:'1px solid '+(active?'var(--theme-accent)':'var(--theme-border)'),background:active?'linear-gradient(135deg,var(--theme-accent),var(--theme-accent2))':'var(--theme-sidebar)',color:active?'#fff':'var(--theme-text)',padding:'11px 16px',borderRadius:13,cursor:'pointer',fontWeight:700,transition:'all .2s'})
+const invokeAdmin=async body=>{
+ const {data,error}=await supabase.functions.invoke('admin-email-logs',{body})
+ if(error){
+  let detail=data?.error||''
+  try{const response=error.context;if(response && typeof response.json==='function'){const payload=await response.json();detail=payload?.error||detail}}catch{}
+  const status=error.context?.status
+  const hint=status===401?'เซสชันหมดอายุ กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่':status===403?'บัญชีนี้ไม่มีสิทธิ์ Admin ในฐานข้อมูล':status===404?'ไม่พบ Edge Function admin-email-logs กรุณาตรวจสอบการ Deploy':status===500?'Function อ่านฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบ Logs ของ Edge Function':''
+  throw new Error([status?`HTTP ${status}`:null,detail||error.message,hint].filter(Boolean).join(' — '))
+ }
+ if(!data?.ok)throw new Error(data?.error||'โหลดข้อมูลไม่สำเร็จ')
+ return data
+}
 const field={background:'var(--theme-sidebar)',border:'1px solid var(--theme-border)',borderRadius:12,padding:'12px 14px',color:'var(--theme-text)',minWidth:0}
 export default function EmailCenter(){
  const [panel,setPanel]=useState('emails')
  const [otpRows,setOtpRows]=useState([]),[otpTotal,setOtpTotal]=useState(0),[otpPage,setOtpPage]=useState(0),[otpSearch,setOtpSearch]=useState(''),[otpQuery,setOtpQuery]=useState(''),[otpError,setOtpError]=useState(''),[otpLoading,setOtpLoading]=useState(false)
  const [domainRows,setDomainRows]=useState([]),[domainTotal,setDomainTotal]=useState(0),[domainPage,setDomainPage]=useState(0),[domainSearch,setDomainSearch]=useState(''),[domainQuery,setDomainQuery]=useState(''),[domainError,setDomainError]=useState(''),[domainLoading,setDomainLoading]=useState(false)
  const [rows,setRows]=useState([]),[stats,setStats]=useState(null),[search,setSearch]=useState(''),[query,setQuery]=useState(''),[type,setType]=useState(''),[status,setStatus]=useState(''),[page,setPage]=useState(0),[total,setTotal]=useState(0),[error,setError]=useState(''),[loading,setLoading]=useState(false)
- const loadOtp=async()=>{setOtpLoading(true);setOtpError('');try{const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{mode:'otp_verified',search:otpQuery,page:otpPage,limit:25}});if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูล OTP ไม่สำเร็จ');setOtpRows(data.rows||[]);setOtpTotal(data.total||0)}catch(e){setOtpError(e.message)}finally{setOtpLoading(false)}}
- const loadDomains=async()=>{setDomainLoading(true);setDomainError('');try{const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{mode:'domain_requests',search:domainQuery,page:domainPage,limit:25}});if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดคำขอไม่ได้');setDomainRows(data.rows||[]);setDomainTotal(data.total||0)}catch(e){setDomainError(e.message)}finally{setDomainLoading(false)}}
- const load=async()=>{setLoading(true);setError('');try{const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{search:query,type,status,page,limit:25}});if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูลไม่สำเร็จ');setRows(data.rows||[]);setStats(data.stats||null);setTotal(data.total||0)}catch(e){setError(e.message)}finally{setLoading(false)}}
+ const loadOtp=async()=>{setOtpLoading(true);setOtpError('');try{const data=await invokeAdmin({mode:'otp_verified',search:otpQuery,page:otpPage,limit:25})if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูล OTP ไม่สำเร็จ');setOtpRows(data.rows||[]);setOtpTotal(data.total||0)}catch(e){setOtpError(e.message)}finally{setOtpLoading(false)}}
+ const loadDomains=async()=>{setDomainLoading(true);setDomainError('');try{const data=await invokeAdmin({mode:'domain_requests',search:domainQuery,page:domainPage,limit:25})if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดคำขอไม่ได้');setDomainRows(data.rows||[]);setDomainTotal(data.total||0)}catch(e){setDomainError(e.message)}finally{setDomainLoading(false)}}
+ const load=async()=>{setLoading(true);setError('');try{const data=await invokeAdmin({search:query,type,status,page,limit:25})if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูลไม่สำเร็จ');setRows(data.rows||[]);setStats(data.stats||null);setTotal(data.total||0)}catch(e){setError(e.message)}finally{setLoading(false)}}
  useEffect(()=>{if(panel==='otp')loadOtp()},[panel,otpPage,otpQuery])
  useEffect(()=>{if(panel==='domains')loadDomains()},[panel,domainPage,domainQuery])
  useEffect(()=>{if(panel==='emails')load()},[panel,type,status,page,query])
