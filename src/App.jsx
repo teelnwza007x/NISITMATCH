@@ -429,7 +429,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
       .catch(() => {})
     return () => { active = false }
   }, [person?.id])
-  const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos]
+  const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
   // Preload a small number of upcoming covers only while the swipe screen is active.
   // Schedule after paint so preloading cannot compete with the visible card.
   useEffect(() => {
@@ -2311,6 +2311,9 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       if (mediaError) { setBusy(false); return notify(`บันทึกวิดีโอไม่สำเร็จ: ${mediaError.message}`) }
       setProfileVideos(old => [...old, mediaRow]); keyMap[item.key] = mediaRow.id
     }
+    const savedMediaOrder = orderedKeys.map(key => keyMap[key] || key)
+    const { error: mediaOrderError } = await supabase.from('profiles').update({ media_order: savedMediaOrder }).eq('id', user.id)
+    if (mediaOrderError) { setBusy(false); return notify('บันทึกลำดับสื่อไม่สำเร็จ: ' + mediaOrderError.message) }
     setBusy(false)
     skipDraftSave.current = true
     draftRevision.current++
@@ -3134,7 +3137,7 @@ function ProfileGallery({ person }) {
       .then(({data,error}) => { if (active && !error) setMedia((data||[]).map(item => ({type:item.media_type,path:item.storage_path,key:item.id}))) }).catch(()=>{})
     return () => { active = false }
   }, [person?.id])
-  const items = [...photos, ...media]
+  const items = [...photos, ...media].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
   const current = items[index] || items[0]
   const touchStart = useRef(null)
   useEffect(() => {
