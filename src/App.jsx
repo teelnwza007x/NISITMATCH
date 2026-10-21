@@ -2131,7 +2131,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   }, [photos, newPhotos, photoOrder])
   const reorderPhoto = (from, to) => {
     if (!from || !to || from === to || !photoKeys.includes(from) || !photoKeys.includes(to)) return
-    const next = [...orderedKeys]; next.splice(next.indexOf(from), 1); next.splice(next.indexOf(to), 0, from)
+    const next = [...orderedKeys]
+    const fromIndex = next.indexOf(from)
+    const toIndex = next.indexOf(to)
+    ;[next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]]
     setPhotoOrder(next); setMainPhoto(next[0])
   }
   const releasePhoto = e => {
