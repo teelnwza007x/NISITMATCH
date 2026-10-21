@@ -3532,3 +3532,10 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-settings-group-title svg{color:var(--theme-accent)}
 @media(max-width:650px){.nm-settings-quick-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nm-settings-quick-nav a{justify-content:flex-start;font-size:12px;padding:10px}}
 @media(prefers-reduced-motion:reduce){.nm-settings-quick-nav a{transition:none}}
+
+/* Adjustable, accessible effects volume. */
+.nm-sound-volume{display:flex;flex-direction:column;gap:8px;min-width:min(100%,200px);flex:1 1 190px;color:var(--theme-text);font-size:12px;font-weight:650}
+.nm-sound-volume span{display:flex;justify-content:space-between;gap:12px}
+.nm-sound-volume b{color:var(--theme-accent);font-variant-numeric:tabular-nums}
+.nm-sound-volume input{width:100%;accent-color:var(--theme-accent);cursor:pointer}
+.nm-sound-volume input:disabled{opacity:.45;cursor:not-allowed}
