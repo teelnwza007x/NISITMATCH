@@ -1560,26 +1560,42 @@ function Notifs({ me, refresh, go }) {
   const [rows, setRows] = useState(null)
   const [busy, setBusy] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [markError, setMarkError] = useState('')
   const load = useCallback(async () => {
     setLoadError('')
     const { data, error } = await supabase.from('notifications').select('*').eq('user_id', me).in('type', ['interest', 'match', 'hangout_message']).order('created_at', { ascending: false }).limit(50)
     if (!error) setRows(data || [])
     else { setRows([]); setLoadError('โหลดการแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่') }
   }, [me])
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let active = true
+    load()
+    const channel = supabase.channel('notification-center-' + me)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + me }, () => { if (active && document.visibilityState === 'visible') load() })
+      .subscribe()
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { active = false; document.removeEventListener('visibilitychange', onVisible); supabase.removeChannel(channel) }
+  }, [load, me])
+  const visibleRows = (rows || []).filter(n => filter === 'all' || (filter === 'unread' ? !n.read : n.type === filter))
   const allRead = rows !== null && rows.every(n => n.read)
   const readAll = async () => {
     if (busy || allRead) return
     setBusy(true)
+    setMarkError('')
     const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', me).in('type', ['interest', 'match', 'hangout_message']).eq('read', false)
     if (!error) { setRows(prev => prev?.map(n => ({ ...n, read: true })) || []); refresh() }
+    else setMarkError('ทำเครื่องหมายอ่านทั้งหมดไม่สำเร็จ กรุณาลองใหม่')
     setBusy(false)
   }
   return (<>
     <Heading kicker="STAY IN THE LOOP" title="การแจ้งเตือน" sub="ติดตามคนที่สนใจคุณ การแมตช์ และข้อความใหม่ในห้อง Hangout"><button className="btn btn-ghost" disabled={busy || rows === null || allRead} onClick={readAll}><Check size={16} /> {allRead ? 'อ่านทั้งหมดแล้ว' : busy ? 'กำลังบันทึก...' : 'อ่านทั้งหมด'}</button></Heading>
+    <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}} role="group" aria-label="กรองการแจ้งเตือน">{[['all','ทั้งหมด'],['unread','ยังไม่อ่าน'],['match','แมตช์'],['interest','ถูกใจ'],['hangout_message','Hangout']].map(([value,label])=><button key={value} type="button" className={'btn '+(filter===value?'btn-primary':'btn-ghost')} aria-pressed={filter===value} onClick={()=>setFilter(value)}>{label}</button>)}</div>
+    {markError && <p role="alert">{markError}</p>}
     {loadError && <div role="alert" style={{padding:14,marginBottom:12}}>{loadError} <button type="button" className="btn btn-ghost" onClick={load}>ลองใหม่</button></div>}
-    {rows === null ? <div className="page-center"><span className="spin" /></div> : !rows.length ? <div className="empty-state"><div className="empty-icon"><Bell /></div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีคนสนใจคุณ แมตช์ใหม่ หรือข้อความในห้อง Hangout จะขึ้นที่นี่</p></div> :
-      <div className="notif-list">{rows.map((n) => <div key={n.id} className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => {
+    {rows === null ? <div className="page-center"><span className="spin" /></div> : !visibleRows.length ? <div className="empty-state"><div className="empty-icon"><Bell /></div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีคนสนใจคุณ แมตช์ใหม่ หรือข้อความในห้อง Hangout จะขึ้นที่นี่</p></div> :
+      <div className="notif-list">{visibleRows.map((n) => <div key={n.id} className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => {
         if (!n.read) {
           const { error } = await supabase.from('notifications').update({ read: true }).eq('id', n.id).eq('user_id', me)
           if (!error) { setRows(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x)); refresh() }
