@@ -3633,7 +3633,7 @@ const loadMatches = useCallback(async () => {
   if (discoveryReady && discoveryEditing) return <PreferencesEditor initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
   if (discoveryReady && !discovery) return <DiscoverySetup initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
 
-  const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['likes', 'คนที่กดใจ', HeartHandshake], ['visitors', 'คนที่เข้าชม', EyeIcon], ['hangout', 'Hangout', CalendarDays], ['premium', 'Premium', Crown], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
+  const items = [['home', 'หน้าหลัก', Heart], ['messages', 'ข้อความ', MessageCircle], ['likes', 'ถูกใจ / ผู้เข้าชม', HeartHandshake], ['hangout', 'Hangout', CalendarDays], ['premium', 'Premium', Crown], ['notifs', 'การแจ้งเตือน', Bell], ['profile', 'โปรไฟล์ของฉัน', UserRound], ['settings', 'การตั้งค่า', Settings]]
   const empty = <div className="empty-state"><div className="empty-icon"><Search /></div><h3>ยังไม่มีสมาชิกให้แสดง</h3><p>ตอนนี้ยังไม่มีสมาชิกคนอื่นที่ตรงกับตัวกรอง ลองปรับตัวกรอง หรือชวนเพื่อนมาสมัคร</p><button type="button" className="btn btn-ghost" onClick={() => loadPeople()}>ลองค้นหาอีกครั้ง</button></div>
   return (
     <div className={"app-shell" + (view === 'home' ? " home-swipe-locked" : "")}>
