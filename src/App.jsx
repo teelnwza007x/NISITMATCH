@@ -663,7 +663,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     }
     loadHangoutRooms()
     // Avoid repeated Supabase reads while Safari/PWA is in the background.
-    const poll = setInterval(() => { if (document.visibilityState === 'visible') loadHangoutRooms() }, 12000)
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') loadHangoutRooms() }, 30000)
     const onVisible = () => { if (document.visibilityState === 'visible') loadHangoutRooms() }
     document.addEventListener('visibilitychange', onVisible)
     const channel = supabase.channel(`hangout-room-list-${me}`)
@@ -942,7 +942,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       ])
       return [m.id, { last: latest.data?.[0] || null, unread: unread.count || 0 }]
     }))
-    if (request === inboxRequest.current) setInbox(Object.fromEntries(results))
+    if (request === inboxRequest.current) setInbox(previous => { const next = Object.fromEntries(results); return JSON.stringify(previous) === JSON.stringify(next) ? previous : next })
   }, [me, matches])
   useEffect(() => {
     refreshInbox()
@@ -952,7 +952,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     // Fallback for projects without Realtime publication enabled for messages.
     // Realtime is primary; use a less frequent visible-only fallback to limit
     // two queries per match on mobile connections.
-    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 30000)
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 45000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
     return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
@@ -963,8 +963,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     if (!presenceIds) { setOnlineMatchIds({}); return }
     let active = true
     const ids = presenceIds.split(',')
+    let presenceBusy = false
     const refresh = async () => {
-      if (document.visibilityState !== 'visible') return
+      if (document.visibilityState !== 'visible' || presenceBusy) return
+      presenceBusy = true
+      try {
       const next = {}
       for (let i = 0; i < ids.length; i += 4) {
         const results = await Promise.all(ids.slice(i, i + 4).map(id => supabase.rpc('get_match_presence', { p_user_id: id })))
@@ -974,7 +977,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
           if (!result.error && last && Date.now() - new Date(last).getTime() < 120000) next[ids[i + j]] = true
         })
       }
-      if (active) setOnlineMatchIds(next)
+      if (active) setOnlineMatchIds(old => { const a=Object.keys(old),b=Object.keys(next); return a.length===b.length && b.every(id=>old[id]) ? old : next })
+      } finally { presenceBusy = false }
     }
     refresh()
     const timer = setInterval(refresh, 60000)
@@ -3195,7 +3199,7 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
       const {data}=await supabase.rpc('hangout_member_profiles',{p_event_id:eventId})
       if(data?.length){const names={};data.forEach(x=>names[x.id]=x.display_name||'สมาชิก');setChatNames(old=>({...old,...names}));setChatMembers(data.map(x=>x.id))}
     }).subscribe()
-    const poll=setInterval(async()=>{const {data}=await supabase.from('hangout_messages').select('id,event_id,user_id,body,created_at').eq('event_id',eventId).order('created_at',{ascending:true}).limit(300);if(data)setChatMessages(old=>{const m=new Map(old.map(x=>[x.id,x]));data.forEach(x=>m.set(x.id,x));return [...m.values()].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))})},10000)
+    const poll=setInterval(async()=>{if(document.visibilityState !== 'visible')return;const {data}=await supabase.from('hangout_messages').select('id,event_id,user_id,body,created_at').eq('event_id',eventId).order('created_at',{ascending:true}).limit(300);if(data)setChatMessages(old=>{const m=new Map(old.map(x=>[x.id,x]));data.forEach(x=>m.set(x.id,x));const next=[...m.values()].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));return next.length===old.length && next.every((v,i)=>v.id===old[i]?.id && v.body===old[i]?.body)?old:next})},30000)
     return ()=>{clearInterval(poll);supabase.removeChannel(channel)}
   },[chatEvent?.id])
   useEffect(() => {
