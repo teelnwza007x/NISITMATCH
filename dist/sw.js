@@ -12,14 +12,14 @@ self.addEventListener('push', event => {
       icon: '/nisit-match-logo.png',
       badge: '/nisit-match-logo.png',
       tag: data.tag || 'nisit-match',
-      data: { url: '/' }
+      data: { url: typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//') ? data.url : '/' }
     })
   })())
 })
 self.addEventListener('notificationclick', event => {
   event.notification.close()
-  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-    for (const c of list) if ('focus' in c) return c.focus()
-    return clients.openWindow('/')
+  const url = event.notification.data?.url || '/'\n  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) if ('focus' in c) return c.navigate(url).then(() => c.focus())
+    return clients.openWindow(url)
   }))
 })
