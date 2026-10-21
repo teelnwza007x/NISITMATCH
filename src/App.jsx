@@ -1,3 +1,4 @@
+import './dailyRewards.css'
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown } from 'lucide-react'
@@ -2700,13 +2701,15 @@ function DailyRewardsAndSafety({ user, notify, mode = 'safety' }) {
     else { notify('ปลดบล็อกแล้ว'); refreshBlocked() }
   }
   return <div style={{display:'grid',gap:16,margin: mode === 'daily' ? '0' : '20px 0'}}>
-    {mode === 'daily' && <section style={{padding:20,borderRadius:20,background:'linear-gradient(135deg,#382044,#211a35)',color:'#fff',border:'1px solid #6c3b6b'}}>
-      <span style={{fontSize:12,letterSpacing:2,color:'#f4a6ce'}}>DAILY REWARDS</span>
-      <h3 style={{margin:'8px 0'}}>🎁 Daily Login</h3>
-      <p style={{opacity:.8,fontSize:13}}>ล็อกอินรายวันเพื่อรักษาสถิติต่อเนื่อง · ของรางวัล Super Like เพิ่มเติมยังไม่เปิดใช้งาน</p>
-      <div style={{display:'flex',gap:16,marginBottom:14}}><strong>🔥 {status?.streak ?? '—'} วัน</strong></div>
-      <button type="button" className="btn btn-primary" onClick={claim} disabled={loading || !status || status.today_claimed}>{loading ? 'กำลังรับ...' : status?.today_claimed ? 'รับรางวัลวันนี้แล้ว ✓' : 'เช็กอินวันนี้'}</button>
-      {!status && <p style={{fontSize:12}}>ยังโหลดสถานะไม่ได้ กรุณาตรวจสอบ SQL Daily Rewards</p>}
+    {mode === 'daily' && <section aria-label="รางวัลเช็กอินรายวัน">
+      <div className="nm-daily-streak"><span>🔥</span><span>{status?.streak ?? '—'} DAY STREAK</span></div>
+      <div className="nm-daily-days" aria-label="ความคืบหน้าการเช็กอิน 7 วัน">
+        {Array.from({length:7},(_,i)=>{const day=i+1;const streak=Math.max(0,Number(status?.streak)||0);const done=day<=Math.min(streak,7);const today=!status?.today_claimed && day===Math.min(streak+1,7);return <div key={day} className={'nm-daily-day'+(done?' is-done':'')+(today?' is-today':'')+(day===7?' is-special':'')}><strong>DAY {day}</strong>{done?<CheckCircle2 size={23} color="#86efac"/>:day===7?<Crown size={24} color="#fbd38d"/>:<Gift size={23} color={today?'#e5b3ff':'#ac96be'}/>}<small>{done?'เช็กอินแล้ว':day===7?'ครบ 7 วัน':today?'วันนี้':'รอเช็กอิน'}</small></div>})}
+      </div>
+      <button type="button" className="nm-daily-cta" onClick={claim} disabled={loading || !status || status.today_claimed}><Gift size={19}/>{loading?'กำลังเช็กอิน...':status?.today_claimed?'เช็กอินวันนี้แล้ว ✓':'เช็กอินวันนี้'}</button>
+      {status?.today_claimed&&<p className="nm-daily-success" role="status">✨ กลับมาใหม่พรุ่งนี้นะ!</p>}
+      <p className="nm-daily-note">เช็กอินเพื่อสะสมวันต่อเนื่อง · รางวัล Super Like ยังไม่เปิดใช้งาน</p>
+      {!status&&<p className="nm-daily-note" role="status">ยังโหลดสถานะไม่ได้ กรุณาตรวจสอบระบบ Daily Rewards</p>}
     </section>}
     {mode === 'safety' && <section className="nm-settings-install" aria-label="ศูนย์ความปลอดภัย NISIT MATCH" style={{flexWrap:'wrap'}}>
       <div className="nm-settings-install-symbol"><ShieldCheck size={25}/></div>
@@ -3987,12 +3990,12 @@ const loadMatches = useCallback(async () => {
         <div className="page-content">
           {view === 'home' && <>
             <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button type="button" aria-label="เปิด Daily Login" className={'btn btn-ghost nm-daily-trigger' + (!dailyClaimed ? ' nm-daily-unclaimed' : '')} style={{borderRadius:16,color:'#fff',border:'1px solid rgba(255,142,209,.75)',background:'linear-gradient(120deg,#a72878,#6d2a9b)',boxShadow:'0 5px 22px rgba(231,53,154,.38)',display:'inline-flex',alignItems:'center',gap:8,fontWeight:800}} onClick={() => setDailyOpen(true)}><Gift size={21} strokeWidth={2.5}/><span>Daily Login</span><Sparkles size={14}/></button><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
-            {dailyOpen && createPortal(<div role="presentation" onClick={() => setDailyOpen(false)} style={{position:'fixed',inset:0,zIndex:100010,background:'rgba(7,4,16,.84)',backdropFilter:'blur(10px)',display:'flex',justifyContent:'center',alignItems:'center',padding:'max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom))',overflowY:'auto'}}>
-              <div role="dialog" aria-modal="true" aria-label="รางวัลล็อกอินรายวัน" onClick={e => e.stopPropagation()} style={{position:'relative',width:'100%',maxWidth:420,maxHeight:'calc(100dvh - 48px)',overflowY:'auto',borderRadius:26,padding:6,background:'linear-gradient(145deg,#f15bb5,#7542b8,#39214c)',boxShadow:'0 24px 85px rgba(0,0,0,.65),0 0 45px rgba(229,62,157,.2)'}}>
-                <button type="button" aria-label="ปิด Daily Login" onClick={() => setDailyOpen(false)} style={{position:'absolute',top:17,right:17,zIndex:2,border:0,borderRadius:99,background:'rgba(255,255,255,.15)',color:'#fff',padding:8,display:'flex'}}><X size={20}/></button>
-                <div style={{textAlign:'center',padding:'27px 12px 0',color:'#fff'}}><div style={{width:72,height:72,margin:'0 auto 12px',borderRadius:23,display:'grid',placeItems:'center',background:'linear-gradient(135deg,#ff88cf,#a537a1)',boxShadow:'0 9px 32px #ed5ab377'}}><Gift size={37} strokeWidth={1.9}/></div><strong style={{fontSize:22}}>DAILY LOGIN</strong><p style={{margin:'5px 0 15px',fontSize:13,opacity:.85}}>กลับมาเจอกันทุกวัน รับสิทธิพิเศษในอนาคต</p></div>
-                <DailyRewardsAndSafety user={user} notify={notify} mode="daily" />
-              </div>
+            {dailyOpen && createPortal(<div className="nm-daily-backdrop" role="presentation" onClick={() => setDailyOpen(false)}>
+              <section className="nm-daily-modal" role="dialog" aria-modal="true" aria-labelledby="nm-daily-title" onClick={e=>e.stopPropagation()}>
+                <button type="button" className="nm-daily-close" aria-label="ปิด Daily Login" onClick={()=>setDailyOpen(false)}><X size={19}/></button>
+                <div className="nm-daily-hero"><div className="nm-daily-gift"><Gift size={42}/></div><span className="nm-daily-kicker">DAILY REWARDS · NISIT MATCH</span><h2 id="nm-daily-title">ของขวัญประจำวัน</h2><p>กลับมาเจอกันทุกวัน สะสมสถิติไปด้วยกัน ✨</p></div>
+                <DailyRewardsAndSafety user={user} notify={notify} mode="daily"/>
+              </section>
             </div>, document.body)}
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             
