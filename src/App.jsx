@@ -1249,7 +1249,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     try {
       let payload = { match_id: targetRoom, sender_id: me, body }
       if (replyTo?.id && chatExtrasSupported.current) payload.reply_to = replyTo.id
-      let { data, error } = await supabase.from('messages').insert(payload).select('*').single()
+      let { data, error } = await Promise.race([
+        supabase.from('messages').insert(payload).select('*').single(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('send_timeout')), 15000))
+      ])
       if (error && payload.reply_to && /reply_to|schema cache|column/i.test(error.message || '')) {
         chatExtrasSupported.current = false
         ;({ data, error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body }).select('*').single())
@@ -1263,7 +1266,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       })
     } catch (error) {
       setMsgs(prev => prev.map(m => m.id === tempId ? { ...m, pending: false, failed: true } : m))
-      notify('ส่งข้อความไม่สำเร็จ: ' + (error?.message || 'กรุณาลองใหม่'))
+      notify(error?.message === 'send_timeout'
+        ? 'การส่งข้อความใช้เวลานาน กรุณาตรวจสอบแชตก่อนส่งซ้ำ'
+        : 'ส่งข้อความไม่สำเร็จ: ' + (error?.message || 'กรุณาลองใหม่'))
     } finally {
       pendingSends.current.delete(tempId)
     }
