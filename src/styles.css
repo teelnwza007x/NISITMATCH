@@ -3489,3 +3489,37 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 :root[data-theme] .v76-page :is(.v76-event-date,.v76-event-tag) {
   background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel));color:var(--theme-accent)!important;
 }
+
+
+/* 8.0 profile management: make editor and photo controls follow global appearance. */
+:root[data-theme] :is(.profile-edit-layout,.nm-edit-workspace,.nm-edit-photo-page,.nm-photo-hero,.nm-edit-tabs,.nm-edit-subtabs) {
+  color:var(--theme-text);border-color:var(--theme-border);
+}
+:root[data-theme] :is(.nm-edit-workspace,.nm-photo-hero,.nm-edit-subtabs) {
+  background:var(--theme-panel)!important;border-color:var(--theme-border)!important;
+}
+:root[data-theme] :is(.profile-edit-layout,.nm-edit-workspace,.nm-edit-photo-page) :is(h1,h2,h3,h4,b,strong,label) {
+  color:var(--theme-text)!important;
+}
+:root[data-theme] :is(.profile-edit-layout,.nm-edit-workspace,.nm-edit-photo-page) :is(p,small,.v83-media-note) {
+  color:var(--theme-muted)!important;
+}
+:root[data-theme] :is(.nm-edit-tabs,.nm-edit-subtabs) button {
+  background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-text);
+}
+:root[data-theme] :is(.nm-edit-tabs,.nm-edit-subtabs) button.active,
+:root[data-theme] :is(.nm-edit-tabs,.nm-edit-subtabs) button[aria-current="page"] {
+  background:color-mix(in srgb,var(--theme-accent) 15%,var(--theme-panel))!important;
+  border-color:var(--theme-accent)!important;color:var(--theme-accent)!important;
+}
+:root[data-theme] :is(.profile-edit-layout,.nm-edit-workspace,.nm-edit-photo-page) :is(input:not([type="checkbox"]),textarea,select) {
+  background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-text);
+  accent-color:var(--theme-accent);
+}
+:root[data-theme] :is(.profile-edit-layout,.nm-edit-workspace,.nm-edit-photo-page) :is(input,textarea)::placeholder {color:var(--theme-muted);}
+:root[data-theme] :is(.v83-media-tile,.v83-media-add) {
+  background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-accent);
+}
+:root[data-theme] :is(.profile-edit-layout,.nm-edit-workspace,.nm-edit-photo-page) :is(button,input,select,textarea):focus-visible {
+  outline:2px solid var(--theme-accent);outline-offset:2px;
+}
