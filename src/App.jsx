@@ -1275,7 +1275,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     if (older) {
       const box = scrollBox.current
       const before = box?.scrollHeight || 0
-      setMsgs(prev => [...rows.filter(r => !prev.some(p => p.id === r.id)), ...prev])
+      setMsgs(prev => { const existing = new Set(prev.map(p => p.id)); const incoming = rows.filter(row => !existing.has(row.id)); return incoming.length ? [...incoming, ...prev] : prev })
       requestAnimationFrame(() => { if (box) box.scrollTop += box.scrollHeight - before })
     } else setMsgs(rows)
     setLoadingOlder(false)
@@ -1554,7 +1554,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
           </div>
         </div>, document.body)}
 
-        <div className={"chat-messages" + (messageMenu ? " chat-focus-active" : "")} ref={scrollBox} onClickCapture={e => { if (messageMenu && !e.target.closest(".chat-message-focused")) setMessageMenu(null) }} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(distance > 75) }}>
+        <div className={"chat-messages" + (messageMenu ? " chat-focus-active" : "")} ref={scrollBox} onClickCapture={e => { if (messageMenu && !e.target.closest(".chat-message-focused")) setMessageMenu(null) }} onTouchMove={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onWheel={() => { if (!stickToBottom.current) userReadingHistory.current = true }} onScroll={e => { const el = e.currentTarget; const distance = el.scrollHeight - el.scrollTop - el.clientHeight; stickToBottom.current = distance < 65; if (distance < 65) userReadingHistory.current = false; setShowLatestButton(previous => previous === (distance > 75) ? previous : distance > 75) }}>
           {hasMore && <button type="button" className="chat-older" disabled={loadingOlder} onClick={() => fetchMessages(true)}>{loadingOlder ? 'กำลังโหลด...' : '↑ ดูข้อความก่อนหน้า'}</button>}
           {msgs.map((m, i) => <React.Fragment key={m.id}>
             {(i === 0 || dateLabel(msgs[i-1].created_at) !== dateLabel(m.created_at)) && <div className="chat-date-divider"><span>{dateLabel(m.created_at)}</span></div>}
