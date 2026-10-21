@@ -42,7 +42,13 @@ Deno.serve(async req => {
    if (saveError) throw saveError
    try {
     const transport = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: sender, pass: password }, connectionTimeout: 15000 })
-    await transport.sendMail({ from: '"NISIT MATCH" <' + sender + '>', to: email, subject: 'NISIT MATCH - Account verification code', text: 'Your NISIT MATCH account verification code is ' + otp + '. It expires in 10 minutes.', html: renderNisitOtpEmail(otp, 'account') })
+    const delivery = await transport.sendMail({ from: '"NISIT MATCH" <' + sender + '>', to: email, subject: 'NISIT MATCH - Account verification code', text: 'Your NISIT MATCH account verification code is ' + otp + '. It expires in 10 minutes.', html: renderNisitOtpEmail(otp, 'account') })
+    const accepted = delivery.accepted || []
+    const rejected = delivery.rejected || []
+    console.info('account-email-otp smtp result', { acceptedCount: accepted.length, rejectedCount: rejected.length, messageId: delivery.messageId, response: delivery.response })
+    if (!accepted.some((recipient: string) => recipient.toLowerCase() === email) || rejected.some((recipient: string) => recipient.toLowerCase() === email)) {
+     throw new Error('SMTP did not accept OTP recipient')
+    }
    } catch (error) {
     await db.from('account_email_otp_challenges').delete().eq('user_id', user.id)
     throw error
