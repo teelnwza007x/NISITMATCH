@@ -2266,6 +2266,8 @@ const THEME_OPTIONS = [
   { id: 'lavender', name: 'Lavender', detail: 'ม่วงละมุน นุ่มนวล', colors: ['#1b162a','#b299ed','#efacd7'] },
 ]
 const SOUND_SETTING_KEY = 'nisit-match-sound-v1'
+const SOUND_VOLUME_KEY = 'nisit-match-sound-volume-v1'
+const soundVolume = () => { try { return Math.min(1.8,Math.max(.4,Number(localStorage.getItem(SOUND_VOLUME_KEY) || 1.25))) } catch { return 1.25 } }
 const soundEnabled = () => { try { return localStorage.getItem(SOUND_SETTING_KEY) !== 'off' } catch { return true } }
 let nmAudioContext = null
 let nmLastSound = 0
@@ -2295,7 +2297,7 @@ function playNisitSound(kind) {
       const t = ctx.currentTime + .012 + delay
       osc.type = 'sine'; osc.frequency.setValueAtTime(frequency,t)
       gain.gain.setValueAtTime(.0001,t)
-      gain.gain.exponentialRampToValueAtTime(volume,t+.015)
+      gain.gain.exponentialRampToValueAtTime(Math.min(.16,volume * soundVolume()),t+.015)
       gain.gain.exponentialRampToValueAtTime(.0001,t+duration)
       osc.connect(gain); gain.connect(ctx.destination)
       osc.start(t); osc.stop(t+duration+.015)
@@ -2709,6 +2711,8 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   })
   const chooseTheme = (id) => { setTheme(id); applyTheme(id) }
   const [soundsOn, setSoundsOn] = useState(soundEnabled)
+  const [volumeLevel, setVolumeLevel] = useState(soundVolume)
+  const changeVolume = (value) => { const next = Number(value); setVolumeLevel(next); try { localStorage.setItem(SOUND_VOLUME_KEY,String(next)) } catch {} }
   const toggleSounds = () => {
     const next = !soundsOn
     try { localStorage.setItem(SOUND_SETTING_KEY, next ? 'on' : 'off') } catch {}
@@ -2799,6 +2803,7 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
       <button type="button" className={'nm-sound-toggle' + (soundsOn ? ' is-on' : '')} role="switch" aria-checked={soundsOn} aria-label="เปิดหรือปิดเสียงเอฟเฟกต์" onClick={toggleSounds}><span/></button>
+      <label className="nm-sound-volume"><span>ระดับเสียงเอฟเฟกต์ <b>{Math.round(volumeLevel/1.8*100)}%</b></span><input type="range" min="0.4" max="1.8" step="0.1" value={volumeLevel} disabled={!soundsOn} onChange={e => changeVolume(e.target.value)} onPointerUp={() => { if(soundsOn) playNisitSound('match') }} aria-label="ระดับเสียงเอฟเฟกต์"/></label>
       <button type="button" className="nm-sound-test-btn" onClick={() => playNisitSound('match')} disabled={!soundsOn}><Play size={15}/> ทดลองเสียงเอฟเฟกต์</button>
     </section>
     <section className="theme-gallery" aria-label="เลือกธีมของแอป">
