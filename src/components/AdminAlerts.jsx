@@ -14,6 +14,7 @@ export default function AdminAlerts() {
   const loadingRef = useRef(false)
   const [showDomains, setShowDomains] = useState(false)
   const [showHealthDetails, setShowHealthDetails] = useState(false)
+  const [domainSearch, setDomainSearch] = useState('')
   const aliveRef = useRef(true)
   const requestRef = useRef(0)
   const reload = useCallback(async () => {
@@ -71,6 +72,7 @@ export default function AdminAlerts() {
   }, [reload])
   const pending = reports.filter(r => ['pending', 'open', 'new'].includes(String(r.status || '').toLowerCase()))
   const visibleReports = showAll ? reports : pending
+  const filteredDomainRequests = domainRequests.filter(r => `${r.university_name || ''} ${r.email_domain || ''}`.toLocaleLowerCase().includes(domainSearch.trim().toLocaleLowerCase()))
   const failedPushCount = Number(health?.failed_push || 0)
   const waitingPushCount = Number(health?.pending_push || 0)
   return <section className="nm-admin-queue" aria-label="ศูนย์แจ้งเตือนแอดมิน">
@@ -97,7 +99,8 @@ export default function AdminAlerts() {
     <p><strong>คำขอเพิ่มโดเมนมหาวิทยาลัย {domainRequests.length} รายการล่าสุด</strong></p>
     {domainError && <p role="alert">{domainError} — ตรวจว่าได้รัน V138_ADMIN_DOMAIN_REQUEST_QUEUE.sql ใน Supabase แล้ว</p>}
     {domainRequests.length > 0 && <button type="button" className="btn btn-ghost" onClick={() => setShowDomains(v => !v)}>{showDomains ? 'ซ่อนคำขอมหาวิทยาลัย' : 'ดูคำขอมหาวิทยาลัย'}</button>}
-    {showDomains && domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{domainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td></tr>)}</tbody></table></div>}
+    {showDomains && domainRequests.length > 0 && <label style={{display:'block',marginTop:10}}>ค้นหาคำขอมหาวิทยาลัย <input type="search" value={domainSearch} onChange={e => setDomainSearch(e.target.value)} placeholder="ชื่อมหาวิทยาลัยหรือโดเมน" style={{display:'block',width:'100%',maxWidth:380,marginTop:6}} /></label>}
+    {showDomains && domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{filteredDomainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td></tr>)}</tbody></table></div>}
     <button type="button" className="btn btn-ghost" onClick={reload} disabled={loading}>{loading ? 'กำลังโหลด…' : 'รีเฟรชรายการ'}</button>
     {checkedAt && <p style={{fontSize:12,opacity:.7}}>ตรวจล่าสุด {checkedAt.toLocaleTimeString('th-TH')}</p>}
     <button type="button" className="btn btn-ghost" style={{marginLeft:8}} onClick={() => setShowAll(v => !v)}>{showAll ? 'เฉพาะรอตรวจสอบ' : 'ดูรายงานทั้งหมด'}</button>
