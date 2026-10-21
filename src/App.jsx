@@ -2918,9 +2918,18 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
   }, [!!mapTarget, !!chatEvent])
   const sendChat = async e => {
     e.preventDefault(); const body=chatDraft.trim(); if(!body||!chatEvent||chatBusy)return
-    setChatBusy(true); const {data,error}=await supabase.from('hangout_messages').insert({event_id:chatEvent.id,user_id:user.id,body}).select('id,event_id,user_id,body,created_at').single(); setChatBusy(false)
-    if(error)return notify('ส่งข้อความไม่สำเร็จ: '+error.message)
-    setChatMessages(old=>old.some(m=>m.id===data.id)?old:[...old,data]); setChatDraft('')
+    setChatBusy(true)
+    try {
+      const {data,error}=await Promise.race([
+        supabase.from('hangout_messages').insert({event_id:chatEvent.id,user_id:user.id,body}).select('id,event_id,user_id,body,created_at').single(),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),15000))
+      ])
+      if(error) { notify('ส่งข้อความไม่สำเร็จ: '+error.message); return }
+      if(data) setChatMessages(old=>old.some(m=>m.id===data.id)?old:[...old,data])
+      setChatDraft(current=>current===body?'':current)
+    } catch(e) {
+      notify(e.message==='timeout'?'การส่งข้อความใช้เวลานาน กรุณาตรวจสอบแชตก่อนลองส่งซ้ำ':'ส่งข้อความไม่สำเร็จ กรุณาลองใหม่')
+    } finally { setChatBusy(false) }
   }
   if (campusVerificationLoading) return <div className="v76-page"><div className="page-center"><span className="spin"/><p>กำลังตรวจสอบการยืนยันอีเมลมหาวิทยาลัย…</p></div></div>
   if (!isCampusVerified) return <div className="v76-page hangout-verification-required"><Heading kicker="CAMPUS VERIFIED ONLY" title="Hangout สำหรับนิสิต/นักศึกษาที่ยืนยันแล้ว" sub="เพื่อความปลอดภัย การดูนัด สร้างนัด เข้าร่วม และแชท Hangout ต้องยืนยันอีเมลมหาวิทยาลัยก่อน"/><section className="v76-hangout-safety"><ShieldCheck size={22}/><span><b>ต้องยืนยันอีเมลมหาวิทยาลัยก่อน</b><small>บัญชีนี้ยังไม่พบสถานะยืนยันที่สำเร็จ ไปที่โปรไฟล์หรือการตั้งค่าเพื่อยืนยันอีเมลมหาวิทยาลัย แล้วกลับมาที่ Hangout อีกครั้ง</small></span></section><button type="button" className="v76-primary-cta" onClick={onGoVerify}><ShieldCheck size={17}/> ไปหน้ายืนยันอีเมลมหาวิทยาลัย <ArrowRight size={17}/></button></div>
