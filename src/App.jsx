@@ -2768,7 +2768,7 @@ function AdminDashboard({ onBack }) {
     else { setGrowth(null); setGrowthError('ยังไม่ได้ติดตั้ง SQL nm_admin_growth_v2.sql หรือไม่มีสิทธิ์เข้าถึง') }
     setBusy(false)
   }, [])
-  useEffect(() => { if (adminTab === 'overview') reload(); return () => { reloadSequence.current += 1 } }, [reload, adminTab])
+  useEffect(() => { if (adminTab === 'overview' || adminTab === 'analytics') reload(); return () => { reloadSequence.current += 1 } }, [reload, adminTab])
   const growthMax = Math.max(1,...(growth || []).flatMap(d=>[Number(d.new_profiles)||0,Number(d.new_matches)||0]))
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
@@ -2789,13 +2789,20 @@ function AdminDashboard({ onBack }) {
     <div className="nm-admin-navigation" style={{display:'grid',gap:12,marginBottom:20}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><strong style={{fontSize:17}}>ศูนย์จัดการระบบ</strong><p style={{margin:'4px 0 0',fontSize:13,opacity:.7}}>เลือกงานที่ต้องการจัดการได้จากหมวดด้านล่าง</p></div><span style={{fontSize:12,opacity:.65}}>สำหรับผู้ดูแลระบบ</span></div>
       <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ" style={{display:'flex',flexWrap:'wrap',gap:8}}>
-        {[['overview','ภาพรวม'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','ห้อง Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
+        {[['overview','ภาพรวม'],['analytics','สถิติผู้ใช้งาน'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','ห้อง Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
       </nav>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('alerts')}>ตรวจคำขอมหาวิทยาลัย <ArrowRight size={15}/></button>
         <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('profiles')}>ค้นหาสมาชิก <ArrowRight size={15}/></button>
       </div>
     </div>
+    {adminTab === 'analytics' && <section className="nm-admin-overview" aria-label="สถิติผู้ใช้งาน" style={{display:'grid',gap:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><h3 style={{margin:0}}>สถิติการเติบโต</h3><p style={{opacity:.7,fontSize:13,margin:'5px 0 0'}}>ข้อมูลสรุปจาก Supabase ไม่แสดงข้อความส่วนตัวของสมาชิก</p></div><button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{busy?'กำลังโหลด…':'รีเฟรช'}</button></div>
+      {error && <p role="alert">{error}</p>}
+      {metrics && <div className="nm-admin-metrics">{[['สมาชิกทั้งหมด',metrics.profiles],['แมตช์ทั้งหมด',metrics.matches],['รายงานทั้งหมด',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div>}
+      <div className="nm-admin-queue"><h3>14 วันที่ผ่านมา</h3>{growthError && <p role="status">{growthError}</p>}{growth && <><div className="nm-admin-metrics">{[['สมาชิกใหม่',growth.reduce((n,d)=>n+(Number(d.new_profiles)||0),0)],['แมตช์ใหม่',growth.reduce((n,d)=>n+(Number(d.new_matches)||0),0)]].map(([label,value])=><article key={label}><small>{label}</small><strong>{value.toLocaleString('th-TH')}</strong></article>)}</div><div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><table style={{width:'100%',minWidth:290,borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:10}}>วันที่</th><th style={{textAlign:'right',padding:10}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:10}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(d=><tr key={d.day}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{d.day}</td><td style={{padding:10,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(d.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:10,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(d.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div></>}</div>
+      <p style={{fontSize:12,opacity:.7}}>จำนวนผู้ใช้งานรายวัน ข้อความที่ส่ง และอันดับมหาวิทยาลัย ยังไม่แสดงจนกว่าจะมีการติดตั้ง RPC สำหรับสถิติเหล่านั้นโดยเฉพาะ เพื่อไม่ให้แสดงตัวเลขที่คาดเดา</p>
+    </section>}
     {adminTab === 'premium' && <AdminPremiumDirectory/>}
     {adminTab === 'alerts' && <AdminAlerts/>}
     {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
