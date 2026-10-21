@@ -10,13 +10,13 @@ begin
     raise exception 'Admin only' using errcode='42501';
   end if;
   return query
-  select p.id,p.display_name,p.university_id,p.faculty,p.major,p.bio,p.avatar_path,p.photo_paths,p.created_at,p.is_admin,
-    count(*) over() as total_count,p.gender,
+  select p.id,p.display_name::text,p.university_id::text,p.faculty::text,p.major::text,p.bio::text,p.avatar_path::text,ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(to_jsonb(p.photo_paths))='array' THEN to_jsonb(p.photo_paths) ELSE '[]'::jsonb END)),p.created_at::timestamptz,p.is_admin::boolean,
+    count(*) over() as total_count,p.gender::text,
     case when p.birth_date is null then null else date_part('year',age(current_date,p.birth_date))::integer end,
-    p.interests,p.relationship_intent,p.itunes_track_id,p.itunes_track_name,p.itunes_track_artist,p.itunes_track_image,p.itunes_track_preview,p.itunes_track_url
+    ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(to_jsonb(p.interests))='array' THEN to_jsonb(p.interests) ELSE '[]'::jsonb END)),p.relationship_intent::text,p.itunes_track_id::text,p.itunes_track_name::text,p.itunes_track_artist::text,p.itunes_track_image::text,p.itunes_track_preview::text,p.itunes_track_url::text
   from public.profiles p
   where (coalesce(trim(p_search),'')='' or p.display_name ilike '%'||trim(p_search)||'%' or p.university_id ilike '%'||trim(p_search)||'%')
-    and (coalesce(p_gender,'')='' or p.gender=p_gender)
+    and (coalesce(p_gender,'')='' or p.gender::text=p_gender)
   order by p.created_at desc,p.id
   limit least(greatest(coalesce(p_limit,30),1),50)
   offset greatest(coalesce(p_offset,0),0);
