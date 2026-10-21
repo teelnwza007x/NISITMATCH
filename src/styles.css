@@ -3888,3 +3888,27 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   .nm-self-preview-modal>.detail-close-btn,
   .nm-social-push-toggle,.nm-social-option{transition:none!important;animation:none!important}
 }
+
+/* Mobile Swipe + Chat polish: keep controls touch-friendly without shifting layouts. */
+@media(max-width:600px){
+  .chat-compose textarea,.chat-compose input{
+    font-size:16px!important;min-width:0;max-width:100%;
+  }
+  .chat-compose{min-width:0;box-sizing:border-box}
+  .chat-compose .send-btn{flex-shrink:0}
+  .chat-messages .message-bubble{
+    overflow-wrap:anywhere;word-break:break-word;max-width:100%;
+  }
+  .swipe-controls{max-width:100%;box-sizing:border-box}
+  .swipe-controls .swipe-control{
+    touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  }
+}
+@media(hover:none) and (pointer:coarse){
+  .chat-compose .send-btn,.swipe-controls .swipe-control{
+    -webkit-tap-highlight-color:transparent;
+  }
+}
+.chat-compose .send-btn:focus-visible,.swipe-controls .swipe-control:focus-visible{
+  outline:2px solid #dba4ff!important;outline-offset:3px;
+}
