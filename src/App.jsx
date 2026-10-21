@@ -2688,7 +2688,7 @@ function DailyRewardsAndSafety({ user, notify, mode = 'safety' }) {
       const { data, error } = await supabase.rpc('nm_daily_claim')
       if (error) throw error
       if (data?.status) setStatus(data.status)
-      notify(data?.claimed ? 'เช็กอินรายวันสำเร็จ!' : 'วันนี้คุณเช็กอินแล้ว')
+      notify(data?.claimed ? (data?.earned_premium_days ? '🎉 รับ Premium ฟรี 1 วันแล้ว!' : `🎁 ได้รับ Super Like +${data?.earned_super_likes || 0} ครั้ง!`) : 'วันนี้คุณเช็กอินแล้ว')
     } catch (error) { notify('ยังเช็กอินไม่ได้ กรุณาติดตั้ง SQL nm_daily_rewards_v1.sql: ' + error.message) }
     finally { setLoading(false) }
   }
@@ -2704,11 +2704,11 @@ function DailyRewardsAndSafety({ user, notify, mode = 'safety' }) {
     {mode === 'daily' && <section aria-label="รางวัลเช็กอินรายวัน">
       <div className="nm-daily-streak"><span>🔥</span><span>{status?.streak ?? '—'} DAY STREAK</span></div>
       <div className="nm-daily-days" aria-label="ความคืบหน้าการเช็กอิน 7 วัน">
-        {Array.from({length:7},(_,i)=>{const day=i+1;const streak=Math.max(0,Number(status?.streak)||0);const done=day<=Math.min(streak,7);const today=!status?.today_claimed && day===Math.min(streak+1,7);return <div key={day} className={'nm-daily-day'+(done?' is-done':'')+(today?' is-today':'')+(day===7?' is-special':'')}><strong>DAY {day}</strong>{done?<Check size={23} color="#86efac"/>:day===7?<Crown size={24} color="#fbd38d"/>:<Gift size={23} color={today?'#e5b3ff':'#ac96be'}/>}<small>{done?'เช็กอินแล้ว':day===7?'ครบ 7 วัน':today?'วันนี้':'รอเช็กอิน'}</small></div>})}
+        {Array.from({length:7},(_,i)=>{const day=i+1;const streak=Math.max(0,Number(status?.streak)||0);const done=day<=Math.min(streak,7);const today=!status?.today_claimed && day===Math.min(streak+1,7);return <div key={day} className={'nm-daily-day'+(done?' is-done':'')+(today?' is-today':'')+(day===7?' is-special':'')}><strong>DAY {day}</strong>{done?<Check size={23} color="#86efac"/>:day===7?<Crown size={24} color="#fbd38d"/>:<Gift size={23} color={today?'#e5b3ff':'#ac96be'}/>}<small>{done?'เช็กอินแล้ว':day===7?'Premium 1 วัน':today?'วันนี้':'รอเช็กอิน'}</small></div>})}
       </div>
       <button type="button" className="nm-daily-cta" onClick={claim} disabled={loading || !status || status.today_claimed}><Gift size={19}/>{loading?'กำลังเช็กอิน...':status?.today_claimed?'เช็กอินวันนี้แล้ว ✓':'เช็กอินวันนี้'}</button>
       {status?.today_claimed&&<p className="nm-daily-success" role="status">✨ กลับมาใหม่พรุ่งนี้นะ!</p>}
-      <p className="nm-daily-note">เช็กอินเพื่อสะสมวันต่อเนื่อง · รางวัล Super Like ยังไม่เปิดใช้งาน</p>
+      <p className="nm-daily-note">วันที่ 1–6 รับ Super Like 1, 1, 2, 2, 3, 3 ครั้ง · วันที่ 7 รับ Premium 1 วัน · Super Like คงเหลือ {status?.super_like_credits ?? 0}</p>
       {!status&&<p className="nm-daily-note" role="status">ยังโหลดสถานะไม่ได้ กรุณาตรวจสอบระบบ Daily Rewards</p>}
     </section>}
     {mode === 'safety' && <section className="nm-settings-install" aria-label="ศูนย์ความปลอดภัย NISIT MATCH" style={{flexWrap:'wrap'}}>
