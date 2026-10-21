@@ -409,7 +409,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     }
   }, [])
   useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
-  useEffect(() => { cancelAnimationFrame(dragFrame.current) }, [person?.id])
+  useEffect(() => { cancelAnimationFrame(dragFrame.current); dragFrame.current = 0 }, [person?.id])
   useLayoutEffect(() => {
     setPhoto(0)
     setSuperBurst(false)
@@ -502,12 +502,15 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
   }
   const move = (e) => {
     const origin = start.current
-    if (!origin || busyRef.current) return
+    if (!origin || busyRef.current || e.pointerId !== origin.pointerId) return
     const dx = e.clientX - origin.x, dy = e.clientY - origin.y
     // Vertical-dominant movement belongs to the page, not the swipe gesture.
     if (!origin.horizontal && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 1.12) {
       start.current = null
       dragNow.current = { x: 0, y: 0 }
+      cancelAnimationFrame(dragFrame.current)
+      dragFrame.current = 0
+      paint(0, 0)
       return
     }
     // Claim the pointer only after a clear horizontal gesture is detected.
@@ -536,8 +539,8 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
-    <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
-      {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
+    <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
+      {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} loading="eager" fetchPriority="high" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
       <button type="button" className={'swipe-more-trigger ' + (showSwipeMenu ? 'active' : '')} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setShowSwipeMenu(v => !v) }} aria-label="ตัวเลือกโปรไฟล์" aria-expanded={showSwipeMenu} title="ตัวเลือกเพิ่มเติม"><MoreHorizontal size={22}/></button>
       {showSwipeMenu && <div className="swipe-more-menu swipe-more-menu-card" role="menu" aria-label="ตัวเลือกโปรไฟล์" onPointerDown={e => e.stopPropagation()}><div className="swipe-more-heading">จัดการโปรไฟล์</div><button type="button" role="menuitem" onClick={e => { e.stopPropagation(); setShowSwipeMenu(false); onOpen(person) }}><UserRound size={16}/><span><b>ดูโปรไฟล์</b><small>อ่านรายละเอียดเพิ่มเติม</small></span></button><div className="swipe-more-divider"/><button type="button" role="menuitem" className="danger" onClick={e => { e.stopPropagation(); setShowSwipeMenu(false); onReport(person) }}><Flag size={16}/><span><b>รายงานโปรไฟล์</b><small>แจ้งปัญหาให้ทีมงานตรวจสอบ</small></span></button></div>}
