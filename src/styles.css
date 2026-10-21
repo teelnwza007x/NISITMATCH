@@ -3543,3 +3543,26 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 
 /* Super Like gives a short double wiggle, then rests; no vertical bobbing. */
 @keyframes nm-superlike-wiggle{0%,5%,19%,100%{transform:rotate(0deg)}7%{transform:rotate(-11deg)}10%{transform:rotate(10deg)}13%{transform:rotate(-7deg)}16%{transform:rotate(5deg)}}
+
+
+/* Premium referral welcome event */
+.nm-referral-event-backdrop{position:fixed;inset:0;z-index:100020;display:grid;place-items:center;padding:18px;background:rgba(9,6,24,.78);backdrop-filter:blur(12px);animation:nm-referral-event-fade .24s ease}
+.nm-referral-event{position:relative;width:min(100%,420px);max-height:calc(100dvh - 36px);overflow:auto;text-align:center;padding:35px 25px 24px;border:1px solid rgba(255,190,236,.38);border-radius:30px;background:radial-gradient(ellipse at 50% 0%,rgba(255,88,188,.35),transparent 62%),linear-gradient(160deg,#271332,#120e27 75%);color:#fff;box-shadow:0 26px 90px rgba(0,0,0,.55),0 0 55px rgba(233,75,169,.16);animation:nm-referral-event-pop .38s cubic-bezier(.2,.9,.2,1)}
+.nm-referral-event-close{position:absolute;right:14px;top:14px;display:grid;place-items:center;width:35px;height:35px;border:0;border-radius:50%;color:#fff;background:rgba(255,255,255,.12);cursor:pointer}
+.nm-referral-event-glow{display:flex;justify-content:center;align-items:center;gap:15px;color:#ffb4e1;margin:5px 0 15px;filter:drop-shadow(0 0 18px #f858b1);animation:nm-referral-event-float 3.5s ease-in-out infinite}
+.nm-referral-event-kicker{font-size:10px;font-weight:800;letter-spacing:2px;color:#ffc2e9}
+.nm-referral-event h2{font-size:clamp(23px,6vw,29px);line-height:1.25;margin:12px 0;color:#fff}
+.nm-referral-event p{color:#e5d4eb;font-size:13px;line-height:1.8;margin:0 auto 20px;max-width:335px}
+.nm-referral-event-rewards{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px}
+.nm-referral-event-rewards>div{display:flex;flex-direction:column;gap:5px;padding:16px 8px;border-radius:18px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.13)}
+.nm-referral-event-rewards small{font-size:11px;color:#e5d4eb}
+.nm-referral-event-rewards strong{font-size:29px;color:#ffb7e4}
+.nm-referral-event-rewards span{font-size:12px;color:#fff}
+.nm-referral-event-cta{width:100%;display:flex;justify-content:center;align-items:center;gap:10px;border:0;border-radius:15px;padding:15px 12px;font-size:15px;font-weight:800;color:#33122d;background:linear-gradient(110deg,#ffb9e6,#f579c2);box-shadow:0 10px 25px rgba(236,77,168,.3);cursor:pointer}
+.nm-referral-event-optout{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:19px;font-size:12px;color:#e8d8e8;cursor:pointer}
+.nm-referral-event-optout input{accent-color:#f77bbf;width:17px;height:17px}
+.nm-referral-event-later{margin-top:13px;background:transparent;border:0;color:#d4c3d6;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:12px}
+@keyframes nm-referral-event-fade{from{opacity:0}to{opacity:1}}
+@keyframes nm-referral-event-pop{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes nm-referral-event-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(prefers-reduced-motion:reduce){.nm-referral-event-backdrop,.nm-referral-event,.nm-referral-event-glow{animation:none}}
