@@ -3463,3 +3463,29 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(prefers-reduced-motion:reduce) {
   :root[data-theme] .nm-guide-open-btn {transition:none;}
 }
+
+
+/* 8.0 Hangout theme repair: override legacy hard-coded !important rules. */
+:root[data-theme] .v76-page .v76-hangout-form {
+  background:var(--theme-panel)!important;border-color:var(--theme-border)!important;
+  color:var(--theme-text)!important;box-shadow:0 12px 32px rgba(0,0,0,.12)!important;
+}
+:root[data-theme] .v76-page :is(.v76-event-card,.v76-hangout-safety,.v76-plan-card,.nm-hangout-discovery,.hangout-venue-picker,.hangout-venue-option) {
+  background:var(--theme-panel)!important;border-color:var(--theme-border)!important;color:var(--theme-text)!important;
+}
+:root[data-theme] .v76-page :is(.v76-event-card h3,.v76-hangout-form label,.v76-hangout-safety b,.v76-plan-card b,.v76-plan-card strong) {color:var(--theme-text)!important;}
+:root[data-theme] .v76-page :is(.v76-event-card p,.v76-event-card small,.v76-hangout-form small,.v76-hangout-safety small,.v76-plan-card p) {color:var(--theme-muted)!important;}
+:root[data-theme] .v76-page .v76-plan-card.selected {
+  background:color-mix(in srgb,var(--theme-accent) 12%,var(--theme-panel))!important;
+  border-color:var(--theme-accent)!important;
+}
+:root[data-theme] .v76-page :is(.v76-event-footer,.v76-event-desc) {border-color:var(--theme-border)!important;}
+:root[data-theme] .v76-page :is(.v76-event-footer button,.nm-hangout-filter-buttons button) {
+  background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-text);
+}
+:root[data-theme] .v76-page .nm-hangout-filter-buttons button.active {
+  background:var(--theme-accent);border-color:var(--theme-accent);color:#fff;
+}
+:root[data-theme] .v76-page :is(.v76-event-date,.v76-event-tag) {
+  background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel));color:var(--theme-accent)!important;
+}
