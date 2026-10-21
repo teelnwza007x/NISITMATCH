@@ -374,6 +374,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     }
   }, [])
   useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
+  useEffect(() => { cancelAnimationFrame(dragFrame.current) }, [person?.id])
   useLayoutEffect(() => {
     setPhoto(0)
     setSuperBurst(false)
@@ -1333,11 +1334,13 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       typingChannel.current?.send({ type: 'broadcast', event: 'typing', payload: { sender: me, typing: !!value.trim() } }).catch(() => {})
     }
   }
+  const sendingGuard = useRef(false)
   const send = async e => {
     e.preventDefault()
     const body = text.trim()
     const targetRoom = roomId
-    if (!body || !targetRoom) return
+    if (!body || !targetRoom || sendingGuard.current) return
+    sendingGuard.current = true
     const tempId = 'pending-' + makeClientId()
     const optimistic = {
       id: tempId, match_id: targetRoom, sender_id: me, body, reply_to: replyTo?.id || null,
@@ -1374,6 +1377,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         : 'ส่งข้อความไม่สำเร็จ: ' + (error?.message || 'กรุณาลองใหม่'))
     } finally {
       pendingSends.current.delete(tempId)
+      sendingGuard.current = false
     }
   }
   const setReaction = async (message, choice) => {
@@ -1411,18 +1415,21 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   }
   const quoteFor = (message) => message.attachment_type === 'image' ? 'รูปภาพ' : message.attachment_type === 'audio' ? 'ข้อความเสียง' : (message.body || 'ข้อความ')
   const dateLabel = (date) => { const d = new Date(date); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' }) }
+  const mediaSending = useRef(false)
   const sendMedia = async (file, type, targetRoom = roomId) => {
-    if (!targetRoom || !file) return
+    if (!targetRoom || !file || mediaSending.current) return false
     if (file.size > 10 * 1024 * 1024) return notify('ไฟล์ต้องมีขนาดไม่เกิน 10 MB')
     if (type === 'image' && !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) return notify('รองรับ JPG, PNG, WebP และ GIF')
     if (type === 'audio' && !['audio/webm','audio/mp4','audio/ogg','audio/mpeg','audio/x-m4a'].includes(file.type.split(';')[0])) return notify('ไฟล์เสียงไม่รองรับ')
+    mediaSending.current = true
     setUploading(true)
     const extension = (file.name?.split('.').pop() || (type === 'audio' ? 'webm' : 'jpg')).replace(/[^a-z0-9]/gi, '').toLowerCase()
     const path = `${targetRoom}/${makeClientId()}.${extension}`
     const { error: uploadError } = await supabase.storage.from('chat-media').upload(path, file, { contentType: file.type.split(';')[0], upsert: false })
-    if (uploadError) { setUploading(false); notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message); return false }
+    if (uploadError) { setUploading(false); mediaSending.current = false; notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message); return false }
     const { error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body: type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง', attachment_type: type, attachment_path: path })
     setUploading(false)
+    mediaSending.current = false
     if (error) { await supabase.storage.from('chat-media').remove([path]); notify('ส่งไฟล์ไม่สำเร็จ: ' + error.message); return false }
     if (roomId === targetRoom) { forceNextScroll.current = true; scrollToLatest(true) }
     return true
@@ -3330,6 +3337,12 @@ function AppContent() {
   }, [session?.user?.id, dailyOpen])
   const [newMatch, setNewMatch] = useState(null)
   useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
+  useEffect(() => {
+    if (!newMatch) return
+    const onKey = e => { if (e.key === 'Escape') setNewMatch(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [newMatch])
   const previousUnreadMessages = useRef(null)
   useEffect(() => {
     if (previousUnreadMessages.current !== null && unreadMessages > previousUnreadMessages.current && document.visibilityState === 'visible') playNisitSound('message')
@@ -3743,9 +3756,15 @@ const loadMatches = useCallback(async () => {
     return () => supabase.removeChannel(ch)
   }, [user, view, notify, loadUnread, loadUnreadMessages, loadMatches])
 
+  const swipeInFlight = useRef(new Set())
   const swipe = async (p, is_like) => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
-    const { error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })
+    if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
+    swipeInFlight.current.add(p.id)
+    let error
+    try { ({ error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })) }
+    catch (e) { error = e }
+    finally { swipeInFlight.current.delete(p.id) }
     if (error) return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
     seenSwipes.current.add(p.id)
     setLastSwipe({ person: p, at: Date.now(), matched: false })
@@ -3770,10 +3789,12 @@ const loadMatches = useCallback(async () => {
     setLastSwipe(null); notify('ย้อนกลับการปัดล่าสุดแล้ว')
   }
   const superLike = async (p) => {
-    if (!p?.id || superBusy) return
+    if (!p?.id || superBusy || swipeInFlight.current.has(p.id)) return false
+    swipeInFlight.current.add(p.id)
     setSuperBusy(true)
     const { error } = await supabase.rpc('v60_super_like', { p_target: p.id })
     setSuperBusy(false)
+    swipeInFlight.current.delete(p.id)
     if (error) return notify(error.message.includes('limit') ? 'ใช้ Super Like ครบ 3 ครั้งของวันนี้แล้ว' : 'Super Like ไม่สำเร็จ: '+error.message)
     setLastSwipe(null)
     notify(`ส่ง Super Like ให้ ${p.display_name} แล้ว`)
@@ -3947,7 +3968,7 @@ const loadMatches = useCallback(async () => {
         ][guideStep]}</p></div>
         <div className="nm-guide-v2-actions"><button type="button" className="nm-guide-v2-back" onClick={guideStep===0?closeGuide:()=>setGuideStep(x=>x-1)}>{guideStep===0?'ไว้ทีหลัง':'ย้อนกลับ'}</button><button type="button" className="nm-guide-v2-next" onClick={guideStep===5?closeGuide:()=>setGuideStep(x=>x+1)}>{guideStep===5?'เริ่มใช้งาน':'ถัดไป'} <ArrowRight size={18}/></button></div>
       </div></div>, document.body)}
-      {newMatch && createPortal(<div className="match-overlay v26-match-overlay" role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog"><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>, document.body)}
+      {newMatch && createPortal(<div className="match-overlay v26-match-overlay" style={{position:'fixed',inset:0,zIndex:99999,overflowY:'auto',overscrollBehavior:'contain',padding:'max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom))'}} role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog" style={{maxHeight:'calc(100dvh - 40px)',overflowY:'auto',margin:'auto'}}><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>, document.body)}
       {Toast}
     </div>
   )
