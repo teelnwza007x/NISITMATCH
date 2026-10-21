@@ -1025,6 +1025,32 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const discardRecord = useRef(false)
   const [mediaUrls, setMediaUrls] = useState({})
   const [openChatImage, setOpenChatImage] = useState(null)
+  const [pendingChatPhoto, setPendingChatPhoto] = useState(null)
+  const [photoSending, setPhotoSending] = useState(false)
+  const pendingChatPhotoRef = useRef(null)
+  const closeChatPhotoPreview = () => {
+    if (pendingChatPhotoRef.current?.url) URL.revokeObjectURL(pendingChatPhotoRef.current.url)
+    pendingChatPhotoRef.current = null
+    setPendingChatPhoto(null)
+  }
+  const previewChatPhoto = file => {
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) return notify('ไฟล์ต้องมีขนาดไม่เกิน 10 MB')
+    if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) return notify('รองรับ JPG, PNG, WebP และ GIF')
+    closeChatPhotoPreview()
+    const next = { file, url: URL.createObjectURL(file), roomId }
+    pendingChatPhotoRef.current = next
+    setPendingChatPhoto(next)
+  }
+  useEffect(() => () => { if (pendingChatPhotoRef.current?.url) URL.revokeObjectURL(pendingChatPhotoRef.current.url) }, [])
+  useEffect(() => { closeChatPhotoPreview() }, [roomId])
+  const confirmChatPhoto = async () => {
+    const pending = pendingChatPhotoRef.current
+    if (!pending || photoSending || uploading || !pending.roomId) return
+    setPhotoSending(true)
+    try { await sendMedia(pending.file, 'image', pending.roomId); closeChatPhotoPreview() }
+    finally { setPhotoSending(false) }
+  }
   useEffect(() => { setOpenChatImage(null); setReplyTo(null); setMessageMenu(null) }, [selectedId])
   useEffect(() => {
     if (!openChatImage) return
@@ -1446,10 +1472,18 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         </div>
         {showLatestButton && <button type="button" className="chat-jump-latest" onClick={() => scrollToLatest(true)} aria-label="กลับไปข้อความล่าสุด"><ArrowRight size={16} style={{transform:"rotate(90deg)"}} /> กลับไปข้อความล่าสุด</button>}
         {replyTo && <div className="chat-reply-composer"><Reply size={16}/><span><b>กำลังตอบกลับ</b><small>{quoteFor(replyTo)}</small></span><button type="button" onClick={() => setReplyTo(null)} aria-label="ยกเลิกตอบกลับ"><X size={17}/></button></div>}
+        {pendingChatPhoto && createPortal(<div role="presentation" onClick={() => { if (!photoSending) closeChatPhotoPreview() }} style={{position:'fixed',inset:0,zIndex:100000,background:'rgba(9,7,18,.94)',display:'flex',alignItems:'center',justifyContent:'center',padding:'max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom))'}}>
+          <div role="dialog" aria-modal="true" aria-label="ตรวจสอบรูปก่อนส่ง" onClick={e => e.stopPropagation()} style={{width:'100%',maxWidth:460,maxHeight:'100%',display:'flex',flexDirection:'column',gap:16,color:'#fff'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><strong style={{fontSize:18}}>ตรวจสอบรูปก่อนส่ง</strong><button type="button" disabled={photoSending} onClick={closeChatPhotoPreview} aria-label="ปิดพรีวิว" style={{background:'rgba(255,255,255,.12)',color:'#fff',border:0,borderRadius:99,padding:9,display:'flex'}}><X size={21}/></button></div>
+            <img src={pendingChatPhoto.url} alt="รูปภาพที่เลือกเพื่อส่ง" style={{display:'block',width:'100%',maxHeight:'min(65dvh,620px)',objectFit:'contain',borderRadius:18,background:'#191423'}} />
+            <div style={{fontSize:13,opacity:.7,textAlign:'center'}}>ส่งให้ {partnerName(sel?.p)} · {(pendingChatPhoto.file.size / 1024 / 1024).toFixed(1)} MB</div>
+            <div style={{display:'flex',gap:12}}><button type="button" disabled={photoSending} onClick={closeChatPhotoPreview} style={{flex:1,padding:14,borderRadius:14,border:'1px solid rgba(255,255,255,.22)',background:'transparent',color:'#fff',fontWeight:700}}>ยกเลิก</button><button type="button" disabled={photoSending} onClick={confirmChatPhoto} style={{flex:2,padding:14,borderRadius:14,border:0,background:'#ee5b98',color:'#fff',fontWeight:800}}>{photoSending ? 'กำลังส่ง...' : 'ส่งรูปภาพ'} <Send size={16} style={{verticalAlign:'middle'}}/></button></div>
+          </div>
+        </div>, document.body)}
         <form className="chat-compose" onSubmit={send}>
-          <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f,'image'); e.target.value = '' }}/>
+          <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => { const f = e.target.files?.[0]; if (f) previewChatPhoto(f); e.target.value = '' }}/>
           <button type="button" className="chat-media-btn" title="เลือกรูปจากคลัง" aria-label="เลือกรูปจากคลัง" disabled={uploading || recording} onClick={() => fileInput.current?.click()}><ImagePlus size={20}/></button>
-          <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={e => { const f = e.target.files?.[0]; if (f) sendMedia(f, "image"); e.target.value = "" }}/>
+          <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={e => { const f = e.target.files?.[0]; if (f) previewChatPhoto(f); e.target.value = "" }}/>
           <button type="button" className="chat-media-btn" title="ถ่ายรูปส่งในแชต" aria-label="เปิดกล้องถ่ายรูปส่งในแชต" disabled={uploading || recording} onClick={() => cameraInput.current?.click()}><Camera size={20}/></button>
           {recording ? <div className="voice-recorder" role="status"><span className="record-live"/><span className="record-clock">{Math.floor(recordSeconds/60)}:{String(recordSeconds%60).padStart(2,'0')} / 1:00</span><LiveMicWave stream={micStream}/><button type="button" className="record-cancel" onClick={cancelRecord} aria-label="ยกเลิกการอัดเสียง"><Trash2 size={19}/></button><button type="button" className="record-send" onClick={toggleRecord} aria-label="หยุดและส่งข้อความเสียง"><Send size={18}/></button></div> : <><button type="button" className="chat-media-btn mic-launch" title="อัดข้อความเสียง" disabled={uploading || micBusy} onClick={toggleRecord} aria-label="เริ่มอัดข้อความเสียง"><Mic size={20}/></button><input className="chat-text-input" value={text} onChange={e => onCompose(e.target.value)} onFocus={() => { if (stickToBottom.current) requestAnimationFrame(() => scrollToLatest(false)) }} placeholder="พิมพ์ข้อความ..." aria-label="พิมพ์ข้อความ" maxLength={2000} autoComplete="off"/><button className="send-btn" type="submit" title="ส่งข้อความ" aria-label="ส่งข้อความ" disabled={!text.trim() || uploading}><Send size={19}/></button></>}
         </form>
