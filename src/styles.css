@@ -3628,3 +3628,20 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .editorial-actions .editorial-google-login:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .editorial-actions .editorial-google-login:focus-visible{outline:3px solid #a78bfa;outline-offset:3px}
 .editorial-actions .editorial-google-login svg{flex:none}
+
+/* NISIT MATCH dark violet Google OAuth buttons */
+.nm-google-auth-button,
+.editorial-actions .editorial-google-login{
+  background:linear-gradient(125deg,#29203d 0%,#3c2859 55%,#51316f 100%);
+  color:#f9f4ff;
+  border:1px solid rgba(198,156,255,.48);
+  box-shadow:inset 0 1px rgba(255,255,255,.12),0 4px 16px rgba(36,17,62,.2);
+}
+.nm-google-auth-button:hover:not(:disabled),
+.editorial-actions .editorial-google-login:hover{
+  background:linear-gradient(125deg,#38294f,#503274 60%,#69418b);
+  border-color:rgba(224,192,255,.8);
+  box-shadow:0 7px 24px rgba(115,65,167,.3);
+}
+.nm-google-auth-button:active:not(:disabled),
+.editorial-actions .editorial-google-login:active{transform:scale(.99)}
