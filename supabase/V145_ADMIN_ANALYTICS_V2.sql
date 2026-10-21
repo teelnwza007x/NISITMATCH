@@ -20,7 +20,7 @@ begin
    where created_at >= ((now() at time zone 'Asia/Bangkok')::date-(p_days-1))::timestamp at time zone 'Asia/Bangkok'
    group by 1
  ), university_counts as (
-   select coalesce(nullif(trim(university::text),''),'ไม่ระบุ') as university, count(*)::integer as members
+   select coalesce(nullif(trim(university_id::text),''),'ไม่ระบุ') as university, count(*)::integer as members
    from public.profiles group by 1 order by members desc limit 10
  )
  select jsonb_build_object(
