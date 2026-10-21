@@ -957,6 +957,31 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     document.addEventListener('visibilitychange', visible)
     return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
   }, [me, refreshInbox])
+  const [onlineMatchIds, setOnlineMatchIds] = useState({})
+  const presenceIds = matches.slice(0, 20).map(m => m.p?.id).filter(Boolean).join(',')
+  useEffect(() => {
+    if (!presenceIds) { setOnlineMatchIds({}); return }
+    let active = true
+    const ids = presenceIds.split(',')
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible') return
+      const next = {}
+      for (let i = 0; i < ids.length; i += 4) {
+        const results = await Promise.all(ids.slice(i, i + 4).map(id => supabase.rpc('get_match_presence', { p_user_id: id })))
+        if (!active) return
+        results.forEach((result, j) => {
+          const last = result.data?.[0]?.last_seen_at
+          if (!result.error && last && Date.now() - new Date(last).getTime() < 120000) next[ids[i + j]] = true
+        })
+      }
+      if (active) setOnlineMatchIds(next)
+    }
+    refresh()
+    const timer = setInterval(refresh, 60000)
+    const visible = () => { if (document.visibilityState === 'visible') refresh() }
+    document.addEventListener('visibilitychange', visible)
+    return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', visible) }
+  }, [presenceIds])
   const sel = matches.find(m => m.id === selectedId) || null
   const roomId = sel?.id
   const [lastSeenAt, setLastSeenAt] = useState(null)
@@ -1033,6 +1058,21 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     pendingChatPhotoRef.current = null
     setPendingChatPhoto(null)
   }
+  const compressChatPhoto = async file => {
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size < 700 * 1024) return file
+    try {
+      const bitmap = await createImageBitmap(file)
+      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+      bitmap.close?.()
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .82))
+      if (!blob || blob.size >= file.size) return file
+      return new File([blob], 'chat-photo.jpg', { type: 'image/jpeg' })
+    } catch { return file }
+  }
   const previewChatPhoto = file => {
     if (!file) return
     if (file.size > 10 * 1024 * 1024) return notify('ไฟล์ต้องมีขนาดไม่เกิน 10 MB')
@@ -1048,7 +1088,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const pending = pendingChatPhotoRef.current
     if (!pending || photoSending || uploading || !pending.roomId) return
     setPhotoSending(true)
-    try { await sendMedia(pending.file, 'image', pending.roomId); closeChatPhotoPreview() }
+    try { const optimized = await compressChatPhoto(pending.file); await sendMedia(optimized, 'image', pending.roomId); closeChatPhotoPreview() }
     finally { setPhotoSending(false) }
   }
   useEffect(() => { setOpenChatImage(null); setReplyTo(null); setMessageMenu(null) }, [selectedId])
@@ -1426,7 +1466,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
           const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
-          return <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '') + (unreadCount ? ' chat-person-unread' : '')} onClick={() => { setSelectedId(m.id); setInbox(prev => ({ ...prev, [m.id]: { ...prev[m.id], unread: 0 } })) }}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small className="chat-last-preview">{preview}</small></span>{unreadCount > 0 && <span className="chat-room-unread-count" aria-label={`${unreadCount} ข้อความยังไม่อ่าน`}>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
+          return <button key={m.id} className={'chat-person ' + (roomId === m.id ? 'selected' : '') + (unreadCount ? ' chat-person-unread' : '')} onClick={() => { setSelectedId(m.id); setInbox(prev => ({ ...prev, [m.id]: { ...prev[m.id], unread: 0 } })) }}><span style={{position:'relative',display:'inline-flex',flexShrink:0}}><Av u={m.p} cls="avatar md" />{onlineMatchIds[m.p?.id] && <span title="ออนไลน์เมื่อสักครู่" aria-label="ออนไลน์เมื่อสักครู่" style={{position:'absolute',right:0,bottom:0,width:12,height:12,borderRadius:'50%',background:'#22c55e',border:'2px solid #15121f'}} />}</span><span className="chat-person-info"><b>{partnerName(m.p)}</b><small className="chat-last-preview">{preview}</small></span>{unreadCount > 0 && <span className="chat-room-unread-count" aria-label={`${unreadCount} ข้อความยังไม่อ่าน`}>{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
         })}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
@@ -1495,7 +1535,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         {[...matches].sort((a,b) => new Date(inbox[b.id]?.last?.created_at || b.created_at || 0) - new Date(inbox[a.id]?.last?.created_at || a.created_at || 0)).map(m => {
           const info = inbox[m.id], last = info?.last, unreadCount = info?.unread || 0
           const preview = !last ? 'เริ่มบทสนทนากันเลย' : `${last.sender_id === me ? 'ฉัน : ' : ''}${last.attachment_type === 'image' ? 'ส่งรูปภาพ' : last.attachment_type === 'audio' ? 'ส่งข้อความเสียง' : (last.body || 'ส่งไฟล์')}`
-          return <button key={m.id} className={'chat-person ' + (unreadCount ? 'chat-person-unread' : '')} onClick={() => { setSelectedId(m.id); setInbox(prev => ({ ...prev, [m.id]: { ...prev[m.id], unread: 0 } })) }}><Av u={m.p} cls="avatar md" /><span className="chat-person-info"><b>{partnerName(m.p)}</b><small className="chat-last-preview">{preview}</small></span>{unreadCount > 0 && <span className="chat-room-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
+          return <button key={m.id} className={'chat-person ' + (unreadCount ? 'chat-person-unread' : '')} onClick={() => { setSelectedId(m.id); setInbox(prev => ({ ...prev, [m.id]: { ...prev[m.id], unread: 0 } })) }}><span style={{position:'relative',display:'inline-flex',flexShrink:0}}><Av u={m.p} cls="avatar md" />{onlineMatchIds[m.p?.id] && <span title="ออนไลน์เมื่อสักครู่" aria-label="ออนไลน์เมื่อสักครู่" style={{position:'absolute',right:0,bottom:0,width:12,height:12,borderRadius:'50%',background:'#22c55e',border:'2px solid #15121f'}} />}</span><span className="chat-person-info"><b>{partnerName(m.p)}</b><small className="chat-last-preview">{preview}</small></span>{unreadCount > 0 && <span className="chat-room-unread-count">{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>
         })}
         {!matches.length && <div className="chat-empty">ยังไม่มี Match</div>}
       </div>
