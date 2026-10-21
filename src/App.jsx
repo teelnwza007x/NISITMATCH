@@ -2695,6 +2695,8 @@ function ReferralPanel({ user }) {
   const [code, setCode] = useState('')
   const [input, setInput] = useState('')
   const [message, setMessage] = useState('')
+  const [noticeType, setNoticeType] = useState('info')
+  const [rewardStatus, setRewardStatus] = useState(null)
   const [busy, setBusy] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [accepted, setAccepted] = useState(false)
@@ -2717,21 +2719,55 @@ function ReferralPanel({ user }) {
       try { const saved = localStorage.getItem('nisit-referral-pending'); if (saved) setInput(saved) } catch {}
     }
   }, [])
+  useEffect(() => {
+    let active = true
+    const refresh = async () => {
+      try {
+        const { data, error } = await supabase.rpc('nm_referral_status')
+        if (!active || error) return
+        setRewardStatus(data)
+      } catch {}
+    }
+    refresh()
+    const onFocus = () => refresh()
+    window.addEventListener('focus', onFocus)
+    const interval = window.setInterval(refresh, 30000)
+    return () => { active = false; window.removeEventListener('focus', onFocus); window.clearInterval(interval) }
+  }, [user.id])
+  const notify = (type, value) => { setNoticeType(type); setMessage(value) }
   const claim = async () => {
     if (!/^[A-Z0-9]{10,20}$/.test(input.trim().toUpperCase()) || busy || !accepted) return
     setBusy(true); setMessage('')
     try {
-      const { error } = await supabase.rpc('nm_claim_referral', { p_code: input.trim().toUpperCase() })
+      const { data, error } = await supabase.rpc('nm_claim_referral', { p_code: input.trim().toUpperCase() })
       if (error) throw error
-      setMessage('บันทึกคำเชิญแล้ว รอการตรวจสอบอีเมลมหาวิทยาลัยเพื่อรับรางวัล')
-      try { localStorage.removeItem('nisit-referral-pending') } catch {}
-    } catch (error) { setMessage(error?.message || 'บันทึกรหัสไม่สำเร็จ') }
+      const feedback = {
+        rewarded: ['success', '🎉 ยินดีด้วย! คุณได้รับ Premium ฟรี 3 วันแล้ว และคนชวนได้รับ 7 วัน'],
+        pending_verification: ['info', '✅ ใช้รหัสสำเร็จ! ยืนยันอีเมลมหาวิทยาลัยเพื่อรับ Premium ฟรี 3 วัน'],
+        already_rewarded: ['success', '🎁 คุณใช้รหัสนี้ไปแล้ว และได้รับ Premium ฟรี 3 วันเรียบร้อย'],
+        already_claimed: ['warning', 'ℹ️ คุณใช้รหัสนี้ไปแล้ว กำลังรอการยืนยันมหาวิทยาลัย'],
+        already_used_other: ['warning', '⚠️ คุณเคยใช้รหัสชวนเพื่อนอื่นไปแล้ว ใช้รหัสใหม่ไม่ได้'],
+        invalid_code: ['error', '❌ ไม่พบรหัสเชิญนี้ กรุณาตรวจสอบอีกครั้ง'],
+        self_referral: ['error', '❌ ไม่สามารถใช้รหัสเชิญของตัวเองได้']
+      }
+      const [type, msg] = feedback[data] || ['info', 'บันทึกรหัสเชิญแล้ว']
+      notify(type, msg)
+      if (['rewarded','pending_verification','already_rewarded','already_claimed'].includes(data)) {
+        try { localStorage.removeItem('nisit-referral-pending') } catch {}
+      }
+      const status = await supabase.rpc('nm_referral_status')
+      if (!status.error) setRewardStatus(status.data)
+    } catch (error) { notify('error', error?.message || 'บันทึกรหัสไม่สำเร็จ') }
     finally { setBusy(false) }
   }
   const link = code ? window.location.origin + '/?ref=' + encodeURIComponent(code) : ''
   return <section className="nm-referral-card">
     <div className="nm-referral-heading"><span><Sparkles size={15}/> INVITE & EARN</span><h2>🎁 ชวนเพื่อน รับ Premium ฟรี</h2><p>ชวนเพื่อนมาเจอคนที่ใช่ แล้วปลดล็อกสิทธิพิเศษด้วยกัน</p></div>
     <div className="nm-referral-rewards"><div><span>คนชวน</span><strong>+7 วัน</strong><small>Premium ฟรี</small></div><div><span>เพื่อนที่ถูกชวน</span><strong>+3 วัน</strong><small>Premium ฟรี</small></div></div>
+    {rewardStatus?.claimed && <div className={'nm-referral-status nm-referral-status--' + (rewardStatus.rewarded ? 'success' : 'pending')} role="status">
+      <strong>{rewardStatus.rewarded ? '🎉 คุณได้รับ Premium ฟรีแล้ว!' : '⏳ รอยืนยันอีเมลมหาวิทยาลัย'}</strong>
+      <span>{rewardStatus.rewarded ? 'ได้รับ Premium ฟรี ' + rewardStatus.days + ' วันจากการชวนเพื่อน' : 'ใช้รหัส ' + rewardStatus.code + ' แล้ว ยืนยันมหาวิทยาลัยเพื่อรับสิทธิ์'}</span>
+    </div>}
     <div className="nm-referral-code-area"><span>รหัสเชิญของคุณ</span><strong>{code || 'กำลังโหลดรหัส...'}</strong><div className="nm-referral-buttons">
       <button type="button" disabled={!code} onClick={async()=>{try{await navigator.clipboard.writeText(code);setMessage('คัดลอกรหัสเชิญแล้ว')}catch{setMessage('คัดลอกไม่สำเร็จ')}}}>คัดลอกรหัส</button>
       <button type="button" disabled={!code} onClick={async()=>{try{await navigator.clipboard.writeText(link);setMessage('คัดลอกลิงก์แล้ว')}catch{setMessage('คัดลอกไม่สำเร็จ')}}}>คัดลอกลิงก์</button>
@@ -2740,7 +2776,7 @@ function ReferralPanel({ user }) {
     <label className="nm-referral-accept"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/> ฉันอ่านและยอมรับเงื่อนไขการใช้รหัสเชิญ</label></div>
     <button type="button" className="nm-referral-terms-button" aria-expanded={termsOpen} onClick={()=>setTermsOpen(v=>!v)}><ShieldCheck size={17}/> เงื่อนไขและกติกา <span>{termsOpen?'−':'+'}</span></button>
     {termsOpen&&<div className="nm-referral-terms"><ol><li>ผู้ถูกชวนต้องยืนยันอีเมลมหาวิทยาลัยจนสถานะเป็น Verified</li><li>คนชวนรับ Premium 7 วัน ผู้ถูกชวนรับ 3 วัน หลังผ่านการตรวจสอบ</li><li>แต่ละบัญชีรับคำเชิญได้ครั้งเดียว และห้ามใช้รหัสของตัวเอง</li><li>มี Premium อยู่แล้วจะต่อวันจากวันหมดอายุเดิม ไม่ลบสิทธิ์เก่า</li><li>รางวัลหนึ่งคำเชิญให้เพียงครั้งเดียว ไม่สามารถกดรับซ้ำได้</li><li>ห้ามสร้างบัญชีปลอมหรือแอบอ้างเพื่อรับสิทธิ์</li></ol><p>การกรอกรหัสอย่างเดียวไม่ได้ทำให้ได้รับ Premium ทันที ระบบจะตรวจสอบสถานะจาก Supabase ก่อน</p></div>}
-    {message&&<p role="status" className="nm-referral-feedback">{message}</p>}
+    {message&&<p role="status" className={"nm-referral-feedback nm-referral-feedback--"+noticeType}>{message}</p>}
   </section>
 }
 
