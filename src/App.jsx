@@ -3208,6 +3208,8 @@ const loadMatches = useCallback(async () => {
     discoverySaveRevision.current += 1
     try { localStorage.setItem(discoveryKey(userId), JSON.stringify(prefs)) } catch {}
     setDiscovery(prefs)
+    discoveryRequest.current += 1
+    discoveryInFlight.current = false
     setPeople(null)
     setDiscoveryEditing(false)
     setFl(f => ({...f, uni: '', gender: prefs.gender, min: prefs.min, max: prefs.max}))
@@ -3230,16 +3232,27 @@ const loadMatches = useCallback(async () => {
   const discoverySession = useRef('')
   const loadPeople = useCallback(async ({ silent = false } = {}) => {
     if (!discoveryReady || !discovery || !userId) return
-    const queryKey = JSON.stringify([userId, discovery.gender, discovery.min, discovery.max])
+    const queryKey = JSON.stringify([userId, discovery.gender, discovery.min, discovery.max, discovery.mode, discovery.radius, discovery.universities])
     if (discoveryInFlight.current && discoveryQueryKey.current === queryKey) return
     discoveryInFlight.current = true
     discoveryQueryKey.current = queryKey
     const request = ++discoveryRequest.current
-    const { data, error } = await supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null })
+    let data, error
+    try {
+      const result = await Promise.race([
+        supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
+      ])
+      data = result.data
+      error = result.error
+    } catch (e) { error = e }
     if (request !== discoveryRequest.current) return
     discoveryInFlight.current = false
-    if (error) { if (!silent) notify(error.message); return }
-    setDiscoveryLimited((data || []).length <= 1)
+    if (error) {
+      if (!silent) { setPeople([]); notify('ค้นหาสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง') }
+      return
+    }
+    setDiscoveryLimited(false)
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
     const sessionKey = userId || ''
     if (discoverySession.current !== sessionKey) {
@@ -3267,7 +3280,7 @@ const loadMatches = useCallback(async () => {
       }
       return unique
     })
-  }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, fl.min, fl.max, notify, userId])
+  }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, fl.min, fl.max, notify, userId])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
@@ -3282,7 +3295,7 @@ const loadMatches = useCallback(async () => {
     // Discard a deck loaded for older preferences before requesting new matches.
     setPeople(null)
     loadPeople()
-  }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, loadPeople])
+  }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
   // Public Premium status for swipe cards: only a boolean is returned by the RPC.
   const premiumCandidateKey = (people || []).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
@@ -3482,7 +3495,7 @@ const loadMatches = useCallback(async () => {
         {items.map(([id, label, I]) => <button key={id} className={'nav-item ' + (id === 'premium' ? 'premium-nav-item ' : '') + (view === id ? 'active' : '') + (id === 'messages' && unreadMessages > 0 ? ' has-unread-messages' : '')} onClick={() => go(id)}><I size={18} />{label}{id === 'messages' && unreadMessages > 0 && <span className="nav-count">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}{id === 'notifs' && unread > 0 && <span className="nav-count">{unread}</span>}</button>)}
         <div className="sidebar-spacer" />
         <div className="sidebar-user"><Av u={profile} /><div className="user-mini"><b>{profile.display_name}</b><span>{uniName(profile.university_id)}</span></div><button className="icon-btn" onClick={() => supabase.auth.signOut()} title="ออกจากระบบ"><LogOut size={17} /></button></div></aside>
-      {view === "home" && discoveryLimited && <div className="nm-discovery-notice" role="status"><Users size={15}/><span>ระบบค้นหาส่งสมาชิกกลับมาน้อยมาก หากเห็นคนเดิมซ้ำต้องตรวจเงื่อนไข discover ใน Supabase</span></div>}
+
       <PushPermissionCard user={user} />
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
         {[["home","ปัด",Heart],["likes","คนที่กดใจ",HeartHandshake],["messages","ข้อความ",MessageCircle],["hangout","Hangout",CalendarDays],["profile","โปรไฟล์",UserRound],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
