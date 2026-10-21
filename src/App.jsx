@@ -2576,19 +2576,24 @@ function AdminDashboard({ onBack }) {
   const [metrics, setMetrics] = useState(null)
   const [adminTab, setAdminTab] = useState('overview')
   const [reports, setReports] = useState([])
+  const [growth, setGrowth] = useState(null)
+  const [growthError, setGrowthError] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const reload = useCallback(async () => {
     setBusy(true)
     setError('')
-    const [summary, queue] = await Promise.all([
+    const [summary, queue, trend] = await Promise.all([
       supabase.rpc('nm_admin_metrics'),
-      supabase.rpc('nm_admin_report_queue')
+      supabase.rpc('nm_admin_report_queue'),
+      supabase.rpc('nm_admin_growth', { p_days: 14 })
     ])
     if (summary.error) setError('โหลดสถิติไม่ได้ กรุณาตรวจสิทธิ์ Admin และรัน SQL social_features_admin_v1.sql')
     else { setMetrics(summary.data); setError('') }
     if (!queue.error) setReports(Array.isArray(queue.data) ? queue.data : [])
     else setReports([])
+    if (!trend.error) { setGrowth(Array.isArray(trend.data) ? trend.data : []); setGrowthError('') }
+    else { setGrowth(null); setGrowthError('ยังไม่ได้ติดตั้ง SQL nm_admin_growth_v2.sql หรือไม่มีสิทธิ์เข้าถึง') }
     setBusy(false)
   }, [])
   useEffect(() => { reload() }, [reload])
@@ -2605,6 +2610,7 @@ function AdminDashboard({ onBack }) {
     <p style={{fontSize:12,opacity:.7}}>ข้อมูลจาก Supabase ณ เวลาที่รีเฟรช ไม่ใช่สถิติแบบเรียลไทม์</p>
     {error && <p role="alert">{error}</p>}
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
+    <section className="nm-admin-queue"><h3>การเติบโต 14 วันล่าสุด</h3><p>นับตามวันที่ประเทศไทย · แสดงจำนวนโปรไฟล์ใหม่และแมตช์ใหม่ต่อวัน</p>{growthError && <p role="status">{growthError}</p>}{growth && <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:8}}>วันที่</th><th style={{textAlign:'right',padding:8}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:8}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(row=><tr key={row.day}><td style={{padding:8,borderTop:'1px solid #ffffff20'}}>{row.day}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div>}</section>
     <section className="nm-admin-queue"><h3>รายงานล่าสุด</h3><p>ใช้ตรวจสอบรายงานก่อนดำเนินการ ไม่มีการเปิดเผยข้อมูลส่วนตัวของผู้รายงาน</p>
     {reports.length ? reports.map((report,index)=><article key={report.id||index}><span className="nm-admin-queue-meta">{report.created_at ? new Date(report.created_at).toLocaleString('th-TH') : 'รายงาน'}</span><strong>{report.reason||'ไม่ระบุเหตุผล'}</strong><small>ผู้ถูกรายงาน: {report.reported||'ไม่ระบุ'}</small></article>) : <p>ไม่มีรายงานที่แสดงได้ หรือยังไม่ได้ติดตั้ง SQL สำหรับคิวรายงาน</p>}</section>
     </div>}
