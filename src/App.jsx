@@ -3251,7 +3251,10 @@ const loadMatches = useCallback(async () => {
     if (request !== discoveryRequest.current) return
     discoveryInFlight.current = false
     if (error) {
-      if (!silent) { setPeople([]); notify('ค้นหาสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง') }
+      // A silent refresh must not leave the deck stuck on its initial spinner.
+      // Keep existing cards when refreshing in the background.
+      setPeople(current => (silent && current !== null) ? current : [])
+      if (!silent) notify('ค้นหาสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง')
       return
     }
     setDiscoveryLimited(false)
