@@ -1931,7 +1931,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     const extOf = file => (file.name.split('.').pop() || '').toLowerCase()
     const isHeic = file => /^(heic|heif)$/.test(extOf(file)) || /image\/(heic|heif)/i.test(file.type)
     const isVideo = file => file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|quicktime)$/i.test(file.name)
-    const isImage = file => file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif|bmp)$/i.test(file.name)
+    const isImage = file => file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(file.name)
     const videos = incoming.filter(isVideo)
     const heics = incoming.filter(isHeic)
     // iPhone Live Photos commonly arrive as a still image plus a paired .MOV.
@@ -1947,12 +1947,12 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     if (requestedSlots > slots) notify(`เพิ่มสื่อได้อีก ${slots} รายการ (รวมสูงสุด 6 รายการ)`)
     // Prefer the paired MOV when a Live Photo pair is selected; it represents one gallery item.
     const acceptedVideos = videos.slice(0, Math.max(0, slots - Math.min(images.length, slots)))
-    const acceptedImages = images.slice(0, Math.max(0, slots - acceptedVideos.length))
+    const acceptedImages = [...images, ...standaloneHeics].slice(0, Math.max(0, slots - acceptedVideos.length))
     const validImages = acceptedImages.filter(file => file.size <= 10 * 1024 * 1024)
     const validVideos = acceptedVideos.filter(file => file.size <= 25 * 1024 * 1024)
     if (validImages.length !== acceptedImages.length) notify('รูปภาพต้องมีขนาดไม่เกิน 10MB')
     if (validVideos.length !== acceptedVideos.length) notify('วิดีโอ/Live Photo ต้องมีขนาดไม่เกิน 25MB ต่อไฟล์')
-    if (standaloneHeics.length) notify('ได้รับเฉพาะภาพ HEIC ยังไม่มีภาพเคลื่อนไหว · หากเป็น Live Photo ให้เปิด Photos > Share > Save as Video แล้วเลือกไฟล์ MOV ที่สร้างขึ้น')
+    if (standaloneHeics.length) notify('กำลังเพิ่มรูป HEIC จาก iPhone หากรูปไม่แสดงตัวอย่าง ให้เลือกตัวเลือก Most Compatible ใน iPhone หรือแปลงเป็น JPEG')
     if (unsupported.length) notify('มีไฟล์ที่ไม่รองรับบางรายการ · ใช้ JPG/PNG/WebP หรือวิดีโอ MP4/MOV/M4V/WebM')
     if (pairedHeics.length) notify(`ตรวจพบ Live Photo จาก iPhone ${pairedHeics.length} ชุด · ใช้ไฟล์ MOV ให้เล่นวนอัตโนมัติ`)
     // Batch-select photos: add every selected image immediately instead of opening
