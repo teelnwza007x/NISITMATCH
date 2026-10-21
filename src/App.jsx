@@ -1098,6 +1098,14 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const lastTypingSent = useRef(0)
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
+  const pendingOlderScroll = useRef(null)
+  useLayoutEffect(() => {
+    const pending = pendingOlderScroll.current
+    if (!pending || pending.roomId !== roomId) return
+    pendingOlderScroll.current = null
+    const box = scrollBox.current
+    if (box) box.scrollTop = pending.top + box.scrollHeight - pending.height
+  }, [msgs, roomId])
   const [showLatestButton, setShowLatestButton] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -1275,8 +1283,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     if (older) {
       const box = scrollBox.current
       const before = box?.scrollHeight || 0
+      const beforeTop = box?.scrollTop || 0
+      // Restore the reader's position after React has committed the older messages.
+      pendingOlderScroll.current = box ? { roomId, height: before, top: beforeTop } : null
       setMsgs(prev => { const existing = new Set(prev.map(p => p.id)); const incoming = rows.filter(row => !existing.has(row.id)); return incoming.length ? [...incoming, ...prev] : prev })
-      requestAnimationFrame(() => { if (box) box.scrollTop += box.scrollHeight - before })
     } else setMsgs(rows)
     setLoadingOlder(false)
   }, [roomId, msgs[0]?.created_at, notify])
