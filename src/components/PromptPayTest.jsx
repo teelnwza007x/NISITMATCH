@@ -37,7 +37,7 @@ export default function PromptPayTest(){
    <p style={{fontSize:12,color:'#cbb7d6'}}>ทดสอบการเปลี่ยนสถานะได้จาก Opn Test Dashboard โดยไม่ต้องสแกนจ่ายเงินจริง</p>
    <button type="button" disabled={busy} style={btn} onClick={()=>call({action:'status',charge_id:charge.charge_id})}>{busy?'กำลังตรวจสอบ...':'ตรวจสอบสถานะอีกครั้ง'}</button>
    {feedback&&<p role="status" style={{fontSize:13,color:'#a3e4ca'}}>{feedback}</p>}
-   {charge.status==='successful'&&<p style={{color:'#a3e4ca'}}>ทดสอบชำระสำเร็จแล้ว — ยังไม่เปิด Premium ใน Test Mode</p>}
+   {charge.status==='successful'&&<p style={{color:'#a3e4ca'}}>{charge.test_premium_expires_at?'สิทธิ์ Premium จำลองถึง '+new Date(charge.test_premium_expires_at).toLocaleString('th-TH')+' — ยังไม่เปิด Premium จริง':'ทดสอบชำระสำเร็จแล้ว — กำลังตรวจสอบสิทธิ์จำลอง'}</p>}
   </div>}
  </section>
 }
