@@ -3351,6 +3351,8 @@ function AppContent() {
     } else setInstallHelpOpen(true)
   }
 
+  const user = session?.user
+  const userId = user?.id
   const [dailyOpen, setDailyOpen] = useState(false)
   const [referralEventOpen, setReferralEventOpen] = useState(false)
   const [referralEventNeverShow, setReferralEventNeverShow] = useState(false)
@@ -3413,8 +3415,6 @@ function AppContent() {
     return () => window.clearTimeout(timer)
   }, [detail])
   const notify = useCallback((m) => { setToast(m); setTimeout(() => setToast(null), 3000) }, [])
-  const user = session?.user
-  const userId = user?.id
   useEffect(() => {
     if (!user || profile === undefined) return
     if (window.location.pathname === '/admin') setView(profile?.is_admin ? 'admin' : 'home')
