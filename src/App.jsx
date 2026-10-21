@@ -2471,6 +2471,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   spu: { name: 'มหาวิทยาลัยศรีปทุม', domains: ['spumail.net', 'spulive.net'] },
   bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net'] },
   rangsit: { name: 'มหาวิทยาลัยรังสิต', domains: ['rsu.ac.th'] },
+  siam: { name: 'มหาวิทยาลัยสยาม', domains: ['siam.edu'] },
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
