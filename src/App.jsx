@@ -1,3 +1,4 @@
+import Announcements from './components/Announcements'
 import AdminPremiumDirectory from './components/AdminPremiumDirectory'
 import AdminAlerts from './components/AdminAlerts'
 import './dailyRewards.css'
@@ -2789,7 +2790,7 @@ function AdminDashboard({ onBack }) {
     <div className="nm-admin-navigation" style={{display:'grid',gap:12,marginBottom:20}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><strong style={{fontSize:17}}>ศูนย์จัดการระบบ</strong><p style={{margin:'4px 0 0',fontSize:13,opacity:.7}}>เลือกงานที่ต้องการจัดการได้จากหมวดด้านล่าง</p></div><span style={{fontSize:12,opacity:.65}}>สำหรับผู้ดูแลระบบ</span></div>
       <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ" style={{display:'flex',flexWrap:'wrap',gap:8}}>
-        {[['overview','ภาพรวม'],['analytics','สถิติผู้ใช้งาน'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','ห้อง Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
+        {[['overview','ภาพรวม'],['analytics','สถิติผู้ใช้งาน'],['announcements','ประกาศถึงสมาชิก'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','ห้อง Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
       </nav>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('alerts')}>ตรวจคำขอมหาวิทยาลัย <ArrowRight size={15}/></button>
@@ -2803,6 +2804,7 @@ function AdminDashboard({ onBack }) {
       <div className="nm-admin-queue"><h3>14 วันที่ผ่านมา</h3>{growthError && <p role="status">{growthError}</p>}{growth && <><div className="nm-admin-metrics">{[['สมาชิกใหม่',growth.reduce((n,d)=>n+(Number(d.new_profiles)||0),0)],['แมตช์ใหม่',growth.reduce((n,d)=>n+(Number(d.new_matches)||0),0)]].map(([label,value])=><article key={label}><small>{label}</small><strong>{value.toLocaleString('th-TH')}</strong></article>)}</div><div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><table style={{width:'100%',minWidth:290,borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:10}}>วันที่</th><th style={{textAlign:'right',padding:10}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:10}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(d=><tr key={d.day}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{d.day}</td><td style={{padding:10,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(d.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:10,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(d.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div></>}</div>
       <p style={{fontSize:12,opacity:.7}}>จำนวนผู้ใช้งานรายวัน ข้อความที่ส่ง และอันดับมหาวิทยาลัย ยังไม่แสดงจนกว่าจะมีการติดตั้ง RPC สำหรับสถิติเหล่านั้นโดยเฉพาะ เพื่อไม่ให้แสดงตัวเลขที่คาดเดา</p>
     </section>}
+    {adminTab === 'announcements' && <Announcements admin/>}
     {adminTab === 'premium' && <AdminPremiumDirectory/>}
     {adminTab === 'alerts' && <AdminAlerts/>}
     {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
@@ -3521,7 +3523,7 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
 
 function AppContent() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
-  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState('home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
+  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [profileEntryTab, setProfileEntryTab] = useState('photos')
   const [installPrompt, setInstallPrompt] = useState(null)
@@ -4166,7 +4168,7 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (window.location.pathname === '/admin') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (v === 'announcements') window.history.pushState({}, '', '/announcements'); else if (window.location.pathname === '/admin' || window.location.pathname === '/announcements') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const filteredPeople = useMemo(() => (people || []).filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)), [people, discovery?.gender, campusFiltered])
   // Never bypass the chosen campus radius when no nearby profile exists.
@@ -4219,8 +4221,8 @@ const loadMatches = useCallback(async () => {
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
-          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} onAdmin={profile?.is_admin ? () => go('admin') : null} />}{view === 'admin' && profile?.is_admin && <AdminDashboard onBack={() => go('settings')} />}
-          <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
+          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} onAdmin={profile?.is_admin ? () => go('admin') : null} />}{view === 'admin' && profile?.is_admin && <AdminDashboard onBack={() => go('settings')} />}{view === 'announcements' && <><button type="button" className="btn btn-ghost" onClick={() => go('settings')}><ArrowLeft size={16}/> กลับ</button><Announcements/></>}
+          <footer className="app-footer"><button type="button" className="btn btn-ghost" onClick={() => go('announcements')}><Bell size={15}/> ข่าวสารและประกาศ</button><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
         </div>
       </main>
       {referralEventOpen && !dailyOpen && createPortal(<div className="nm-referral-event-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeReferralEvent() }}>
