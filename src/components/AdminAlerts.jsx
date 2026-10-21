@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase'
+import { UNIVERSITIES } from '../data/universities'
 
 export default function AdminAlerts() {
   const [reports, setReports] = useState([])
@@ -77,7 +78,7 @@ export default function AdminAlerts() {
   const approveDomain = async request => {
     const universityId = String(universityIds[request.id] || '').trim().toLowerCase()
     if (!/^[a-z0-9_-]{1,40}$/.test(universityId)) {
-      setApprovalError('กรุณากรอกรหัสมหาวิทยาลัยที่มีอยู่ในระบบ เช่น su หรือ cra')
+      setApprovalError('กรุณาเลือกมหาวิทยาลัยก่อนอนุมัติ')
       return
     }
     if (!window.confirm(`อนุมัติ @${request.email_domain} ให้มหาวิทยาลัยรหัส ${universityId} ใช่ไหม?`)) return
@@ -130,7 +131,7 @@ export default function AdminAlerts() {
     {showDomains && domainRequests.length > 0 && <label style={{display:'block',marginTop:10}}>ค้นหาคำขอมหาวิทยาลัย <input type="search" value={domainSearch} onChange={e => setDomainSearch(e.target.value)} placeholder="ชื่อมหาวิทยาลัยหรือโดเมน" style={{display:'block',width:'100%',maxWidth:380,marginTop:6}} /></label>}
     {approvalError && <p role="alert">{approvalError}</p>}
     {approvalSuccess && <p role="status">{approvalSuccess}</p>}
-    {showDomains && domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ','อนุมัติ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{filteredDomainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}><input aria-label={`รหัสมหาวิทยาลัยสำหรับ ${r.email_domain}`} placeholder="รหัส เช่น cra" value={universityIds[r.id] || ''} onChange={e => setUniversityIds(ids => ({...ids,[r.id]:e.target.value}))} style={{width:110,maxWidth:'100%',padding:8,marginRight:6}}/><button type="button" className="btn btn-pink" disabled={approvingId !== null} onClick={() => approveDomain(r)}>{approvingId === r.id ? 'กำลังอนุมัติ…' : 'อนุมัติ'}</button></td></tr>)}</tbody></table></div>}
+    {showDomains && domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ','อนุมัติ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{filteredDomainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}><select aria-label={`เลือกมหาวิทยาลัยสำหรับ ${r.email_domain}`} value={universityIds[r.id] || ''} onChange={e => setUniversityIds(ids => ({...ids,[r.id]:e.target.value}))} style={{width:190,maxWidth:'100%',padding:8,marginRight:6}}><option value="">เลือกมหาวิทยาลัย</option>{UNIVERSITIES.filter(u => u.id !== 'unspecified').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select><button type="button" className="btn btn-pink" disabled={approvingId !== null} onClick={() => approveDomain(r)}>{approvingId === r.id ? 'กำลังอนุมัติ…' : 'อนุมัติ'}</button></td></tr>)}</tbody></table></div>}
     <button type="button" className="btn btn-ghost" onClick={reload} disabled={loading}>{loading ? 'กำลังโหลด…' : 'รีเฟรชรายการ'}</button>
     {checkedAt && <p style={{fontSize:12,opacity:.7}}>ตรวจล่าสุด {checkedAt.toLocaleTimeString('th-TH')}</p>}
     <button type="button" className="btn btn-ghost" style={{marginLeft:8}} onClick={() => setShowAll(v => !v)}>{showAll ? 'เฉพาะรอตรวจสอบ' : 'ดูรายงานทั้งหมด'}</button>
