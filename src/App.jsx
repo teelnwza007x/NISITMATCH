@@ -3341,6 +3341,22 @@ function AppContent() {
   }
 
   const [dailyOpen, setDailyOpen] = useState(false)
+  const [referralEventOpen, setReferralEventOpen] = useState(false)
+  const [referralEventNeverShow, setReferralEventNeverShow] = useState(false)
+  useEffect(() => {
+    if (!userId || !profile?.id) { setReferralEventOpen(false); return }
+    const key = 'nm-referral-event-dismissed:' + userId
+    try { if (localStorage.getItem(key) === '1') return } catch {}
+    const timer = window.setTimeout(() => setReferralEventOpen(true), 1800)
+    return () => window.clearTimeout(timer)
+  }, [userId, profile?.id])
+  const closeReferralEvent = () => {
+    if (referralEventNeverShow && userId) {
+      try { localStorage.setItem('nm-referral-event-dismissed:' + userId, '1') } catch {}
+    }
+    setReferralEventOpen(false)
+  }
+
   const [dailyClaimed, setDailyClaimed] = useState(true)
   useEffect(() => {
     let active = true
@@ -3972,6 +3988,19 @@ const loadMatches = useCallback(async () => {
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
         </div>
       </main>
+      {referralEventOpen && !dailyOpen && createPortal(<div className="nm-referral-event-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeReferralEvent() }}>
+        <section className="nm-referral-event" role="dialog" aria-modal="true" aria-labelledby="nm-referral-event-title">
+          <button type="button" className="nm-referral-event-close" aria-label="ปิดกิจกรรมชวนเพื่อน" onClick={closeReferralEvent}><X size={20}/></button>
+          <div className="nm-referral-event-glow"><Sparkles size={25}/><Crown size={52}/><Sparkles size={25}/></div>
+          <span className="nm-referral-event-kicker">SPECIAL EVENT · INVITE & EARN</span>
+          <h2 id="nm-referral-event-title">ชวนเพื่อน รับ Premium ฟรี!</h2>
+          <p>ชวนเพื่อนมาเจอคนที่ใช่ และรับสิทธิพิเศษเมื่อเพื่อนยืนยันอีเมลมหาวิทยาลัยสำเร็จ</p>
+          <div className="nm-referral-event-rewards"><div><small>คุณได้รับ</small><strong>7 วัน</strong><span>Premium ฟรี</span></div><div><small>เพื่อนที่ถูกชวน</small><strong>3 วัน</strong><span>Premium ฟรี</span></div></div>
+          <button type="button" className="nm-referral-event-cta" onClick={() => { closeReferralEvent(); go('premium') }}><Gift size={20}/> ดูรหัสชวนเพื่อน <ArrowRight size={19}/></button>
+          <label className="nm-referral-event-optout"><input type="checkbox" checked={referralEventNeverShow} onChange={e => setReferralEventNeverShow(e.target.checked)}/> ไม่ต้องแสดงกิจกรรมนี้อีก</label>
+          <button type="button" className="nm-referral-event-later" onClick={closeReferralEvent}>ไว้ทีหลัง · ปิดหน้าต่าง</button>
+        </section>
+      </div>, document.body)}
       {visibleDetail && createPortal(<div className={"modal-backdrop detail-backdrop hangout-member-profile-portal" + (detailLeaving ? " is-closing" : "")} onMouseDown={(e) => e.target === e.currentTarget && setDetail(null)}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setDetail(null)} aria-label="ปิดโปรไฟล์" title="ปิดโปรไฟล์"><X size={21} strokeWidth={2.6} /></button>
         <ProfileGallery person={visibleDetail} />
         <div className="detail-body nm-member-profile-body"><div className="section-kicker">GET TO KNOW THEM</div><h2>{visibleDetail.display_name}, {visibleDetail.age}</h2>{visibleDetail.is_premium && <PremiumProfileBadge owner={visibleDetail.id === userId} />}
