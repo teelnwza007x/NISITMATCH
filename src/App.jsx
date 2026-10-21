@@ -3263,6 +3263,7 @@ export default function App() {
     } else setInstallHelpOpen(true)
   }
 
+  const [dailyOpen, setDailyOpen] = useState(false)
   const [newMatch, setNewMatch] = useState(null)
   useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
   const previousUnreadMessages = useRef(null)
@@ -3826,7 +3827,7 @@ const loadMatches = useCallback(async () => {
       <main className="main-area">
         <div className="page-content">
           {view === 'home' && <>
-            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><div style={{position:'relative'}}><button type="button" aria-label="เปิดหรือปิด Daily Login" className="btn btn-ghost" style={{borderRadius:15,color:'#ff86cf',border:'1px solid #b64a91',boxShadow:'0 0 15px #ec4f9833'}} onClick={() => document.getElementById('nm-daily-popup')?.classList.toggle('nm-daily-open')}><Gift size={22}/></button><div id="nm-daily-popup" className="nm-daily-popup" style={{display:'none',position:'absolute',right:0,top:'calc(100% + 10px)',zIndex:40,width:'min(330px,85vw)',background:'#1e1429',border:'1px solid #b64a91',borderRadius:18,boxShadow:'0 20px 50px #0009'}}><DailyRewardsAndSafety user={user} notify={notify} mode="daily" /></div></div><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
+            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><div style={{position:'relative'}}><button type="button" aria-label="เปิดหรือปิด Daily Login" className="btn btn-ghost" style={{borderRadius:15,color:'#ff86cf',border:'1px solid #b64a91',boxShadow:'0 0 15px #ec4f9833'}} onClick={() => setDailyOpen(v => !v)}><Gift size={22}/></button><div id="nm-daily-popup" className="nm-daily-popup" style={{display:dailyOpen ? 'block' : 'none',position:'absolute',right:0,top:'calc(100% + 10px)',zIndex:40,width:'min(330px,85vw)',background:'#1e1429',border:'1px solid #b64a91',borderRadius:18,boxShadow:'0 20px 50px #0009'}}><DailyRewardsAndSafety user={user} notify={notify} mode="daily" /></div></div><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
