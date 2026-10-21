@@ -2696,6 +2696,8 @@ function ReferralPanel({ user }) {
   const [input, setInput] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [accepted, setAccepted] = useState(false)
   useEffect(() => {
     let active = true
     supabase.rpc('nm_get_referral_code').then(({ data, error }) => {
@@ -2716,7 +2718,7 @@ function ReferralPanel({ user }) {
     }
   }, [])
   const claim = async () => {
-    if (!/^[A-Z0-9]{10,20}$/.test(input.trim().toUpperCase()) || busy) return
+    if (!/^[A-Z0-9]{10,20}$/.test(input.trim().toUpperCase()) || busy || !accepted) return
     setBusy(true); setMessage('')
     try {
       const { error } = await supabase.rpc('nm_claim_referral', { p_code: input.trim().toUpperCase() })
@@ -2727,22 +2729,21 @@ function ReferralPanel({ user }) {
     finally { setBusy(false) }
   }
   const link = code ? window.location.origin + '/?ref=' + encodeURIComponent(code) : ''
-  return <section className="v76-premium-hero" style={{marginTop:20,textAlign:'left',padding:24}}>
-    <h2 style={{marginBottom:8}}>🎁 ชวนเพื่อน รับ Premium ฟรี</h2>
-    <p>เพื่อนยืนยันอีเมลมหาวิทยาลัยสำเร็จ คนชวนรับ 7 วัน เพื่อนรับ 3 วัน</p>
-    {code && <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginTop:16}}>
-      <strong style={{letterSpacing:2}}>{code}</strong>
-      <button type="button" className="v76-secondary-link" onClick={async () => { try { await navigator.clipboard.writeText(code); setMessage('คัดลอกรหัสชวนเพื่อนแล้ว') } catch { setMessage('คัดลอกอัตโนมัติไม่ได้ กรุณาเลือกรหัสด้านบนเพื่อคัดลอก') } }}>คัดลอกรหัสเชิญ</button>
-      <button type="button" className="v76-secondary-link" onClick={async () => { try { await navigator.clipboard.writeText(link); setMessage('คัดลอกลิงก์ชวนเพื่อนแล้ว') } catch { setMessage('คัดลอกลิงก์ไม่ได้ กรุณาลองใหม่') } }}>คัดลอกลิงก์</button>
-    </div>}
-    <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
-      <input aria-label="รหัสชวนเพื่อน" placeholder="กรอกรหัสที่เพื่อนส่งมา" value={input} onChange={e=>setInput(e.target.value.toUpperCase())} maxLength={20} style={{flex:'1 1 180px',minWidth:0,padding:12,borderRadius:12}} />
-      <button type="button" className="v76-secondary-link" disabled={busy || !/^[A-Z0-9]{10,20}$/.test(input.trim())} onClick={claim}>{busy ? 'กำลังบันทึก...' : 'ใช้รหัสเชิญ'}</button>
-    </div>
-    {message && <p role="status" style={{marginTop:12}}>{message}</p>}
-    <small>ระบบจะให้รางวัลหลังตรวจสอบสิทธิ์จากเซิร์ฟเวอร์เท่านั้น</small>
+  return <section className="nm-referral-card">
+    <div className="nm-referral-heading"><span><Sparkles size={15}/> INVITE & EARN</span><h2>🎁 ชวนเพื่อน รับ Premium ฟรี</h2><p>ชวนเพื่อนมาเจอคนที่ใช่ แล้วปลดล็อกสิทธิพิเศษด้วยกัน</p></div>
+    <div className="nm-referral-rewards"><div><span>คนชวน</span><strong>+7 วัน</strong><small>Premium ฟรี</small></div><div><span>เพื่อนที่ถูกชวน</span><strong>+3 วัน</strong><small>Premium ฟรี</small></div></div>
+    <div className="nm-referral-code-area"><span>รหัสเชิญของคุณ</span><strong>{code || 'กำลังโหลดรหัส...'}</strong><div className="nm-referral-buttons">
+      <button type="button" disabled={!code} onClick={async()=>{try{await navigator.clipboard.writeText(code);setMessage('คัดลอกรหัสเชิญแล้ว')}catch{setMessage('คัดลอกไม่สำเร็จ')}}}>คัดลอกรหัส</button>
+      <button type="button" disabled={!code} onClick={async()=>{try{await navigator.clipboard.writeText(link);setMessage('คัดลอกลิงก์แล้ว')}catch{setMessage('คัดลอกไม่สำเร็จ')}}}>คัดลอกลิงก์</button>
+    </div></div>
+    <div className="nm-referral-use"><label htmlFor="referral-code-input">ได้รับรหัสจากเพื่อน?</label><div><input id="referral-code-input" aria-label="รหัสเชิญ" placeholder="กรอกรหัสเชิญ" maxLength={20} value={input} onChange={e=>setInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''))}/><button type="button" disabled={busy || !accepted || !/^[A-Z0-9]{10,20}$/.test(input.trim())} onClick={claim}>{busy?'กำลังบันทึก...':'ใช้รหัสเชิญ'}</button></div>
+    <label className="nm-referral-accept"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/> ฉันอ่านและยอมรับเงื่อนไขการใช้รหัสเชิญ</label></div>
+    <button type="button" className="nm-referral-terms-button" aria-expanded={termsOpen} onClick={()=>setTermsOpen(v=>!v)}><ShieldCheck size={17}/> เงื่อนไขและกติกา <span>{termsOpen?'−':'+'}</span></button>
+    {termsOpen&&<div className="nm-referral-terms"><ol><li>ผู้ถูกชวนต้องยืนยันอีเมลมหาวิทยาลัยจนสถานะเป็น Verified</li><li>คนชวนรับ Premium 7 วัน ผู้ถูกชวนรับ 3 วัน หลังผ่านการตรวจสอบ</li><li>แต่ละบัญชีรับคำเชิญได้ครั้งเดียว และห้ามใช้รหัสของตัวเอง</li><li>มี Premium อยู่แล้วจะต่อวันจากวันหมดอายุเดิม ไม่ลบสิทธิ์เก่า</li><li>รางวัลหนึ่งคำเชิญให้เพียงครั้งเดียว ไม่สามารถกดรับซ้ำได้</li><li>ห้ามสร้างบัญชีปลอมหรือแอบอ้างเพื่อรับสิทธิ์</li></ol><p>การกรอกรหัสอย่างเดียวไม่ได้ทำให้ได้รับ Premium ทันที ระบบจะตรวจสอบสถานะจาก Supabase ก่อน</p></div>}
+    {message&&<p role="status" className="nm-referral-feedback">{message}</p>}
   </section>
 }
+
 
 function PremiumPage({ user, onGoVisitors }) {
   const [status, setStatus] = useState(null)
