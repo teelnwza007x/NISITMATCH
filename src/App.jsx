@@ -2378,6 +2378,7 @@ function AdminDirectory({ kind }) {
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
+  const [gender, setGender] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
@@ -2387,7 +2388,7 @@ function AdminDirectory({ kind }) {
     setLoading(true)
     setError('')
     const rpc = kind === 'profiles' ? 'nm_admin_profiles' : 'nm_admin_hangouts'
-    const params = { p_limit: 20, p_offset: page * 20, ...(kind === 'profiles' ? { p_search: search } : {}) }
+    const params = { p_limit: 20, p_offset: page * 20, ...(kind === 'profiles' ? { p_search: search, p_gender: gender } : {}) }
     supabase.rpc(rpc, params).then(({data,error}) => {
       if (!active) return
       if (error) { setError(error.message); setRows([]) }
@@ -2395,7 +2396,7 @@ function AdminDirectory({ kind }) {
       setLoading(false)
     }).catch(e => { if (active) { setError(e.message); setLoading(false) } })
     return () => { active = false }
-  }, [kind,page,search])
+  }, [kind,page,search,gender])
   return <section className="nm-admin-queue">
     <h3>{kind === 'profiles' ? 'โปรไฟล์สมาชิก' : 'ห้อง Hangout ทั้งหมด'}</h3>
     <p>เฉพาะ Admin เท่านั้น • ไม่ต้องยืนยันอีเมลมหาวิทยาลัย</p>
@@ -2403,13 +2404,14 @@ function AdminDirectory({ kind }) {
       <input aria-label="ค้นหาสมาชิก" value={query} onChange={e => setQuery(e.target.value)} placeholder="ชื่อหรือมหาวิทยาลัย" style={{minWidth:0,flex:1,padding:10,borderRadius:8}}/>
       <button type="submit" className="btn btn-pink">ค้นหา</button>
     </form>}
+    {kind === 'profiles' && <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>{[['','ทั้งหมด'],['male','ชาย'],['female','หญิง'],['other','อื่น ๆ']].map(([value,label]) => <button type="button" key={value} className={'btn ' + (gender === value ? 'btn-pink' : 'btn-ghost')} onClick={() => {setGender(value);setPage(0);setSelected(null)}}>{label}</button>)}</div>}
     {loading && <p>กำลังโหลด…</p>}
     {error && <p role="alert">โหลดข้อมูลไม่ได้: {error} (ตรวจสอบ SQL admin_{kind === 'profiles' ? 'profiles' : 'hangouts'}_directory.sql)</p>}
     {!loading && !error && rows.length === 0 && <p>ไม่มีข้อมูล</p>}
     {!loading && rows.map(r => <article key={r.id} style={{padding:14,borderBottom:'1px solid #555'}}>
       {kind === 'profiles' ? <>
         <div style={{display:'flex',gap:12,alignItems:'center'}}><Av u={r}/><div style={{flex:1}}><strong>{r.display_name || 'ไม่ระบุชื่อ'}</strong><p>{uniName(r.university_id)} • {r.faculty || '-'}</p></div><button type="button" className="btn btn-ghost" onClick={() => setSelected(selected === r.id ? null : r.id)}>ดูโปรไฟล์</button></div>
-        {selected === r.id && createPortal(<div className="modal-backdrop detail-backdrop hangout-member-profile-portal" onMouseDown={e => { if (e.target === e.currentTarget) setSelected(null) }}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="ดูโปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setSelected(null)} aria-label="ปิดโปรไฟล์"><X size={21}/></button><ProfileGallery person={r}/><div className="detail-body nm-member-profile-body"><div className="section-kicker">MEMBER PROFILE · ADMIN VIEW</div><h2>{r.display_name || 'ไม่ระบุชื่อ'}</h2><p className="detail-campus-line"><GraduationCap size={15}/>{uniName(r.university_id) || 'ไม่ระบุมหาวิทยาลัย'}{r.faculty ? ' · ' + r.faculty : ''}{r.major ? ' · ' + r.major : ''}</p><p>{r.bio || 'ยังไม่ได้เขียนแนะนำตัว'}</p><button type="button" className="btn btn-ghost btn-full" onClick={() => setSelected(null)}>ปิดโปรไฟล์</button></div></div></div>, document.body)}}
+        {selected === r.id && createPortal(<div className="modal-backdrop detail-backdrop hangout-member-profile-portal" onMouseDown={e => {if(e.target===e.currentTarget)setSelected(null)}}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setSelected(null)} aria-label="ปิด"><X size={21}/></button><ProfileGallery person={r}/><div className="detail-body nm-member-profile-body"><div className="section-kicker">GET TO KNOW THEM · ADMIN VIEW</div><h2>{r.display_name || 'ไม่ระบุชื่อ'}{r.age != null ? ', ' + r.age : ''}</h2><p className="detail-campus-line"><GraduationCap size={15}/>{uniName(r.university_id) || 'ไม่ระบุมหาวิทยาลัย'}{r.faculty ? ' · ' + r.faculty : ''}{r.major ? ' · ' + r.major : ''}</p>{r.relationship_intent && <RelationshipVibe intent={r.relationship_intent}/>}<p>{r.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p><div className="tags nm-member-interest-tags">{(r.interests || []).map((interest,index) => <span className="tag" style={{'--tag-index':index}} key={interest}>{interest}</span>)}</div><div className="match-profile-song">{itunesTrack(r) ? <ITunesSongCard track={itunesTrack(r)} compact/> : <div className="detail-no-song"><Music2 size={17}/><span><b>ยังไม่ได้เพิ่มเพลงโปรด</b></span></div>}</div><button type="button" className="btn btn-ghost btn-full" onClick={() => setSelected(null)}>ปิดโปรไฟล์</button></div></div></div>,document.body)}
       </> : <><strong>{r.title || 'ไม่มีชื่อห้อง'}</strong><p>{[r.venue,r.city].filter(Boolean).join(' • ')}</p><p>ผู้สร้าง: {r.creator_name || '-'} • สมาชิก: {r.member_count ?? 0}/{r.capacity ?? '-'} • สถานะ: {r.status || '-'}</p><p>{r.starts_at ? new Date(r.starts_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา'}</p><p>{r.description || ''}</p></>}
     </article>)}
     {!loading && !error && <div style={{display:'flex',gap:12,alignItems:'center',marginTop:16}}>
