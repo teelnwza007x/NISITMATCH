@@ -3735,3 +3735,12 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 /* Profile editor category heading separates account security from campus verification */
 .nm-edit-tabs-grouped .nm-edit-category-label{width:100%;padding:13px 12px 5px;color:var(--muted,#a99ab9);font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;pointer-events:none}
 .nm-edit-tabs-grouped .nm-edit-nav-separator{margin-top:12px;margin-bottom:3px}
+
+
+/* Account email verification: 3-day Premium reward */
+.nm-account-otp-reward{display:grid;gap:12px}
+.nm-account-otp-gift{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid rgba(221,176,255,.26);border-radius:15px;background:linear-gradient(110deg,rgba(151,86,221,.24),rgba(242,107,169,.12));color:#f1d5ff}
+.nm-account-otp-gift>svg{flex-shrink:0;color:#ffdc92}
+.nm-account-otp-gift>div{display:grid;gap:4px}
+.nm-account-otp-gift strong{font-size:1.05rem}
+.nm-account-otp-gift small,.nm-account-otp-reward>small{color:#cfc2df}
