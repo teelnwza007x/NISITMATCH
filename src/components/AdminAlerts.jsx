@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase'
 
 export default function AdminAlerts() {
@@ -7,25 +7,35 @@ export default function AdminAlerts() {
   const [error, setError] = useState('')
   const [checkedAt, setCheckedAt] = useState(null)
   const [showAll, setShowAll] = useState(false)
+  const loadingRef = useRef(false)
+  const aliveRef = useRef(true)
+  const requestRef = useRef(0)
   const reload = useCallback(async () => {
+    if (loadingRef.current) return
+    loadingRef.current = true
+    const requestId = ++requestRef.current
     try {
       const { data, error: rpcError } = await supabase.rpc('nm_admin_report_queue')
+      if (!aliveRef.current || requestId !== requestRef.current) return
       if (rpcError) throw rpcError
       setReports(Array.isArray(data) ? data : [])
       setError('')
       setCheckedAt(new Date())
     } catch (err) {
+      if (!aliveRef.current || requestId !== requestRef.current) return
       setError(err?.message || 'โหลดรายการแจ้งเตือนไม่สำเร็จ')
     } finally {
-      setLoading(false)
+      loadingRef.current = false
+      if (aliveRef.current && requestId === requestRef.current) setLoading(false)
     }
   }, [])
   useEffect(() => {
+    aliveRef.current = true
     reload()
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') reload()
     }, 60000)
-    return () => window.clearInterval(timer)
+    return () => { aliveRef.current = false; requestRef.current += 1; window.clearInterval(timer) }
   }, [reload])
   const pending = reports.filter(r => ['pending', 'open', 'new'].includes(String(r.status || '').toLowerCase()))
   const visibleReports = showAll ? reports : pending
