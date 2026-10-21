@@ -3276,7 +3276,7 @@ export default function App() {
     const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
     document.addEventListener('visibilitychange', onVisible)
     return () => { active = false; document.removeEventListener('visibilitychange', onVisible) }
-  }, [user?.id, dailyOpen])
+  }, [session?.user?.id, dailyOpen])
   const [newMatch, setNewMatch] = useState(null)
   useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
   const previousUnreadMessages = useRef(null)
