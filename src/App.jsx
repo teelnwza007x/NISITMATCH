@@ -1971,10 +1971,13 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   }, [user.id])
   useEffect(() => {
     let active = true
-    supabase.from('profile_media').select('id,media_type,storage_path,created_at').eq('profile_id', user.id).order('created_at', { ascending: true })
-      .then(({ data, error }) => { if (active && !error) setProfileVideos(data || []) })
-      .catch(() => {})
-    return () => { active = false }
+    // Paint the profile first; fetch secondary video metadata after the first frame.
+    const timer = window.setTimeout(() => {
+      supabase.from('profile_media').select('id,media_type,storage_path,created_at').eq('profile_id', user.id).order('created_at', { ascending: true })
+        .then(({ data, error }) => { if (active && !error) setProfileVideos(data || []) })
+        .catch(() => {})
+    }, 120)
+    return () => { active = false; window.clearTimeout(timer) }
   }, [user.id])
   const [f, setF] = useState(() => initialProfileForm(profile))
   const [busy, setBusy] = useState(false)
