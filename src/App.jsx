@@ -1996,6 +1996,9 @@ function AccountEmailVerification({ user, notify }) {
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [code, setCode] = useState('')
+  const [rewardClaimed, setRewardClaimed] = useState(false)
+  const [rewardBusy, setRewardBusy] = useState(false)
+  const [rewardEnds, setRewardEnds] = useState('')
   const [cooldown, setCooldown] = useState(0)
   useEffect(() => {
     let active = true
@@ -2004,6 +2007,29 @@ function AccountEmailVerification({ user, notify }) {
       .catch(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [user.id, user.email])
+  useEffect(() => {
+    let active = true
+    supabase.from('account_email_premium_rewards').select('claimed_at').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => { if (active) setRewardClaimed(Boolean(data)) }).catch(() => {})
+    return () => { active = false }
+  }, [user.id])
+  const claimReward = async () => {
+    if (rewardBusy || rewardClaimed || !verified) return
+    setRewardBusy(true)
+    try {
+      const { data, error } = await supabase.rpc('claim_account_email_premium')
+      if (error) throw error
+      if (data?.claimed) {
+        setRewardClaimed(true)
+        setRewardEnds(data.ends_at || '')
+        notify('รับ Premium ฟรี 3 วันสำเร็จแล้ว!')
+      } else if (data?.reason === 'already_claimed') {
+        setRewardClaimed(true)
+        notify('บัญชีนี้เคยรับ Premium ฟรี 3 วันแล้ว')
+      }
+    } catch (error) { notify('รับสิทธิ์ไม่สำเร็จ: ' + error.message) }
+    finally { setRewardBusy(false) }
+  }
   useEffect(() => {
     if (!cooldown) return
     const timer = window.setInterval(() => setCooldown(value => Math.max(0, value - 1)), 1000)
@@ -2028,7 +2054,7 @@ function AccountEmailVerification({ user, notify }) {
   return <section className="nm-account-otp-card" aria-label="ยืนยันอีเมลบัญชี">
     <div className="nm-account-otp-heading"><ShieldCheck size={24}/><div><span className="theme-kicker">ACCOUNT SECURITY</span><h3>ยืนยันอีเมลบัญชี</h3><p>แยกจากการยืนยันอีเมลมหาวิทยาลัย</p></div></div>
     <div className="nm-account-otp-address">{user.email || 'ไม่พบอีเมลบัญชี'}</div>
-    {loading ? <p>กำลังตรวจสอบสถานะ...</p> : verified ? <p className="nm-account-otp-success"><Check size={17}/> ยืนยันอีเมลบัญชีเรียบร้อยแล้ว</p> : <>
+    {loading ? <p>กำลังตรวจสอบสถานะ...</p> : verified ? <div className="nm-account-otp-reward"><p className="nm-account-otp-success"><Check size={17}/> ยืนยันอีเมลบัญชีเรียบร้อยแล้ว</p><div className="nm-account-otp-gift"><Crown size={21}/><div><strong>Premium ฟรี 3 วัน</strong><small>{rewardClaimed ? 'คุณรับสิทธิ์นี้ไปแล้ว (รับได้ครั้งเดียว)' : 'ของขวัญสำหรับบัญชีที่ยืนยันอีเมลแล้ว'}</small></div></div><button type="button" className="btn btn-pink btn-full" disabled={rewardBusy || rewardClaimed} onClick={claimReward}>{rewardClaimed ? 'รับสิทธิ์แล้ว' : rewardBusy ? 'กำลังรับสิทธิ์...' : 'รับ Premium ฟรี 3 วัน'}</button>{rewardEnds && <small>Premium หมดอายุ: {new Date(rewardEnds).toLocaleString('th-TH')}</small>}</div> : <>
       <p>คุณสามารถใช้งาน NISIT MATCH ได้ก่อน แล้วกลับมายืนยันอีเมลภายหลังได้</p>
       {sent && <label>รหัส OTP 6 หลัก<input inputMode="numeric" pattern="[0-9]*" maxLength={6} autoComplete="one-time-code" placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}/></label>}
       <div className="nm-account-otp-actions">
