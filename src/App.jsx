@@ -1,3 +1,4 @@
+import NotificationCenter from './components/NotificationCenter'
 import Announcements from './components/Announcements'
 import AdminPremiumDirectory from './components/AdminPremiumDirectory'
 import AdminAlerts from './components/AdminAlerts'
@@ -3566,7 +3567,7 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
 
 function AppContent() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
-  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
+  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => window.location.pathname === '/notifications' ? 'notifications' : window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [profileEntryTab, setProfileEntryTab] = useState('photos')
   const [installPrompt, setInstallPrompt] = useState(null)
@@ -4211,7 +4212,7 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (v === 'announcements') window.history.pushState({}, '', '/announcements'); else if (window.location.pathname === '/admin' || window.location.pathname === '/announcements') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (v === 'announcements') window.history.pushState({}, '', '/announcements'); else if (v === 'notifications') window.history.pushState({}, '', '/notifications'); else if (window.location.pathname === '/admin' || window.location.pathname === '/announcements' || window.location.pathname === '/notifications') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const filteredPeople = useMemo(() => (people || []).filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)), [people, discovery?.gender, campusFiltered])
   // Never bypass the chosen campus radius when no nearby profile exists.
@@ -4264,8 +4265,8 @@ const loadMatches = useCallback(async () => {
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
           {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
-          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} onAdmin={profile?.is_admin ? () => go('admin') : null} />}{view === 'admin' && profile?.is_admin && <AdminDashboard onBack={() => go('settings')} />}{view === 'announcements' && <><button type="button" className="btn btn-ghost" onClick={() => go('settings')}><ArrowLeft size={16}/> กลับ</button><Announcements/></>}
-          <footer className="app-footer"><button type="button" className="btn btn-ghost" onClick={() => go('announcements')}><Bell size={15}/> ข่าวสารและประกาศ</button><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
+          {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} onAdmin={profile?.is_admin ? () => go('admin') : null} />}{view === 'admin' && profile?.is_admin && <AdminDashboard onBack={() => go('settings')} />}{view === 'announcements' && <><button type="button" className="btn btn-ghost" onClick={() => go('settings')}><ArrowLeft size={16}/> กลับ</button><Announcements/></>}{view === 'notifications' && <><button type="button" className="btn btn-ghost" onClick={() => go('settings')}><ArrowLeft size={16}/> กลับ</button><NotificationCenter onNavigate={go}/></>}
+          <footer className="app-footer"><button type="button" className="btn btn-ghost" onClick={() => go('notifications')}><Bell size={15}/> การแจ้งเตือน</button><button type="button" className="btn btn-ghost" onClick={() => go('announcements')}><Bell size={15}/> ข่าวสารและประกาศ</button><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
         </div>
       </main>
       {referralEventOpen && !dailyOpen && createPortal(<div className="nm-referral-event-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) closeReferralEvent() }}>
