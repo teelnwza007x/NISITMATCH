@@ -3304,3 +3304,13 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-referral-feedback--success{background:rgba(35,174,111,.15);border-color:rgba(90,232,158,.35);color:#b5ffda}
 .nm-referral-feedback--warning{background:rgba(244,174,63,.12);border-color:rgba(250,202,103,.35);color:#ffe4a9}
 .nm-referral-feedback--error{background:rgba(235,72,103,.13);border-color:rgba(255,124,143,.35);color:#ffc4ce}
+
+
+/* Daily Login: gentle invitation while reward is available. */
+.nm-daily-trigger { position:relative; isolation:isolate; transform-origin:center; }
+.nm-daily-trigger.nm-daily-unclaimed { animation:nm-daily-wiggle 3.8s ease-in-out infinite, nm-daily-glow 2.5s ease-in-out infinite; }
+.nm-daily-trigger.nm-daily-unclaimed::after { content:''; position:absolute; inset:-5px; border-radius:20px; border:1px solid rgba(255,119,206,.7); pointer-events:none; animation:nm-daily-aura 2.5s ease-out infinite; }
+@keyframes nm-daily-wiggle { 0%,68%,100% { transform:rotate(0deg) translateY(0) } 72% { transform:rotate(-5deg) } 76% { transform:rotate(5deg) } 80% { transform:rotate(-3deg) } 84% { transform:rotate(0deg) } }
+@keyframes nm-daily-glow { 0%,100% { box-shadow:0 5px 18px rgba(231,53,154,.3) } 50% { box-shadow:0 5px 28px rgba(255,81,187,.7),0 0 14px rgba(255,114,216,.3) } }
+@keyframes nm-daily-aura { 0% { opacity:.75; transform:scale(.98) } 80%,100% { opacity:0; transform:scale(1.16) } }
+@media (prefers-reduced-motion:reduce) { .nm-daily-trigger.nm-daily-unclaimed,.nm-daily-trigger.nm-daily-unclaimed::after { animation:none !important } }
