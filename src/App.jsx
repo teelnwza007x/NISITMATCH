@@ -2445,6 +2445,7 @@ if (typeof document !== 'undefined') {
 // Student mailbox domains checked against official university IT/email pages.
 // Mailbox access verifies control of an institutional mailbox, not enrollment status by itself.
 const VERIFIED_CAMPUS_DOMAINS = {
+  kku: { name: 'มหาวิทยาลัยขอนแก่น', domains: ['kkumail.com', 'i.kku.ac.th'] },
   kmitl: { name: 'สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง', domains: ['kmitl.ac.th'] },
   ku: { name: 'มหาวิทยาลัยเกษตรศาสตร์', domains: ['ku.th', 'live.ku.th'] },
   chula: { name: 'จุฬาลงกรณ์มหาวิทยาลัย', domains: ['student.chula.ac.th'] },
@@ -2475,7 +2476,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐ', ['ku','chula','tu','buu','swu','su','nu','up','mu','mfu','nmu','ssru']],
+    ['มหาวิทยาลัยของรัฐ', ['kku','ku','chula','tu','buu','swu','su','nu','up','mu','mfu','nmu','ssru']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit']]
   ]
