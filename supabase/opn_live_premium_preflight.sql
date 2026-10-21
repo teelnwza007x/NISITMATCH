@@ -41,3 +41,11 @@ from information_schema.columns
 where table_schema='public' and table_name in
  ('premium_subscriptions','premium_payments')
 order by table_name,ordinal_position;
+
+-- 6. Compact review: constraints and indexes (easy to copy back)
+select 'constraint' as kind,c.conrelid::regclass::text as object_name,c.conname as name,pg_get_constraintdef(c.oid) as detail
+from pg_constraint c where c.conrelid='public.premium_subscriptions'::regclass
+union all
+select 'index',tablename,indexname,indexdef from pg_indexes
+where schemaname='public' and tablename='premium_subscriptions'
+order by kind,name;
