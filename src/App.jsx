@@ -146,6 +146,8 @@ function AuthLinkScreen({ onFinished }) {
 function AuthModal({ mode, setMode, close, notify }) {
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [awaitingVerification, setAwaitingVerification] = useState(false)
@@ -221,6 +223,7 @@ function AuthModal({ mode, setMode, close, notify }) {
   const submit = async (e) => {
     e.preventDefault()
     if (submitInFlight.current || busy || (mode === 'register' && registrationComplete)) return
+    if (mode === 'register' && pw !== confirmPw) { notify('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return }
     submitInFlight.current = true
     setBusy(true)
     try {
@@ -283,12 +286,13 @@ function AuthModal({ mode, setMode, close, notify }) {
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}><div className="auth-modal">
       <button className="modal-close icon-btn" onClick={close}><X /></button>
       <div className="auth-brand"><span className="brand-icon"><img src="/nisit-match-mark.png" alt="" /></span><span>nisit <b>match</b></span></div>
-      <div className={"auth-heading" + (mode === "reset" ? " nm-reset-heading" : "")}><h2>{title}</h2><p>{mode === 'reset' ? 'กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' : mode === 'register' ? 'สร้างบัญชีด้วยอีเมล แล้วตั้งโปรไฟล์ในขั้นต่อไป' : 'เข้าสู่ระบบเพื่อไปต่อจากที่ค้างไว้'}</p></div>
+      <div className={"auth-heading" + (mode === "reset" ? " nm-reset-heading" : "")}><span className="nm-auth-eyebrow">{mode === 'register' ? 'JOIN THE CONNECTION' : mode === 'login' ? 'WELCOME BACK' : 'ACCOUNT RECOVERY'}</span><h2>{title}</h2><p>{mode === 'reset' ? 'กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' : mode === 'register' ? 'สร้างบัญชีใหม่ แล้วมาเจอคนที่ใช่ไปด้วยกัน ✨' : 'เข้าสู่ระบบเพื่อไปต่อจากที่ค้างไว้'}</p></div>
       {mode === 'reset' && sent ? <div className="nm-reset-sent" role="status"><div className="nm-reset-sent-halo" aria-hidden="true"/><div className="nm-reset-sent-icon"><Send size={27}/><span>✦</span></div><h3>ส่งคำขอเรียบร้อยแล้ว!</h3><p>หากอีเมลนี้มีบัญชีอยู่ เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้คุณแล้ว</p><div className="nm-reset-address">{email}</div><p className="nm-reset-tip">ลองเช็กกล่องจดหมายและจดหมายขยะด้วยนะ 💗</p><button type="button" className="btn btn-pink btn-full" onClick={() => { setSent(false); setMode('login') }}>กลับไปเข้าสู่ระบบ <ArrowRight size={16}/></button><button type="button" className="nm-reset-retry" onClick={() => setSent(false)}>เปลี่ยนอีเมล / ขอส่งใหม่</button></div> : <form className="auth-form" onSubmit={submit}>
         <label>อีเมล<input required type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); if (awaitingVerification && e.target.value.trim().toLowerCase() !== verificationEmail) setAwaitingVerification(false) }} /></label>
-        {mode !== 'reset' && <label>รหัสผ่าน<input required type="password" minLength={8} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="อย่างน้อย 8 ตัวอักษร" value={pw} onChange={(e) => setPw(e.target.value)} /></label>}
+        {mode !== 'reset' && <label>รหัสผ่าน<div className="nm-auth-password-wrap"><input required type={showPassword ? 'text' : 'password'} minLength={8} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} placeholder="อย่างน้อย 8 ตัวอักษร" value={pw} onChange={(e) => setPw(e.target.value)} /><button type="button" className="nm-auth-password-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}>{showPassword ? 'ซ่อน' : 'แสดง'}</button></div></label>}
+        {mode === 'register' && <label>ยืนยันรหัสผ่านอีกครั้ง<input required type={showPassword ? 'text' : 'password'} minLength={8} autoComplete="new-password" placeholder="พิมพ์รหัสผ่านให้ตรงกัน" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />{confirmPw && <span className={'nm-auth-password-hint ' + (pw === confirmPw ? 'is-match' : 'is-mismatch')}>{pw === confirmPw ? '✓ รหัสผ่านตรงกัน' : 'รหัสผ่านยังไม่ตรงกัน'}</span>}</label>}
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
-        <button disabled={busy || (mode === 'register' && registrationComplete)} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'register' && registrationComplete ? 'สมัครแล้ว กรุณายืนยันอีเมล' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
+        <button disabled={busy || (mode === 'register' && (registrationComplete || (confirmPw && pw !== confirmPw)))} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'register' && registrationComplete ? 'สมัครแล้ว กรุณายืนยันอีเมล' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
       {mode !== 'reset' && <div className="nm-google-auth">
         <div className="nm-google-auth-divider"><span>หรือดำเนินการต่อด้วย</span></div>
