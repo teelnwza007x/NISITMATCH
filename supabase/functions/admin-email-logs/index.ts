@@ -20,6 +20,13 @@ Deno.serve(async req=>{
   const type=['university_otp','signup_verify','password_reset'].includes(body.type)?body.type:null
   const status=['attempted','accepted','failed','delivered','bounced'].includes(body.status)?body.status:null
   const search=typeof body.search==='string'?body.search.trim().slice(0,150):''
+  if(body.mode==='otp_verified'){
+    let q=db.from('student_otp_verified_audit').select('user_id,university_id,verified_email,verified_at',{count:'exact'}).order('verified_at',{ascending:false}).range(page*limit,page*limit+limit-1)
+    if(search)q=q.ilike('verified_email',`%${search.replace(/[%,()]/g,'')}%`)
+    const {data,error,count}=await q
+    if(error){console.error('OTP audit query',error.message);return respond({error:'Unable to load verified OTP records'},500)}
+    return respond({ok:true,rows:data||[],total:count||0})
+  }
   if(body.mode==='domain_requests'){
     const query=typeof body.search==='string'?body.search.trim().slice(0,100):''
     let requests=db.from('campus_domain_requests').select('university_name,email_domain,user_id,created_at',{count:'exact'}).order('created_at',{ascending:false}).range(page*limit,page*limit+limit-1)
