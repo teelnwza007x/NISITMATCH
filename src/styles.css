@@ -3314,3 +3314,65 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nm-daily-glow { 0%,100% { box-shadow:0 5px 18px rgba(231,53,154,.3) } 50% { box-shadow:0 5px 28px rgba(255,81,187,.7),0 0 14px rgba(255,114,216,.3) } }
 @keyframes nm-daily-aura { 0% { opacity:.75; transform:scale(.98) } 80%,100% { opacity:0; transform:scale(1.16) } }
 @media (prefers-reduced-motion:reduce) { .nm-daily-trigger.nm-daily-unclaimed,.nm-daily-trigger.nm-daily-unclaimed::after { animation:none !important } }
+
+
+/* NISIT MATCH 8.0 — shared appearance across application screens.
+   Keep conversation-specific chat themes intact; use tokens instead of filters. */
+:root[data-theme] {
+  color-scheme: dark;
+  --nm-screen:var(--theme-bg);
+  --nm-surface:var(--theme-panel);
+  --nm-surface-raised:var(--theme-sidebar);
+  --nm-stroke:var(--theme-border);
+  --nm-ink:var(--theme-text);
+  --nm-subtle:var(--theme-muted);
+  --nm-action:var(--theme-accent);
+}
+:root[data-theme="rose"] { color-scheme:light; }
+:root[data-theme] #root { min-height:100dvh; background:var(--nm-screen); color:var(--nm-ink); }
+:root[data-theme] :is(.app-shell,.main-content,.page-content,.content-area,.mobile-content,.settings-page,.profile-page,.messages-page,.notifications-page,.admin-page) {
+  color:var(--nm-ink);
+}
+:root[data-theme] :is(.bottom-nav,.mobile-nav,.topbar,.app-header,.sidebar) {
+  background:var(--nm-surface-raised);
+  border-color:var(--nm-stroke);
+  color:var(--nm-ink);
+}
+:root[data-theme] :is(.settings-card,.v26-settings-section,.theme-gallery,.premium-card,.profile-card,.notification-card,.admin-card,.stat-card) {
+  background:var(--nm-surface);
+  border-color:var(--nm-stroke);
+  color:var(--nm-ink);
+}
+:root[data-theme] :is(.settings-card,.v26-settings-section,.theme-gallery,.premium-card,.profile-card,.notification-card,.admin-card,.stat-card) :is(h1,h2,h3,h4,strong) {
+  color:var(--nm-ink);
+}
+:root[data-theme] :is(.settings-card,.v26-settings-section,.theme-gallery,.premium-card,.profile-card,.notification-card,.admin-card,.stat-card) :is(p,small) {
+  color:var(--nm-subtle);
+}
+:root[data-theme] :is(.theme-kicker,.section-kicker,.eyebrow) { color:var(--nm-action); }
+:root[data-theme] :is(.btn-pink,.btn-primary) {
+  background:linear-gradient(120deg,var(--theme-accent),var(--theme-accent2));
+  border-color:transparent;
+  color:#fff;
+}
+:root[data-theme] :is(.btn-ghost,.theme-option) {
+  background:var(--nm-surface);
+  border-color:var(--nm-stroke);
+  color:var(--nm-ink);
+}
+:root[data-theme] :is(.settings-page,.profile-page,.admin-page,.notifications-page) :is(input,textarea,select) {
+  background:var(--nm-surface-raised);
+  border-color:var(--nm-stroke);
+  color:var(--nm-ink);
+  caret-color:var(--nm-action);
+}
+:root[data-theme] :is(.settings-page,.profile-page,.admin-page,.notifications-page) :is(input,textarea)::placeholder { color:var(--nm-subtle); }
+:root[data-theme] :is(.btn,.theme-option,.nav-item,.icon-btn):focus-visible {
+  outline:2px solid var(--nm-action);
+  outline-offset:3px;
+}
+/* The chat's per-conversation theme is intentionally independent of app appearance. */
+:root[data-theme] .chat-layout[class*="chat-theme-"] { color-scheme:dark; }
+@media (prefers-reduced-motion:reduce) {
+  :root[data-theme] #root,:root[data-theme] .app-shell { transition:none!important; }
+}
