@@ -60,5 +60,36 @@ Deno.serve(async (req) => {
     await db.from('push_queue').update({ attempts: item.attempts+1, ...(transientFailure ? {} : {processed_at:new Date().toISOString()}) }).eq('id',item.id).is('processed_at',null)
     processed++
   }
+  // Broadcast announcements are queued separately from match notifications.
+  const { data: announcements, error: announceError } = await db.from('nm_announcement_push_queue')
+    .select('announcement_id,user_id,attempts').is('processed_at',null).lt('attempts',3).limit(30)
+  if (announceError) return Response.json({ processed, announcementError: announceError.message }, { status: 500 })
+  for (const job of announcements || []) {
+    const { data: announcement } = await db.from('nm_announcements')
+      .select('title,body').eq('id',job.announcement_id).maybeSingle()
+    if (!announcement) {
+      await db.from('nm_announcement_push_queue').update({ processed_at: new Date().toISOString() })
+        .eq('announcement_id',job.announcement_id).eq('user_id',job.user_id)
+      continue
+    }
+    const { data: subscriptions, error: subscriptionError } = await db.from('push_subscriptions')
+      .select('endpoint,p256dh,auth').eq('user_id',job.user_id)
+    if (subscriptionError) continue
+    let retry = false
+    for (const sub of subscriptions || []) {
+      try {
+        await webpush.sendNotification({ endpoint:sub.endpoint, keys:{p256dh:sub.p256dh,auth:sub.auth} },
+          JSON.stringify({ title:announcement.title, body:announcement.body, tag:'announcement-'+job.announcement_id, url:'/announcements' }))
+      } catch (err) {
+        const status = (err as {statusCode?:number}).statusCode
+        if (status === 404 || status === 410) await db.from('push_subscriptions').delete().eq('endpoint',sub.endpoint)
+        else retry = true
+      }
+    }
+    await db.from('nm_announcement_push_queue').update({
+      attempts:job.attempts+1,...(retry ? {} : {processed_at:new Date().toISOString()})
+    }).eq('announcement_id',job.announcement_id).eq('user_id',job.user_id).is('processed_at',null)
+    processed++
+  }
   return Response.json({ processed })
 })
