@@ -2628,13 +2628,14 @@ function DailyRewardsAndSafety({ user, notify }) {
       <button type="button" className="btn btn-primary" onClick={claim} disabled={loading || !status || status.today_claimed}>{loading ? 'กำลังรับ...' : status?.today_claimed ? 'รับรางวัลวันนี้แล้ว ✓' : 'รับแต้มวันนี้'}</button>
       {!status && <p style={{fontSize:12}}>หากยังไม่แสดงแต้ม กรุณาติดตั้ง SQL Daily Rewards ก่อน</p>}
     </section>
-    <section style={{padding:20,borderRadius:20,background:'var(--card-bg,rgba(255,255,255,.05))',border:'1px solid rgba(255,255,255,.13)'}}>
-      <h3 style={{margin:'0 0 8px'}}>🛡️ Safety Center</h3>
-      <p style={{fontSize:13,opacity:.8}}>บล็อกหรือรายงานบุคคลได้จากเมนูในหน้าโปรไฟล์และห้องแชต อย่าแชร์รหัสผ่านหรือโอนเงินให้คนที่เพิ่งรู้จัก</p>
-      <button type="button" className="btn btn-ghost" onClick={() => setSafetyOpen(x => !x)}>{safetyOpen ? 'ซ่อนบัญชีที่บล็อก' : 'จัดการบัญชีที่บล็อก'}</button>
-      {safetyOpen && <div style={{marginTop:12,display:'grid',gap:8}}>
-        {!blocked.length && <p style={{fontSize:13}}>ไม่มีบัญชีที่บล็อก หรือยังโหลดรายการไม่ได้</p>}
-        {blocked.map(item => <div key={item.blocked} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,overflowWrap:'anywhere'}}><small>{item.blocked}</small><button type="button" className="btn btn-ghost" disabled={safetyBusy} onClick={() => unblock(item.blocked)}>ปลดบล็อก</button></div>)}
+    <section className="nm-settings-install" aria-label="ศูนย์ความปลอดภัย NISIT MATCH" style={{flexWrap:'wrap'}}>
+      <div className="nm-settings-install-symbol"><ShieldCheck size={25}/></div>
+      <div className="nm-settings-install-copy"><span className="theme-kicker">SAFETY CENTER</span><h3>ศูนย์ความปลอดภัย</h3><p>จัดการบัญชีที่บล็อกและดูแลความเป็นส่วนตัวของคุณ</p></div>
+      <button type="button" className="nm-settings-install-action" aria-expanded={safetyOpen} onClick={() => setSafetyOpen(x => !x)}>{safetyOpen ? <>ปิดรายการ <X size={17}/></> : <>จัดการ <ArrowRight size={17}/></>}</button>
+      {safetyOpen && <div style={{flexBasis:'100%',width:'100%',paddingTop:14,borderTop:'1px solid rgba(255,255,255,.1)',display:'grid',gap:12}}>
+        <p style={{fontSize:13,opacity:.8,margin:0}}>บล็อกหรือรายงานบุคคลได้จากหน้าโปรไฟล์และห้องแชต อย่าเปิดเผยรหัสผ่านหรือโอนเงินให้คนที่เพิ่งรู้จัก</p>
+        {!blocked.length && <p style={{fontSize:13,margin:0}}>ไม่มีบัญชีที่บล็อก หรือยังโหลดรายการไม่ได้</p>}
+        {blocked.map(item => <div key={item.blocked} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,overflowWrap:'anywhere'}}><small>{item.blocked}</small><button type="button" className="nm-settings-install-action" disabled={safetyBusy} onClick={() => unblock(item.blocked)}>ปลดบล็อก</button></div>)}
       </div>}
     </section>
   </div>
