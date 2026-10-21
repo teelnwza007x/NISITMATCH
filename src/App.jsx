@@ -1426,6 +1426,12 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const targetRoom = roomId
     if (!body || !targetRoom || sendingGuard.current) return
     sendingGuard.current = true
+    // Stop the typing indicator immediately when the message is submitted.
+    clearTimeout(outgoingTypingTimer.current)
+    if (outgoingTyping.current) {
+      outgoingTyping.current = false
+      typingChannel.current?.send({ type: 'broadcast', event: 'typing', payload: { sender: me, typing: false } }).catch(() => {})
+    }
     const tempId = 'pending-' + makeClientId()
     const optimistic = {
       id: tempId, match_id: targetRoom, sender_id: me, body, reply_to: replyTo?.id || null,
@@ -1440,10 +1446,19 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     try {
       let payload = { match_id: targetRoom, sender_id: me, body }
       if (replyTo?.id && chatExtrasSupported.current) payload.reply_to = replyTo.id
-      let { data, error } = await Promise.race([
-        supabase.from('messages').insert(payload).select('*').single(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('send_timeout')), 15000))
-      ])
+      // Supabase's abortSignal prevents a timed-out request from lingering.
+      const sendController = new AbortController()
+      const sendTimeout = setTimeout(() => sendController.abort(), 15000)
+      let data, error
+      try {
+        ;({ data, error } = await supabase.from('messages').insert(payload).select('*').single().abortSignal(sendController.signal))
+      } catch (sendError) {
+        if (sendController.signal.aborted) throw new Error('send_timeout')
+        throw sendError
+      } finally {
+        clearTimeout(sendTimeout)
+      }
+      if (sendController.signal.aborted) throw new Error('send_timeout')
       if (error && payload.reply_to && /reply_to|schema cache|column/i.test(error.message || '')) {
         chatExtrasSupported.current = false
         ;({ data, error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body }).select('*').single())
