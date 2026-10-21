@@ -964,7 +964,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     // Fallback for projects without Realtime publication enabled for messages.
     // Realtime is primary; use a less frequent visible-only fallback to limit
     // two queries per match on mobile connections.
-    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 45000)
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 90000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
     return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
