@@ -3227,3 +3227,25 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-admin-tabs button.is-active{background:var(--theme-accent);color:#160e1e}
 .nm-admin-dashboard .nm-admin-overview{min-width:0}
 @media(max-width:600px){.nm-admin-dashboard{padding-top:32px}.nm-admin-topbar{margin-bottom:20px}.nm-admin-back{padding:10px 14px}.nm-admin-tabs{margin-top:18px}}
+
+
+/* NISIT MATCH 8.0 — visual polish, mobile ergonomics and accessible motion */
+:root{--nm-motion-fast:160ms;--nm-motion-normal:240ms}
+.pref-sheet,.detail-modal,.hangout-chat-modal,.nm-admin-dashboard .nm-admin-queue{transition:box-shadow var(--nm-motion-normal) ease,border-color var(--nm-motion-normal) ease}
+.pref-save,.discovery-next,.v76-primary-cta,.nm-admin-tabs button,.nm-admin-back{transition:background-color var(--nm-motion-fast) ease,color var(--nm-motion-fast) ease,transform var(--nm-motion-fast) ease,box-shadow var(--nm-motion-fast) ease}
+@media(hover:hover) and (pointer:fine){
+  .pref-save:not(:disabled):hover,.discovery-next:not(:disabled):hover,.v76-primary-cta:not(:disabled):hover{transform:translateY(-2px)}
+  .nm-admin-tabs button:not(.is-active):hover{background:color-mix(in srgb,var(--theme-accent) 12%,transparent)}
+}
+.pref-save:focus-visible,.discovery-next:focus-visible,.v76-primary-cta:focus-visible,.nm-admin-tabs button:focus-visible,.nm-hangout-filter-buttons button:focus-visible{outline:2px solid var(--theme-accent);outline-offset:3px}
+@media(max-width:600px){
+  .pref-sheet,.detail-modal,.hangout-chat-modal{max-width:100%;box-sizing:border-box}
+  .pref-footer{padding-bottom:max(16px,env(safe-area-inset-bottom))}
+  .nm-admin-tabs{gap:6px}
+  .nm-admin-tabs button{flex-basis:calc(50% - 6px);min-width:0;overflow-wrap:anywhere}
+  .hangout-chat-compose input,.pref-content input,.nm-hangout-discovery input{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .pref-sheet,.detail-modal,.hangout-chat-modal,.nm-admin-dashboard .nm-admin-queue,.pref-save,.discovery-next,.v76-primary-cta,.nm-admin-tabs button,.nm-admin-back{transition:none!important;animation:none!important}
+  .pref-save:hover,.discovery-next:hover,.v76-primary-cta:hover{transform:none!important}
+}
