@@ -35,7 +35,14 @@ export default function AdminAlerts() {
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') reload()
     }, 60000)
-    return () => { aliveRef.current = false; requestRef.current += 1; window.clearInterval(timer) }
+    const onVisible = () => { if (document.visibilityState === 'visible') reload() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      aliveRef.current = false
+      requestRef.current += 1
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [reload])
   const pending = reports.filter(r => ['pending', 'open', 'new'].includes(String(r.status || '').toLowerCase()))
   const visibleReports = showAll ? reports : pending
