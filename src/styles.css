@@ -3730,3 +3730,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .v27-verify-form .nm-campus-search-wrap{width:100%;box-sizing:border-box;overflow:hidden}
 .v27-verify-form .nm-campus-search-wrap input[type="search"]{display:block;flex:1 1 0;width:100%;max-width:100%;min-width:0;min-height:46px;margin:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;outline:0!important;appearance:none;-webkit-appearance:none}
 .v27-verify-form .nm-campus-search-wrap input[type="search"]:focus{box-shadow:none!important}
+
+
+/* Profile editor category heading separates account security from campus verification */
+.nm-edit-tabs-grouped .nm-edit-category-label{width:100%;padding:13px 12px 5px;color:var(--muted,#a99ab9);font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;pointer-events:none}
+.nm-edit-tabs-grouped .nm-edit-nav-separator{margin-top:12px;margin-bottom:3px}
