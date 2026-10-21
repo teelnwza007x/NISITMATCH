@@ -2372,6 +2372,53 @@ function PushPermissionCard({ user }) {
   </div>
 }
 
+
+function AdminDirectory({ kind }) {
+  const [rows, setRows] = useState([])
+  const [page, setPage] = useState(0)
+  const [query, setQuery] = useState('')
+  const [search, setSearch] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState(null)
+  const [total, setTotal] = useState(0)
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    setError('')
+    const rpc = kind === 'profiles' ? 'nm_admin_profiles' : 'nm_admin_hangouts'
+    const params = { p_limit: 20, p_offset: page * 20, ...(kind === 'profiles' ? { p_search: search } : {}) }
+    supabase.rpc(rpc, params).then(({data,error}) => {
+      if (!active) return
+      if (error) { setError(error.message); setRows([]) }
+      else { setRows(data || []); setTotal(Number(data?.[0]?.total_count || 0)) }
+      setLoading(false)
+    }).catch(e => { if (active) { setError(e.message); setLoading(false) } })
+    return () => { active = false }
+  }, [kind,page,search])
+  return <section className="nm-admin-queue">
+    <h3>{kind === 'profiles' ? 'โปรไฟล์สมาชิก' : 'ห้อง Hangout ทั้งหมด'}</h3>
+    <p>เฉพาะ Admin เท่านั้น • ไม่ต้องยืนยันอีเมลมหาวิทยาลัย</p>
+    {kind === 'profiles' && <form onSubmit={e => { e.preventDefault(); setPage(0); setSearch(query.trim()) }} style={{display:'flex',gap:8,marginBottom:16}}>
+      <input aria-label="ค้นหาสมาชิก" value={query} onChange={e => setQuery(e.target.value)} placeholder="ชื่อหรือมหาวิทยาลัย" style={{minWidth:0,flex:1,padding:10,borderRadius:8}}/>
+      <button type="submit" className="btn btn-pink">ค้นหา</button>
+    </form>}
+    {loading && <p>กำลังโหลด…</p>}
+    {error && <p role="alert">โหลดข้อมูลไม่ได้: {error} (ตรวจสอบ SQL admin_{kind === 'profiles' ? 'profiles' : 'hangouts'}_directory.sql)</p>}
+    {!loading && !error && rows.length === 0 && <p>ไม่มีข้อมูล</p>}
+    {!loading && rows.map(r => <article key={r.id} style={{padding:14,borderBottom:'1px solid #555'}}>
+      {kind === 'profiles' ? <>
+        <div style={{display:'flex',gap:12,alignItems:'center'}}><Av u={r}/><div style={{flex:1}}><strong>{r.display_name || 'ไม่ระบุชื่อ'}</strong><p>{uniName(r.university_id)} • {r.faculty || '-'}</p></div><button type="button" className="btn btn-ghost" onClick={() => setSelected(selected === r.id ? null : r.id)}>ดูโปรไฟล์</button></div>
+        {selected === r.id && <div><p>คณะ: {r.faculty || '-'}</p><p>สาขา: {r.major || '-'}</p><p>แนะนำตัว: {r.bio || '-'}</p><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{photoCandidates(r).map(url => <img key={url} src={url} alt="รูปสมาชิก" loading="lazy" style={{width:90,height:110,objectFit:'cover',borderRadius:8}}/>)}</div></div>}
+      </> : <><strong>{r.title || 'ไม่มีชื่อห้อง'}</strong><p>{[r.venue,r.city].filter(Boolean).join(' • ')}</p><p>ผู้สร้าง: {r.creator_name || '-'} • สมาชิก: {r.member_count ?? 0}/{r.capacity ?? '-'} • สถานะ: {r.status || '-'}</p><p>{r.starts_at ? new Date(r.starts_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา'}</p><p>{r.description || ''}</p></>}
+    </article>)}
+    {!loading && !error && <div style={{display:'flex',gap:12,alignItems:'center',marginTop:16}}>
+      <button type="button" className="btn btn-ghost" disabled={page===0} onClick={() => {setPage(p=>p-1);setSelected(null)}}>ก่อนหน้า</button><span>หน้า {page+1} • {total} รายการ</span>
+      <button type="button" className="btn btn-ghost" disabled={rows.length<20 || (total>0 && (page+1)*20>=total)} onClick={() => {setPage(p=>p+1);setSelected(null)}}>ถัดไป</button>
+    </div>}
+  </section>
+}
+
 function AdminDashboard({ onBack }) {
   const [metrics, setMetrics] = useState(null)
   const [adminTab, setAdminTab] = useState('overview')
@@ -2393,7 +2440,9 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
-    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button></nav>
+    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button><button type="button" className={adminTab === 'profiles' ? 'is-active' : ''} onClick={() => setAdminTab('profiles')}>โปรไฟล์สมาชิก</button><button type="button" className={adminTab === 'hangouts' ? 'is-active' : ''} onClick={() => setAdminTab('hangouts')}>ห้อง Hangout</button></nav>
+    {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
+    {adminTab === 'hangouts' && <AdminDirectory kind="hangouts"/>}
     {adminTab === "email" && <EmailCenter />}
     {adminTab === "payments" && <div role="status" style={{padding:24,borderRadius:16,background:"#251b30",color:"#e6d8ed"}}><h3>ระบบชำระเงินปิดให้บริการชั่วคราว</h3><p>ยังไม่เปิดรับชำระเงินผ่าน PromptPay หรือช่องทางอื่น ข้อมูลการชำระเงินเดิมยังคงอยู่</p></div>}
     {adminTab === "overview" && <div className="nm-admin-overview">
