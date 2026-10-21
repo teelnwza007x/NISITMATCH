@@ -3645,3 +3645,28 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 }
 .nm-google-auth-button:active:not(:disabled),
 .editorial-actions .editorial-google-login:active{transform:scale(.99)}
+
+/* Auth refresh v8.2: polished modal and signup form */
+.auth-modal{position:relative;overflow-y:auto;max-height:min(92dvh,900px);border:1px solid rgba(186,143,245,.24);border-radius:25px;background:radial-gradient(ellipse at 50% -25%,rgba(147,79,218,.19),transparent 56%),#121522;box-shadow:0 30px 100px rgba(0,0,0,.46);scrollbar-width:thin}
+.auth-modal .auth-brand{margin-bottom:20px}
+.auth-modal .auth-heading{margin-bottom:23px}
+.auth-modal .auth-heading h2{letter-spacing:-.6px;line-height:1.28}
+.auth-modal .nm-auth-eyebrow{display:inline-block;margin-bottom:9px;font-size:10px;letter-spacing:2.2px;font-weight:800;color:#c49aff}
+.auth-modal .auth-form{display:flex;flex-direction:column;gap:15px}
+.auth-modal .auth-form label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:650;color:#c9c7d8}
+.auth-modal .auth-form input{width:100%;min-height:49px;border:1px solid rgba(143,147,180,.28);border-radius:13px;background:rgba(10,13,27,.5);color:#fff;padding:12px 14px;transition:border-color .18s,box-shadow .18s}
+.auth-modal .auth-form input:focus{outline:none;border-color:#bd89ff;box-shadow:0 0 0 3px rgba(167,105,255,.16)}
+.auth-modal .auth-form input::placeholder{color:#85889d}
+.auth-modal .nm-auth-password-wrap{position:relative}
+.auth-modal .nm-auth-password-wrap input{padding-right:72px}
+.auth-modal .nm-auth-password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;border-radius:8px;background:rgba(167,119,230,.13);color:#d9c4fa;padding:7px 10px;font-size:11px;cursor:pointer}
+.auth-modal .nm-auth-password-hint{font-size:11px;font-weight:500}
+.auth-modal .nm-auth-password-hint.is-match{color:#83e6b3}
+.auth-modal .nm-auth-password-hint.is-mismatch{color:#ff9da9}
+.auth-modal .auth-form .btn-pink{min-height:51px;border-radius:13px;box-shadow:0 8px 25px rgba(177,79,219,.2)}
+.auth-modal .auth-switch{flex-wrap:wrap;justify-content:center;gap:7px}
+.auth-modal .nm-google-auth{margin:19px 0 13px}
+.auth-modal .nm-google-auth-divider{margin-bottom:13px}
+.nm-google-auth-button,.editorial-actions .editorial-google-login{background:#fff!important;color:#202124!important;border:1px solid #e7e7eb!important;box-shadow:0 4px 16px rgba(0,0,0,.13)!important}
+.nm-google-auth-button:hover:not(:disabled),.editorial-actions .editorial-google-login:hover{background:#f1f1f6!important;color:#202124!important;border-color:#d6c8ef!important;box-shadow:0 7px 22px rgba(129,88,182,.22)!important}
+@media(max-width:480px){.auth-modal{border-radius:22px}.auth-modal .auth-form{gap:13px}}
