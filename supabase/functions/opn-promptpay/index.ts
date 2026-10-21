@@ -27,7 +27,7 @@ Deno.serve(async req=>{
    if(charge.livemode!==false||charge.amount!==payment.amount||charge.currency!=='THB')return json({error:'Charge verification failed'},502)
    const status=['successful','failed','expired'].includes(charge.status)?charge.status:'pending'
    await db.from('opn_promptpay_payments').update({status,updated_at:new Date().toISOString()}).eq('charge_id',payment.charge_id).eq('user_id',user.id)
-   return json({ok:true,test:true,status,paid:charge.paid===true,plan:payment.plan,amount:payment.amount,premium_unlocked:false})
+   return json({ok:true,test:true,charge_id:payment.charge_id,status,paid:charge.paid===true,plan:payment.plan,amount:payment.amount,qr_url:charge.source?.scannable_code?.image?.download_uri||null,expires_at:charge.expires_at,premium_unlocked:false})
   }
   if(body.action!=='create'||!Object.hasOwn(amounts,body.plan))return json({error:'Invalid action or plan'},400)
   const amount=amounts[body.plan]
@@ -37,6 +37,9 @@ Deno.serve(async req=>{
   if(!response.ok||charge.object!=='charge'||charge.livemode!==false||charge.amount!==amount||!charge.id?.startsWith('chrg_test_'))return json({error:'Unable to create test charge'},502)
   const {error:saveError}=await db.from('opn_promptpay_payments').insert({user_id:user.id,charge_id:charge.id,plan:body.plan,amount,status:'pending'})
   if(saveError){console.error('Payment record error',saveError.message);return json({error:'Unable to save test payment; do not pay this charge'},500)}
-  return json({ok:true,test:true,charge_id:charge.id,amount,status:charge.status,expires_at:charge.expires_at,qr_url:charge.source?.scannable_code?.image?.download_uri||null,premium_unlocked:false})
+  // Some PromptPay responses populate the scannable code after charge creation. Retrieve once more.
+  let qrUrl=charge.source?.scannable_code?.image?.download_uri||null
+  if(!qrUrl){const qrResponse=await fetch('https://api.omise.co/charges/'+encodeURIComponent(charge.id),{headers:{Authorization:authValue}});if(qrResponse.ok){const fresh=await qrResponse.json();if(fresh.livemode===false&&fresh.amount===amount&&fresh.currency==='THB')qrUrl=fresh.source?.scannable_code?.image?.download_uri||null}}
+  return json({ok:true,test:true,charge_id:charge.id,amount,status:charge.status,expires_at:charge.expires_at,qr_url:qrUrl,premium_unlocked:false})
  }catch(e){console.error('opn-promptpay',e instanceof Error?e.message:'unknown');return json({error:'Payment service error'},500)}
 })
