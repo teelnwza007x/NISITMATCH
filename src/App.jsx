@@ -2660,7 +2660,7 @@ function DailyRewardsAndSafety({ user, notify, mode = 'safety' }) {
     const { data, error } = await supabase.from('blocks').select('blocked').eq('blocker', user.id)
     if (!error) setBlocked(data || [])
   }, [user.id])
-  useEffect(() => { refreshRewards() }, [refreshRewards])
+  useEffect(() => { if (mode === 'daily') refreshRewards() }, [mode, refreshRewards])
   useEffect(() => { if (safetyOpen) refreshBlocked() }, [safetyOpen, refreshBlocked])
   const claim = async () => {
     if (loading || status?.today_claimed) return
@@ -2794,8 +2794,8 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
-    <DailyRewardsAndSafety user={user} notify={notify} mode="safety" />
-    <section className="nm-settings-install" aria-label="ติดตั้งแอป NISIT MATCH"><div className="nm-settings-install-symbol"><Globe2 size={25}/></div><div className="nm-settings-install-copy"><span className="theme-kicker">INSTALL THE APP</span><h3>ติดตั้ง NISIT MATCH</h3><p>{isInstalled ? 'กำลังใช้งานผ่านแอปที่ติดตั้งแล้ว' : 'เพิ่มแอปลงหน้าจอโฮม เปิดใช้งานง่าย ไม่ต้องค้นหาเว็บไซต์'}</p></div><button type="button" className="nm-settings-install-action" onClick={onInstall} disabled={isInstalled}>{isInstalled ? <><Check size={16}/> ติดตั้งแล้ว</> : <>ติดตั้งแอป <ArrowRight size={17}/></>}</button></section>
+    <nav className="nm-settings-quick-nav" aria-label="ทางลัดการตั้งค่า"><a href="#nm-settings-appearance"><Palette size={17}/> ธีมและเสียง</a><a href="#nm-settings-social"><Bell size={17}/> การแจ้งเตือน</a><a href="#nm-settings-privacy"><ShieldCheck size={17}/> ความเป็นส่วนตัว</a><a href="#nm-settings-account"><LockKeyhole size={17}/> บัญชี</a></nav>
+    <div id="nm-settings-appearance" className="nm-settings-group-title"><Palette size={18}/> รูปลักษณ์และเสียง</div>
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
       <button type="button" className={'nm-sound-toggle' + (soundsOn ? ' is-on' : '')} role="switch" aria-checked={soundsOn} aria-label="เปิดหรือปิดเสียงเอฟเฟกต์" onClick={toggleSounds}><span/></button>
@@ -2809,8 +2809,10 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
         <span className="theme-check">{theme === t.id && <Check size={14}/>}</span>
       </button>)}</div>
     </section>
+    <div id="nm-settings-social" className="nm-settings-group-title"><Bell size={18}/> สถานะและการแจ้งเตือน</div>
     <section className="v26-settings-section nm-social-settings" aria-label="สถานะและการแจ้งเตือน"><span className="theme-kicker">SOCIAL & NOTIFICATIONS</span><h3>สถานะและการแจ้งเตือน</h3><p>เลือกข้อมูลที่ต้องการแชร์และประเภทการแจ้งเตือน (ขณะนี้ระบบ Push รองรับแมตช์ใหม่ ส่วนข้อความและ Hangouts จะเพิ่มในระบบส่งแจ้งเตือนภายหลัง)</p><div className="nm-social-options">{[['show_online','แสดงสถานะออนไลน์','เฉพาะคนที่แมตช์กัน'],['notify_matches','แจ้งเตือนแมตช์ใหม่','ความต้องการรับแจ้งเตือน'],].map(([key,title,desc])=><button type="button" key={key} className={'nm-social-option'+(social[key]?' selected':'')} disabled={socialSaving} onClick={()=>changeSocial(key)} role="switch" aria-checked={!!social[key]}><span><strong>{title}</strong><small>{desc}</small></span><span className="nm-social-switch">{social[key]?'เปิด':'ปิด'}</span></button>)}</div></section>
     {onAdmin && <section className="v26-settings-section"><span className="theme-kicker">ADMIN</span><h3>จัดการระบบ</h3><p>เฉพาะบัญชีผู้ดูแลระบบเท่านั้น</p><button type="button" className="btn btn-pink" onClick={onAdmin}>เปิด Admin Dashboard <ArrowRight size={16}/></button></section>}
+    <div id="nm-settings-privacy" className="nm-settings-group-title"><ShieldCheck size={18}/> ความเป็นส่วนตัวและความปลอดภัย</div>
     <section className="v26-settings-section" aria-label="ความเป็นส่วนตัว">
       <span className="theme-kicker">PRIVACY & DISCOVERY</span><h3>ใครสามารถพบคุณได้</h3><p>ควบคุมการแสดงโปรไฟล์ในหน้าปัดของคนอื่น</p>
       <div className="v26-mode-grid">{[
@@ -2819,6 +2821,9 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
         ['paused','พักการค้นหา','ซ่อนโปรไฟล์ชั่วคราว']
       ].map(([id,title,sub]) => <button type="button" key={id} disabled={privacyBusy} className={'v26-mode' + (privacy.mode === id ? ' selected' : '')} onClick={() => setPrivacyMode(id)} aria-pressed={privacy.mode === id}><span><strong>{title}</strong><small>{sub}</small></span>{privacy.mode === id && <Check size={19}/>}</button>)}</div>
     </section>
+    <DailyRewardsAndSafety user={user} notify={notify} mode="safety" />
+    <div id="nm-settings-account" className="nm-settings-group-title"><LockKeyhole size={18}/> บัญชีและแอป</div>
+        <section className="nm-settings-install" aria-label="ติดตั้งแอป NISIT MATCH"><div className="nm-settings-install-symbol"><Globe2 size={25}/></div><div className="nm-settings-install-copy"><span className="theme-kicker">INSTALL THE APP</span><h3>ติดตั้ง NISIT MATCH</h3><p>{isInstalled ? 'กำลังใช้งานผ่านแอปที่ติดตั้งแล้ว' : 'เพิ่มแอปลงหน้าจอโฮม เปิดใช้งานง่าย ไม่ต้องค้นหาเว็บไซต์'}</p></div><button type="button" className="nm-settings-install-action" onClick={onInstall} disabled={isInstalled}>{isInstalled ? <><Check size={16}/> ติดตั้งแล้ว</> : <>ติดตั้งแอป <ArrowRight size={17}/></>}</button></section>
     <div className="settings-grid">
       <div className="settings-card"><div className="settings-icon"><ShieldCheck /></div><div><h3>ความเป็นส่วนตัวและความปลอดภัย</h3><p>หน้าค้นหาไม่แสดงอีเมลและวันเกิดของคุณ และคุณสามารถบล็อกหรือรายงานผู้ใช้ได้</p></div><span className="settings-status">เปิดใช้งาน</span></div>
       <div className="settings-card"><div className="settings-icon"><LockKeyhole /></div><div><h3>รหัสผ่าน</h3><p>ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่ {user.email}</p></div><button className="btn btn-ghost btn-small" onClick={reset}>ส่งลิงก์</button></div>
