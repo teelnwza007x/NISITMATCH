@@ -2814,6 +2814,21 @@ function PremiumPage({ user, onGoVisitors }) {
   </div>
 }
 
+function LikesVisitorsPage({ user, notify, onOpenProfile, onGoPremium }) {
+  const [tab, setTab] = useState('likes')
+  return <div className="v76-page">
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:18}}>
+      {[['likes','คนที่กดใจ',HeartHandshake],['visitors','ผู้เข้าชมโปรไฟล์',EyeIcon]].map(([id,label,Icon]) =>
+        <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab===id}
+          className={tab===id?'btn btn-primary':'btn btn-ghost'}
+          style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,minWidth:0,padding:'12px 8px',borderRadius:14,fontSize:13}}>
+          <Icon size={17}/><span>{label}</span>
+        </button>)}
+    </div>
+    <PremiumListPage kind={tab} user={user} notify={notify} onOpenProfile={onOpenProfile} onGoPremium={onGoPremium}/>
+  </div>
+}
+
 function PremiumListPage({ kind, user, notify, onOpenProfile, onGoPremium }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -3629,7 +3644,7 @@ const loadMatches = useCallback(async () => {
 
       <PushPermissionCard user={user} />
       <nav className="bottom-nav" aria-label="เมนูหลักบนมือถือ">
-        {[["home","ปัด",Heart],["likes","คนที่กดใจ",HeartHandshake],["messages","ข้อความ",MessageCircle],["hangout","Hangout",CalendarDays],["profile","โปรไฟล์",UserRound],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
+        {[["home","ปัด",Heart],["likes","ถูกใจ / ผู้เข้าชม",HeartHandshake],["messages","ข้อความ",MessageCircle],["hangout","Hangout",CalendarDays],["profile","โปรไฟล์",UserRound],["settings","ตั้งค่า",Settings]].map(([id,label,Icon]) => <button type="button" key={id} onClick={() => go(id)} className={(view === id ? "bottom-nav-item active" : "bottom-nav-item") + (id === "messages" && unreadMessages > 0 ? " has-unread-messages" : "")} aria-current={view === id ? "page" : undefined}><span className="bottom-icon"><Icon size={21} strokeWidth={view === id ? 2.5 : 1.8}/>{id === "notifs" && unread > 0 && <i className="bottom-dot"/>}{id === "messages" && unreadMessages > 0 && <span className="message-unread-count">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}</span><span>{label}</span></button>)}
       </nav>
       <main className="main-area">
         <div className="page-content">
@@ -3641,7 +3656,7 @@ const loadMatches = useCallback(async () => {
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
-          {view === 'likes' && <PremiumListPage kind="likes" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
+          {view === 'likes' && <LikesVisitorsPage user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
           {view === 'visitors' && <PremiumListPage kind="visitors" user={user} notify={notify} onOpenProfile={openDetail} onGoPremium={() => go('premium')} />}
           {view === 'hangout' && <HangoutPage user={user} profile={profile} notify={notify} onJoinedHangout={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} onGoVerify={() => go('verification')} />}
           {view === 'premium' && <PremiumPage user={user} notify={notify} onGoVisitors={() => go('visitors')} />}
