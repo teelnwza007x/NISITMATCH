@@ -3249,3 +3249,35 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   .pref-sheet,.detail-modal,.hangout-chat-modal,.nm-admin-dashboard .nm-admin-queue,.pref-save,.discovery-next,.v76-primary-cta,.nm-admin-tabs button,.nm-admin-back{transition:none!important;animation:none!important}
   .pref-save:hover,.discovery-next:hover,.v76-primary-cta:hover{transform:none!important}
 }
+
+
+/* NISIT MATCH 8.0 — Swipe & Messenger refinement */
+.swipe-stage,.swipe-stack,.chat-window,.chat-messages{min-width:0}
+.swipe-card,.person-card{backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform}
+.swipe-front{isolation:isolate}
+.swipe-controls .swipe-control{touch-action:manipulation;transition:transform 170ms ease,filter 170ms ease,box-shadow 170ms ease}
+.swipe-controls .swipe-control:active{transform:scale(.92)}
+.swipe-controls .swipe-control:focus-visible,.chat-compose .send-btn:focus-visible,.chat-back:focus-visible,.chat-person:focus-visible{outline:2px solid var(--theme-accent);outline-offset:3px}
+.chat-window{isolation:isolate}
+.chat-messages{overscroll-behavior:contain;scrollbar-gutter:stable}
+.chat-compose{box-sizing:border-box}
+.chat-compose .chat-text-input{min-width:0;max-width:100%;font-size:16px}
+.chat-compose .send-btn{touch-action:manipulation;transition:transform 170ms ease,opacity 170ms ease}
+.chat-compose .send-btn:active:not(:disabled){transform:scale(.92)}
+.chat-messages .message-bubble{overflow-wrap:anywhere;word-break:break-word}
+.chat-person{transition:background-color 160ms ease}
+@media(hover:hover) and (pointer:fine){
+  .chat-person:hover{background:color-mix(in srgb,var(--theme-accent) 8%,transparent)}
+  .swipe-controls .swipe-control:hover{filter:brightness(1.08);transform:translateY(-2px)}
+}
+@media(max-width:600px){
+  .swipe-stage,.swipe-stack{max-width:100%;min-width:0}
+  .chat-fullscreen .chat-window{min-width:0;max-width:100vw}
+  .chat-fullscreen .chat-compose{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .chat-fullscreen .chat-messages{overscroll-behavior-y:contain}
+}
+@media(prefers-reduced-motion:reduce){
+  .swipe-card,.person-card{will-change:auto}
+  .swipe-controls .swipe-control,.chat-compose .send-btn,.chat-person{transition:none!important}
+  .swipe-controls .swipe-control:hover,.swipe-controls .swipe-control:active,.chat-compose .send-btn:active{transform:none!important}
+}
