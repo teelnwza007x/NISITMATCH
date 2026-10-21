@@ -27,8 +27,8 @@ export default function AdminAlerts() {
       ])
       const { data, error: rpcError } = reportResult
       if (!aliveRef.current || requestId !== requestRef.current) return
-      if (rpcError) throw rpcError
-      setReports(Array.isArray(data) ? data : [])
+      if (rpcError) { setError(rpcError.message); setReports([]) }
+      if (!rpcError) setReports(Array.isArray(data) ? data : [])
       // Older databases may not have the 8.3 migration yet; keep reports usable.
       if (domainResult.error) {
         setDomainError('โหลดคำขอโดเมนไม่ได้: ' + domainResult.error.message)
@@ -43,7 +43,7 @@ export default function AdminAlerts() {
         setHealth(healthResult.data && typeof healthResult.data === 'object' ? healthResult.data : null)
         setHealthError('')
       }
-      setError('')
+      if (!rpcError) setError('')
       setCheckedAt(new Date())
     } catch (err) {
       if (!aliveRef.current || requestId !== requestRef.current) return
