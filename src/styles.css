@@ -3804,3 +3804,15 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-social-push-toggle:active,.nm-social-push-toggle:hover{transform:none!important;box-shadow:none!important}
 .nm-social-push-toggle:disabled{opacity:.6;cursor:wait}
 @media(max-width:370px){.nm-social-push-card{gap:8px;padding:10px}.nm-social-push-icon{flex-basis:28px;width:28px;height:28px}.nm-social-push-toggle{padding:7px 9px}}
+
+/* Minimal native-app-style sound feedback: floating glyph, no tile or frame. */
+.nm-tap-sound-feedback{
+  width:44px!important;height:44px!important;border:0!important;border-radius:0!important;
+  background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  box-shadow:none!important;color:#fff!important;
+  opacity:0;transform:translate(-50%,-50%) scale(.92)!important;
+  transition:opacity 360ms ease,scale 360ms cubic-bezier(.22,1,.36,1)!important;
+  animation:none!important;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65));
+}
+.nm-tap-sound-feedback.is-visible{opacity:1!important;transform:translate(-50%,-50%) scale(1)!important}
+.nm-tap-sound-feedback svg{width:30px;height:30px;filter:none}
