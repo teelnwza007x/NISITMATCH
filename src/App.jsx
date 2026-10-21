@@ -395,22 +395,33 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos]
-  // Warm only the next two profile covers and the next photo on the current card.
-  // Keep references alive until the deck changes; don't preload videos or all six images.
+  // Preload a small number of upcoming covers only while the swipe screen is active.
+  // Schedule after paint so preloading cannot compete with the visible card.
   useEffect(() => {
     if (typeof window === 'undefined' || document.visibilityState !== 'visible') return
-    const paths = [
-      ...people.slice(1, 3).map(p => p.avatar_path || p.photo_paths?.[0]),
-      photos[1],
-    ].filter(Boolean)
-    const images = [...new Set(paths)].map(path => {
-      const img = new Image()
-      img.decoding = 'async'
-      img.src = pub(path)
-      return img
-    })
-    return () => { images.forEach(img => { img.onload = null; img.onerror = null }) }
-  }, [people[0]?.id, people[1]?.id, people[2]?.id, photos[1]])
+    let cancelled = false
+    let idleId = null
+    let timerId = null
+    const images = []
+    const warm = () => {
+      if (cancelled) return
+      const paths = [people[1]?.avatar_path || people[1]?.photo_paths?.[0], photos[1]].filter(Boolean)
+      for (const path of new Set(paths)) {
+        const img = new Image()
+        img.decoding = 'async'
+        img.src = pub(path)
+        images.push(img)
+      }
+    }
+    if (typeof window.requestIdleCallback === 'function') idleId = window.requestIdleCallback(warm, { timeout: 1500 })
+    else timerId = window.setTimeout(warm, 250)
+    return () => {
+      cancelled = true
+      if (idleId !== null) window.cancelIdleCallback(idleId)
+      if (timerId !== null) window.clearTimeout(timerId)
+      images.forEach(img => { img.onload = null; img.onerror = null })
+    }
+  }, [people[0]?.id, people[1]?.id, photos[1]])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
