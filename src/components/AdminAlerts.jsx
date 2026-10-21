@@ -77,11 +77,12 @@ export default function AdminAlerts() {
   }, [reload])
   const approveDomain = async request => {
     const universityId = String(universityIds[request.id] || '').trim().toLowerCase()
-    if (!/^[a-z0-9_-]{1,40}$/.test(universityId)) {
+    const university = UNIVERSITIES.find(u => u.id === universityId && u.id !== 'unspecified')
+    if (!university) {
       setApprovalError('กรุณาเลือกมหาวิทยาลัยก่อนอนุมัติ')
       return
     }
-    if (!window.confirm(`อนุมัติ @${request.email_domain} ให้มหาวิทยาลัยรหัส ${universityId} ใช่ไหม?`)) return
+    if (!window.confirm(`อนุมัติ @${request.email_domain} ให้ ${university.name} ใช่ไหม? โปรดตรวจสอบว่าโดเมนเป็นของสถาบันนี้จริง`)) return
     setApprovingId(request.id)
     setApprovalError('')
     setApprovalSuccess('')
@@ -93,6 +94,8 @@ export default function AdminAlerts() {
       setDomainRequests(rows => rows.filter(row => row.id !== request.id))
       setApprovalSuccess(`อนุมัติ @${data?.domain || request.email_domain} สำเร็จ`)
       setUniversityIds(ids => { const next = { ...ids }; delete next[request.id]; return next })
+      // Refresh health counters and queue from the server after a successful mutation.
+      await reload()
     } catch (err) {
       setApprovalError('อนุมัติไม่สำเร็จ: ' + (err?.message || 'กรุณาตรวจสอบ SQL V140 และสิทธิ์แอดมิน'))
     } finally {
