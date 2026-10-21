@@ -22,6 +22,7 @@ INSERT INTO public.universities (id,name) VALUES
  ('rmutt','มหาวิทยาลัยเทคโนโลยีราชมงคลธัญบุรี'),
  ('rmutp','มหาวิทยาลัยเทคโนโลยีราชมงคลพระนคร'),
  ('rmutk','มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ'),
+ ('nmu','มหาวิทยาลัยนวมินทราธิราช'),
  ('ssru','มหาวิทยาลัยราชภัฏสวนสุนันทา'),
  ('dusit','มหาวิทยาลัยสวนดุสิต'),
  ('cmru','มหาวิทยาลัยราชภัฏเชียงใหม่'),
@@ -38,7 +39,7 @@ INSERT INTO public.universities (id,name) VALUES
  ('krirk','มหาวิทยาลัยเกริก')
 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name;
 -- Disable previously enabled domains for these selected institutions; do not delete historical verification records.
-UPDATE public.student_email_domains SET enabled=false WHERE university_id IN ('chula','tu','mu','ku','cmu','kku','psu','swu','kmitl','kmutt','kmutnb','buu','su','nu','mahasarakham','mfu','sut','rmutt','rmutp','rmutk','ssru','dusit','cmru','chandra','utcc','bu','abac','rangsit','spu','dpu','mti','huachiew','payap','krirk');
+UPDATE public.student_email_domains SET enabled=false WHERE university_id IN ('chula','tu','mu','ku','cmu','kku','psu','swu','kmitl','kmutt','kmutnb','buu','su','nu','mahasarakham','mfu','sut','rmutt','rmutp','rmutk','nmu','ssru','dusit','cmru','chandra','utcc','bu','abac','rangsit','spu','dpu','mti','huachiew','payap','krirk');
 INSERT INTO public.student_email_domains (domain, university_id, enabled) VALUES
  ('student.chula.ac.th','chula',true),
  ('dome.tu.ac.th','tu',true),
@@ -61,6 +62,7 @@ INSERT INTO public.student_email_domains (domain, university_id, enabled) VALUES
  ('mail.rmutt.ac.th','rmutt',true),
  ('rmutp.ac.th','rmutp',true),
  ('mail.utk.ac.th','rmutk',true),
+ ('nmu.ac.th','nmu',true),
  ('ssru.ac.th','ssru',true),
  ('suandusit.ac.th','dusit',true),
  ('cmru.ac.th','cmru',true),
