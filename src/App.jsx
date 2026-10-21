@@ -182,6 +182,21 @@ function AuthModal({ mode, setMode, close, notify }) {
     if (/email not confirmed/i.test(message)) return 'บัญชียังไม่ได้ยืนยันอีเมล กรุณากดส่งอีเมลยืนยันอีกครั้ง'
     return message
   }
+  const [googleBusy, setGoogleBusy] = useState(false)
+  const signInWithGoogle = async () => {
+    if (googleBusy || busy) return
+    setGoogleBusy(true)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname },
+      })
+      if (error) throw error
+    } catch (error) {
+      notify(errorText(error))
+      setGoogleBusy(false)
+    }
+  }
   const resendVerification = async () => {
     const address = (verificationEmail || email).trim().toLowerCase()
     if (!address || resendInFlight.current || resendBusy || resendCooldown > 0) return
@@ -275,6 +290,13 @@ function AuthModal({ mode, setMode, close, notify }) {
         {mode === 'register' && <p className="legal-note">การสมัครหมายถึงคุณยืนยันว่ามีอายุ 18 ปีขึ้นไป</p>}
         <button disabled={busy || (mode === 'register' && registrationComplete)} className="btn btn-pink btn-full btn-lg">{busy ? (mode === 'reset' ? 'กำลังส่งลิงก์…' : 'กำลังดำเนินการ...') : mode === 'register' && registrationComplete ? 'สมัครแล้ว กรุณายืนยันอีเมล' : mode === 'login' ? 'เข้าสู่ระบบ' : mode === 'register' ? 'สร้างบัญชีของฉัน' : 'ส่งลิงก์รีเซ็ต'} <ArrowRight size={17} /></button>
       </form>}
+      {mode !== 'reset' && <div className="nm-google-auth">
+        <div className="nm-google-auth-divider"><span>หรือดำเนินการต่อด้วย</span></div>
+        <button type="button" className="nm-google-auth-button" onClick={signInWithGoogle} disabled={googleBusy || busy}>
+          <svg aria-hidden="true" width="21" height="21" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 5.38 6.51 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.28 5.48-4.81 7.18l7.73 6C44.37 38.03 46.98 31.89 46.98 24.55z"/><path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6C30.03 37.64 27.28 38.5 24 38.5c-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          {googleBusy ? 'กำลังเชื่อมต่อ Google…' : 'ดำเนินการต่อด้วย Google'}
+        </button>
+      </div>}
       {mode === 'register' && existingAccount && <section className="nm-existing-account" role="status" aria-live="polite"><div className="nm-existing-account-icon"><ShieldCheck size={23}/></div><div><h3>อีเมลนี้อาจมีบัญชีอยู่แล้ว</h3><p>หากเคยสมัคร NISIT MATCH ด้วยอีเมลนี้ กรุณาเข้าสู่ระบบ หรือขอตั้งรหัสผ่านใหม่</p></div><div className="nm-existing-account-actions"><button type="button" className="btn btn-pink" onClick={() => setMode('login')}>เข้าสู่ระบบ <ArrowRight size={16}/></button><button type="button" className="btn btn-ghost" onClick={() => setMode('reset')}>ลืมรหัสผ่าน</button></div></section>}
       {mode !== 'reset' && awaitingVerification && <section className="nm-verify-resend" aria-labelledby="nm-verify-resend-title">
         <div className="nm-verify-resend-icon" aria-hidden="true"><Send size={22}/></div><span className="nm-verify-kicker">NISIT MATCH · EMAIL VERIFICATION</span>
