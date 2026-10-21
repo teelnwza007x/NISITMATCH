@@ -1990,6 +1990,55 @@ function RelationshipVibe({ intent }) {
 }
 const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [], relationship_intent: p?.relationship_intent || '' })
 
+function AccountEmailVerification({ user, notify }) {
+  const [verified, setVerified] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [code, setCode] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  useEffect(() => {
+    let active = true
+    supabase.from('account_email_verifications').select('email').eq('user_id', user.id).maybeSingle()
+      .then(({ data, error }) => { if (active) { if (!error) setVerified(data?.email?.toLowerCase() === user.email?.toLowerCase()); setLoading(false) } })
+      .catch(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [user.id, user.email])
+  useEffect(() => {
+    if (!cooldown) return
+    const timer = window.setInterval(() => setCooldown(value => Math.max(0, value - 1)), 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldown > 0])
+  const request = async action => {
+    if (busy || (action === 'send' && cooldown)) return
+    if (action === 'verify' && !/^\d{6}$/.test(code)) return notify('กรุณากรอกรหัส OTP 6 หลัก')
+    setBusy(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('account-email-otp', { body: { action, ...(action === 'verify' ? { code } : {}) } })
+      if (error) {
+        const payload = await error.context?.json?.().catch(() => null)
+        throw new Error(payload?.error || error.message)
+      }
+      if (data?.error) throw new Error(data.error)
+      if (data?.verified) { setVerified(true); notify('ยืนยันอีเมลบัญชีสำเร็จแล้ว'); return }
+      if (action === 'send') { setSent(true); setCooldown(60); notify('ส่ง OTP ไปยังอีเมลบัญชีแล้ว') }
+    } catch (error) { notify(error.message || 'ดำเนินการไม่สำเร็จ') }
+    finally { setBusy(false) }
+  }
+  return <section className="nm-account-otp-card" aria-label="ยืนยันอีเมลบัญชี">
+    <div className="nm-account-otp-heading"><ShieldCheck size={24}/><div><span className="theme-kicker">ACCOUNT SECURITY</span><h3>ยืนยันอีเมลบัญชี</h3><p>แยกจากการยืนยันอีเมลมหาวิทยาลัย</p></div></div>
+    <div className="nm-account-otp-address">{user.email || 'ไม่พบอีเมลบัญชี'}</div>
+    {loading ? <p>กำลังตรวจสอบสถานะ...</p> : verified ? <p className="nm-account-otp-success"><Check size={17}/> ยืนยันอีเมลบัญชีเรียบร้อยแล้ว</p> : <>
+      <p>คุณสามารถใช้งาน NISIT MATCH ได้ก่อน แล้วกลับมายืนยันอีเมลภายหลังได้</p>
+      {sent && <label>รหัส OTP 6 หลัก<input inputMode="numeric" pattern="[0-9]*" maxLength={6} autoComplete="one-time-code" placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}/></label>}
+      <div className="nm-account-otp-actions">
+        {sent && <button type="button" className="btn btn-pink" disabled={busy || code.length !== 6} onClick={() => request('verify')}>{busy ? 'กำลังตรวจสอบ...' : 'ยืนยันรหัส OTP'}</button>}
+        <button type="button" className="btn btn-outline" disabled={busy || cooldown > 0} onClick={() => request('send')}>{cooldown ? 'ขอรหัสใหม่ใน ' + cooldown + ' วินาที' : sent ? 'ส่งรหัสใหม่' : 'ส่งรหัสยืนยันอีเมล'}</button>
+      </div>
+    </>}
+  </section>
+}
+
 function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium = false, initialEditTab = 'photos' }) {
   const [profileEmailVerified, setProfileEmailVerified] = useState(false)
   const [profileVerificationLoaded, setProfileVerificationLoaded] = useState(false)
@@ -2243,6 +2292,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         <button type="button" className={editTab === 'verification' ? 'active' : ''} aria-current={editTab === 'verification' ? 'page' : undefined} onClick={() => selectEditTab('verification')}><ShieldCheck size={18}/><span>ยืนยันสถานะนักศึกษา</span></button>
       </nav>
       <div className="nm-edit-workspace">
+      {editTab === 'verification' && <AccountEmailVerification user={user} notify={notify} />}
       {editTab === 'verification' && <CampusEmailVerification user={user} />}
       {editTab === 'photos' && <section className="nm-edit-photo-page" role="tabpanel"><div className="nm-photo-hero"><img src={preview} alt="ตัวอย่างรูปหลัก"/><div><span className="theme-kicker">PROFILE PHOTOS</span><h2>จัดการรูปโปรไฟล์</h2><p>เลือกหลายรูปพร้อมกันได้สูงสุด 6 รายการ แล้วเลือกรูปหลัก</p></div></div>
         <div className="photo-editor"><b>รูปและวิดีโอโปรไฟล์ ({mediaSlotCount}/6)</b><p>รูปภาพและวิดีโอใช้ 6 ช่องร่วมกัน · แตะดาวเพื่อกำหนดรูปหลัก · กดค้างแล้วลากรูปไปช่องที่ต้องการ</p><div className="photo-grid">{[...orderedKeys.map(key => { const fresh = newPhotos.find(x => x.key === key); return fresh ? {...fresh, type: 'image'} : {key, url: pub(key), type: 'image'} }), ...profileVideos.map(item => ({key: item.id, url: mediaPub(item.storage_path), type: 'video', existing: item})), ...newVideos.map(item => ({...item, type: 'video'}))].map(item => <div className="photo-tile v83-media-tile" key={item.key} data-photo-key={item.type === "image" ? item.key : undefined} draggable={item.type === "image"} onDragStart={e => { draggingPhoto.current = item.key; e.dataTransfer.effectAllowed = "move" }} onDragOver={e => { if (item.type === "image") e.preventDefault() }} onDrop={e => { e.preventDefault(); reorderPhoto(draggingPhoto.current, item.key); draggingPhoto.current = null }} onDragEnd={() => { draggingPhoto.current = null }} onPointerDown={e => { if (item.type !== "image" || e.target.closest("button")) return; clearTimeout(holdTimer.current); holdTimer.current = setTimeout(() => { draggingPhoto.current = item.key }, 350) }} onPointerUp={releasePhoto} onPointerCancel={() => { clearTimeout(holdTimer.current); draggingPhoto.current = null }}>{item.type === 'video' ? <video src={item.url} muted playsInline controls preload="metadata" aria-label="วิดีโอโปรไฟล์"/> : <img src={item.url} alt="รูปโปรไฟล์" onError={e => { if (/\.(heic|heif)(?:$|\?)/i.test(item.url)) e.currentTarget.alt = 'ไฟล์ HEIC อาจต้องเลือกส่งเป็นวิดีโอ Live Photo หรือแปลงเป็น JPG'; }} />}{item.type === 'image' && <button type="button" className={'photo-main ' + (mainPhoto === item.key ? 'selected' : '')} onClick={() => setMainPhoto(item.key)} title="ตั้งเป็นรูปหลัก">★</button>}{item.type === 'video' ? <button type="button" className="photo-remove" onClick={() => item.existing ? removeExistingVideo(item.existing) : removeNewVideo(item.key)} title="ลบวิดีโอ">×</button> : <button type="button" className="photo-remove" onClick={() => removePhoto(item.key)} title="ลบรูป">×</button>}</div>)}{mediaSlotCount < 6 && <label className="photo-add v83-media-add"><Camera size={21}/><Video size={20}/><span>เลือกหลายรูป / วิดีโอ</span><input type="file" accept="image/*,video/*,.heic,.heif" multiple onChange={e => {addMedia(e.target.files); e.target.value = ''}} /></label>}</div><small className="v83-media-note">รองรับรูปและวิดีโอรวม 6 รายการ · iPhone Live Photo: ตัวเลือกไฟล์บนเว็บอาจส่งมาเฉพาะภาพนิ่งและไม่เปิดให้เว็บดึง MOV คู่กันอัตโนมัติ ให้เปิดรูปใน Photos → Share → Save as Video แล้วอัปโหลดวิดีโอที่ได้ · วิดีโอ MOV/MP4 จะเล่นวนอัตโนมัติเมื่อเปิดดูรายการนั้น (ปิดเสียง)</small></div>
