@@ -270,7 +270,7 @@ function AuthModal({ mode, setMode, close, notify }) {
           startResendCooldown(address)
           notify('รับคำขอสมัครสมาชิกแล้ว หากยังไม่พบอีเมลยืนยัน กรุณาตรวจ Spam หรือกดส่งอีกครั้งหลังครบเวลารอ')
         } else {
-          notify('สมัครสมาชิกสำเร็จแล้ว')
+          notify('สมัครสมาชิกสำเร็จแล้ว · คุณสามารถยืนยันอีเมลบัญชีภายหลังได้ที่โปรไฟล์')
         }
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(address, {
