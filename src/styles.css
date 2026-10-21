@@ -3376,3 +3376,46 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media (prefers-reduced-motion:reduce) {
   :root[data-theme] #root,:root[data-theme] .app-shell { transition:none!important; }
 }
+
+
+/* 8.0 onboarding discovery: match the selected app theme, including first signup. */
+:root[data-theme] .discovery-overlay {
+  background:radial-gradient(ellipse at 12% 5%,color-mix(in srgb,var(--theme-accent) 18%,transparent),transparent 46%),radial-gradient(ellipse at 90% 90%,color-mix(in srgb,var(--theme-accent2) 14%,transparent),transparent 48%),var(--theme-bg);
+  color:var(--theme-text);
+}
+:root[data-theme] .discovery-aurora.a { background:var(--theme-accent); }
+:root[data-theme] .discovery-aurora.b { background:var(--theme-accent2); }
+:root[data-theme] .discovery-card {
+  background:var(--theme-panel);
+  border-color:var(--theme-border);
+  color:var(--theme-text);
+  box-shadow:0 24px 72px rgba(0,0,0,.28),0 0 38px color-mix(in srgb,var(--theme-accent) 12%,transparent);
+}
+:root[data-theme] .discovery-card :is(h1,h2,h3,b,strong) { color:var(--theme-text); }
+:root[data-theme] .discovery-card :is(p,small,label,.discovery-privacy) { color:var(--theme-muted); }
+:root[data-theme] .discovery-card :is(em,.discovery-age-title span,.discovery-distance strong,.discovery-choice svg) { color:var(--theme-accent); }
+:root[data-theme] .discovery-card :is(.discovery-logo,.discovery-step-label) { color:var(--theme-accent); }
+:root[data-theme] .discovery-card .discovery-logo b { color:var(--theme-accent2); }
+:root[data-theme] .discovery-card :is(.discovery-choice,.discovery-mode,.discovery-age,.discovery-distance,.discovery-summary,.discovery-uni-picker,.discovery-uni-list,.discovery-close,.discovery-back) {
+  background:var(--theme-sidebar);
+  border-color:var(--theme-border);
+  color:var(--theme-text);
+}
+:root[data-theme] .discovery-card :is(.discovery-choice,.discovery-mode).chosen {
+  background:color-mix(in srgb,var(--theme-accent) 14%,var(--theme-panel));
+  border-color:var(--theme-accent);
+  box-shadow:0 5px 22px color-mix(in srgb,var(--theme-accent) 15%,transparent);
+}
+:root[data-theme] .discovery-card :is(.discovery-next,.discovery-editing .discovery-next) {
+  background:linear-gradient(110deg,var(--theme-accent),var(--theme-accent2));
+  color:#fff;
+}
+:root[data-theme] .discovery-card input { accent-color:var(--theme-accent); }
+:root[data-theme] .discovery-card :is(button,input):focus-visible { outline:2px solid var(--theme-accent);outline-offset:3px; }
+@media(max-width:600px) {
+  :root[data-theme] .discovery-overlay { padding:12px; }
+  :root[data-theme] .discovery-card { max-height:calc(100dvh - 24px);padding:22px 19px max(18px,env(safe-area-inset-bottom));border-radius:23px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  :root[data-theme] .discovery-aurora { animation:none!important; }
+}
