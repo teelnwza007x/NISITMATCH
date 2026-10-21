@@ -3844,3 +3844,16 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-self-preview-modal .detail-gallery{position:relative;z-index:1}
 .nm-self-preview-modal .nm-tap-sound-wrap>video::-webkit-media-controls,
 .nm-self-preview-modal .nm-tap-sound-wrap>video::-webkit-media-controls-overlay-play-button{display:none!important}
+
+/* Profile preview: clean circular close affordance. */
+.nm-self-preview-modal>.detail-close-btn{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:38px!important;height:38px!important;min-width:38px!important;
+  border-radius:999px!important;border:1px solid rgba(255,255,255,.22)!important;
+  background:rgba(22,17,34,.68)!important;color:#fff!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.10)!important;
+  backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important;
+  transition:background-color .2s ease,border-color .2s ease!important;
+}
+.nm-self-preview-modal>.detail-close-btn:hover{background:rgba(36,27,54,.85)!important;border-color:rgba(255,255,255,.38)!important;transform:none!important}
+.nm-self-preview-modal>.detail-close-btn svg{width:19px;height:19px;flex-shrink:0}
