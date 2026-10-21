@@ -1,7 +1,7 @@
 import './dailyRewards.css'
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, MailCheck, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, MailCheck, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from './supabase'
 import EmailCenter from './components/EmailCenter'
 import { authRedirectUrl, isAuthCallbackPath, clearAuthCallbackUrl } from './authRedirect'
@@ -3001,7 +3001,7 @@ function TapSoundVideo({ className, src, label, onPointerDown, onPointerUp, ...r
   }
   return <div className="nm-tap-sound-wrap" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
     <video {...rest} ref={videoRef} className={className} src={src} muted playsInline loop autoPlay preload="metadata" onCanPlay={e => { const p = e.currentTarget.play(); if (p?.catch) p.catch(() => {}) }} aria-label={label} onClick={toggleSound}/>
-    {showFeedback && <span className="nm-tap-sound-feedback" aria-hidden="true">{soundOn ? '🔊' : '🔇'}</span>}
+    {showFeedback && <span className="nm-tap-sound-feedback" aria-hidden="true">{soundOn ? <Volume2 size={30} strokeWidth={1.8}/> : <VolumeX size={30} strokeWidth={1.8}/>}</span>}
   </div>
 }
 
