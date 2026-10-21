@@ -2467,6 +2467,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   buu: { name: 'มหาวิทยาลัยบูรพา', domains: ['go.buu.ac.th', 'my.buu.ac.th'] },
   swu: { name: 'มหาวิทยาลัยศรีนครินทรวิโรฒ', domains: ['g.swu.ac.th'] },
   su: { name: 'มหาวิทยาลัยศิลปากร', domains: ['su.ac.th', 'silpakorn.edu'] },
+  cra: { name: 'ราชวิทยาลัยจุฬาภรณ์', domains: ['edu.cra.ac.th'] },
   spu: { name: 'มหาวิทยาลัยศรีปทุม', domains: ['spumail.net', 'spulive.net'] },
   bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net'] },
   rangsit: { name: 'มหาวิทยาลัยรังสิต', domains: ['rsu.ac.th'] },
@@ -2488,7 +2489,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','nu','up','mu','mfu','nmu','ssru']],
+    ['มหาวิทยาลัยของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit']]
   ]
