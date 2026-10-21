@@ -2119,7 +2119,11 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const draggingPhoto = useRef(null)
   const holdTimer = useRef(null)
   const photoKeys = [...photos, ...newPhotos.map(x => x.key)]
-  const orderedKeys = [...photoKeys].sort((a,b) => (photoOrder.includes(a) ? photoOrder.indexOf(a) : photoOrder.length + photoKeys.indexOf(a)) - (photoOrder.includes(b) ? photoOrder.indexOf(b) : photoOrder.length + photoKeys.indexOf(b)))
+  const orderedKeys = useMemo(() => {
+    const orderIndex = new Map(photoOrder.map((key, index) => [key, index]))
+    const fallback = photoOrder.length
+    return [...photoKeys].sort((a, b) => (orderIndex.get(a) ?? (fallback + photoKeys.indexOf(a))) - (orderIndex.get(b) ?? (fallback + photoKeys.indexOf(b))))
+  }, [photos, newPhotos, photoOrder])
   const reorderPhoto = (from, to) => {
     if (!from || !to || from === to || !photoKeys.includes(from) || !photoKeys.includes(to)) return
     const next = [...orderedKeys]; next.splice(next.indexOf(from), 1); next.splice(next.indexOf(to), 0, from)
