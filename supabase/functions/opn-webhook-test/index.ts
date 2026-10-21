@@ -22,6 +22,10 @@ Deno.serve(async (req) => {
     const status = ['successful','failed','expired'].includes(charge.status) ? charge.status : 'pending'
     const { error: updateError } = await db.from('opn_promptpay_payments').update({ status, updated_at: new Date().toISOString() }).eq('charge_id', chargeId).eq('is_test', true)
     if (updateError) return new Response('Database update failed', { status: 500 })
+    if (status === 'successful' && charge.paid === true) {
+      const { error: grantError } = await db.rpc('fulfill_opn_test_payment', { p_charge_id: chargeId })
+      if (grantError) { console.error('Test entitlement error', grantError.message); return new Response('Test entitlement failed', { status: 500 }) }
+    }
     return new Response(JSON.stringify({ ok: true, test: true, status, premium_unlocked: false }), { headers: { 'Content-Type': 'application/json' } })
   } catch (error) {
     console.error('opn-webhook-test', error instanceof Error ? error.message : 'Unknown error')
