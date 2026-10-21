@@ -2730,6 +2730,9 @@ function AdminDashboard({ onBack }) {
   const [reports, setReports] = useState([])
   const [growth, setGrowth] = useState(null)
   const [growthError, setGrowthError] = useState('')
+  const [analyticsDays,setAnalyticsDays] = useState(14)
+  const [analyticsV2,setAnalyticsV2] = useState(null)
+  const [analyticsV2Error,setAnalyticsV2Error] = useState('')
   const [reportError, setReportError] = useState('')
   const [lastChecked, setLastChecked] = useState(null)
   const [latency, setLatency] = useState(null)
@@ -2770,6 +2773,19 @@ function AdminDashboard({ onBack }) {
     setBusy(false)
   }, [])
   useEffect(() => { if (adminTab === 'overview' || adminTab === 'analytics') reload(); return () => { reloadSequence.current += 1 } }, [reload, adminTab])
+  useEffect(() => {
+    if (adminTab !== 'analytics') return
+    let active = true
+    setAnalyticsV2(null); setAnalyticsV2Error('')
+    supabase.rpc('nm_admin_analytics_v2',{p_days:analyticsDays}).then(({data,error})=>{
+      if (!active) return
+      if(error) setAnalyticsV2Error('ต้องรัน SQL V145_ADMIN_ANALYTICS_V2.sql ใน Supabase ก่อนใช้งานสถิติขั้นสูง')
+      else setAnalyticsV2(data)
+    }).catch(()=>{if(active)setAnalyticsV2Error('โหลดสถิติขั้นสูงไม่สำเร็จ')})
+    return ()=>{active=false}
+  },[adminTab,analyticsDays])
+  const analyticsDaily = analyticsV2?.daily || []
+  const analyticsPeak = Math.max(1,...analyticsDaily.map(d=>Number(d.messages)||0))
   const growthMax = Math.max(1,...(growth || []).flatMap(d=>[Number(d.new_profiles)||0,Number(d.new_matches)||0]))
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
@@ -2802,7 +2818,34 @@ function AdminDashboard({ onBack }) {
       {error && <p role="alert">{error}</p>}
       {metrics && <div className="nm-admin-metrics">{[['สมาชิกทั้งหมด',metrics.profiles],['แมตช์ทั้งหมด',metrics.matches],['รายงานทั้งหมด',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div>}
       <div className="nm-admin-queue"><h3>14 วันที่ผ่านมา</h3>{growthError && <p role="status">{growthError}</p>}{growth && <><div className="nm-admin-metrics">{[['สมาชิกใหม่',growth.reduce((n,d)=>n+(Number(d.new_profiles)||0),0)],['แมตช์ใหม่',growth.reduce((n,d)=>n+(Number(d.new_matches)||0),0)]].map(([label,value])=><article key={label}><small>{label}</small><strong>{value.toLocaleString('th-TH')}</strong></article>)}</div><div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><table style={{width:'100%',minWidth:290,borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:10}}>วันที่</th><th style={{textAlign:'right',padding:10}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:10}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(d=><tr key={d.day}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{d.day}</td><td style={{padding:10,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(d.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:10,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(d.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div></>}</div>
-      <p style={{fontSize:12,opacity:.7}}>จำนวนผู้ใช้งานรายวัน ข้อความที่ส่ง และอันดับมหาวิทยาลัย ยังไม่แสดงจนกว่าจะมีการติดตั้ง RPC สำหรับสถิติเหล่านั้นโดยเฉพาะ เพื่อไม่ให้แสดงตัวเลขที่คาดเดา</p>
+      <section className="nm-admin-queue" style={{display:'grid',gap:14}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+          <div><h3 style={{margin:0}}>Analytics 2.0</h3><small style={{opacity:.7}}>ข้อมูลกิจกรรมแชตและมหาวิทยาลัย · เวลาไทย</small></div>
+          <div style={{display:'flex',gap:6}}>{[7,14,30].map(n=><button key={n} type="button" className={analyticsDays===n?'btn btn-pink':'btn btn-ghost'} onClick={()=>setAnalyticsDays(n)}>{n} วัน</button>)}</div>
+        </div>
+        {analyticsV2Error && <p role="status">{analyticsV2Error}</p>}
+        {analyticsV2 && <>
+          <div className="nm-admin-metrics">{[
+            ['ข้อความที่ส่ง',analyticsDaily.reduce((n,d)=>n+Number(d.messages||0),0)],
+            ['ผู้ส่งแชตเฉลี่ยต่อวัน',Math.round(analyticsDaily.reduce((n,d)=>n+Number(d.chat_users||0),0)/Math.max(1,analyticsDaily.length))],
+            ['ห้องแชตที่ใช้งานเฉลี่ยต่อวัน',Math.round(analyticsDaily.reduce((n,d)=>n+Number(d.active_chats||0),0)/Math.max(1,analyticsDaily.length))]
+          ].map(([label,value])=><article key={label}><small>{label}</small><strong>{value.toLocaleString('th-TH')}</strong></article>)}</div>
+          <div style={{padding:14,border:'1px solid #ffffff20',borderRadius:14}}>
+            <h4 style={{margin:'0 0 12px'}}>ข้อความที่ส่งรายวัน</h4>
+            <div role="img" aria-label="กราฟแท่งจำนวนข้อความรายวัน" style={{height:150,display:'flex',alignItems:'end',gap:4}}>
+              {analyticsDaily.map(d=><div key={d.day} title={d.day+': '+d.messages+' ข้อความ'} style={{flex:1,minWidth:0,height:Math.max(3,(Number(d.messages)||0)/analyticsPeak*100)+'%',background:'linear-gradient(180deg,#d6a5ff,#8654cf)',borderRadius:'5px 5px 2px 2px'}}/>)}
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:.7,marginTop:8}}><span>{analyticsDaily[0]?.day}</span><span>{analyticsDaily[analyticsDaily.length-1]?.day}</span></div>
+          </div>
+          <div style={{padding:14,border:'1px solid #ffffff20',borderRadius:14}}>
+            <h4 style={{margin:'0 0 12px'}}>10 อันดับมหาวิทยาลัยตามจำนวนสมาชิก</h4>
+            {(analyticsV2.universities||[]).map((u,i)=><div key={u.name} style={{display:'grid',gridTemplateColumns:'26px minmax(0,1fr) auto',gap:9,alignItems:'center',padding:'9px 0',borderBottom:'1px solid #ffffff12'}}>
+              <span style={{opacity:.7}}>{i+1}</span><div style={{minWidth:0}}><div style={{overflowWrap:'anywhere',fontSize:13}}>{u.name}</div><div style={{height:5,background:'#ffffff16',borderRadius:8,marginTop:6}}><div style={{height:'100%',width:(100*Number(u.members||0)/Math.max(1,Number(analyticsV2.universities?.[0]?.members||1)))+'%',background:'#b794f4',borderRadius:8}}/></div></div><strong>{Number(u.members||0).toLocaleString('th-TH')}</strong>
+            </div>)}
+          </div>
+          <p style={{fontSize:12,opacity:.65}}>ผู้ส่งแชตเป็นจำนวนบัญชีที่ส่งข้อความในแต่ละวัน ไม่ใช่ผู้ใช้งานทั้งหมดของแอป และค่าเฉลี่ยรายวันไม่ใช่จำนวนผู้ใช้ที่ไม่ซ้ำตลอดช่วงเวลา</p>
+        </>}
+      </section>
     </section>}
     {adminTab === 'announcements' && <Announcements admin/>}
     {adminTab === 'premium' && <AdminPremiumDirectory/>}
