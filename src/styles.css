@@ -3744,3 +3744,9 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-account-otp-gift>div{display:grid;gap:4px}
 .nm-account-otp-gift strong{font-size:1.05rem}
 .nm-account-otp-gift small,.nm-account-otp-reward>small{color:#cfc2df}
+
+
+/* Full-row category divider instead of stray vertical bar beside student verification */
+.nm-edit-tabs-grouped .nm-edit-nav-separator{display:block;flex:0 0 100%;width:100%;height:1px;margin:14px 0 2px;background:linear-gradient(90deg,transparent,rgba(205,185,245,.28),transparent)}
+.nm-edit-tabs-grouped .nm-edit-category-label{flex:0 0 100%;width:100%;box-sizing:border-box}
+@media(max-width:650px){.nm-edit-tabs-grouped .nm-edit-nav-separator{display:block;grid-column:1/-1;width:100%;height:1px;margin:10px 0 0}.nm-edit-tabs-grouped .nm-edit-category-label{grid-column:1/-1}}
