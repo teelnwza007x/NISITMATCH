@@ -70,6 +70,8 @@ export default function AdminAlerts() {
   }, [reload])
   const pending = reports.filter(r => ['pending', 'open', 'new'].includes(String(r.status || '').toLowerCase()))
   const visibleReports = showAll ? reports : pending
+  const failedPushCount = Number(health?.failed_push || 0)
+  const waitingPushCount = Number(health?.pending_push || 0)
   return <section className="nm-admin-queue" aria-label="ศูนย์แจ้งเตือนแอดมิน">
     <h3>ศูนย์แจ้งเตือนแอดมิน</h3>
     <p>รายงานสมาชิกจาก Supabase · รีเฟรชอัตโนมัติทุก 60 วินาทีเมื่อเปิดแท็บนี้</p>
@@ -84,6 +86,8 @@ export default function AdminAlerts() {
           ['Push ส่งไม่สำเร็จ',health.failed_push]
         ].map(([label,value]) => <div key={label} style={{padding:12,borderRadius:10,background:'#ffffff0a'}}><div style={{fontSize:22,fontWeight:700}}>{Number(value ?? 0).toLocaleString('th-TH')}</div><div style={{fontSize:12,opacity:.75}}>{label}</div></div>)}
       </div>}
+      {failedPushCount > 0 && <p role="alert" style={{margin:'10px 0',color:'#ffb4a8'}}>พบ Push Notification ส่งไม่สำเร็จ {failedPushCount.toLocaleString('th-TH')} รายการ กรุณาตรวจสอบ Edge Function send-push และ Cron</p>}
+      {waitingPushCount > 0 && <p style={{margin:'10px 0',opacity:.8}}>มี Push Notification รอส่ง {waitingPushCount.toLocaleString('th-TH')} รายการ</p>}
       {health?.checked_at && <p style={{fontSize:12,opacity:.65,margin:'8px 0 0'}}>ตรวจสอบ {new Date(health.checked_at).toLocaleString('th-TH')}</p>}
     </div>
     <p><strong>รายงานรอตรวจสอบ {pending.length} รายการ</strong> · รายงานล่าสุด {reports.length} รายการ</p>
