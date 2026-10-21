@@ -2472,6 +2472,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   bu: { name: 'มหาวิทยาลัยกรุงเทพ', domains: ['bumail.net'] },
   rangsit: { name: 'มหาวิทยาลัยรังสิต', domains: ['rsu.ac.th'] },
   siam: { name: 'มหาวิทยาลัยสยาม', domains: ['siam.edu'] },
+  nbu: { name: 'มหาวิทยาลัยนอร์ทกรุงเทพ', domains: ['northbkk.ac.th'] },
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
@@ -2492,7 +2493,7 @@ function CampusEmailVerification({ user }) {
   const campusGroups = [
     ['มหาวิทยาลัยของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
-    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam']]
+    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
   const campusResults = campusGroups.map(([title, ids]) => [title, ids.filter(id => {
