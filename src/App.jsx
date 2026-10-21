@@ -2583,20 +2583,32 @@ function AdminDashboard({ onBack }) {
   const [health, setHealth] = useState('checking')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const reloadSequence = useRef(0)
   const reload = useCallback(async () => {
+    const requestId = ++reloadSequence.current
     setBusy(true)
     setError('')
     setHealth('checking')
     const startedAt = performance.now()
-    const [summary, queue, trend] = await Promise.all([
-      supabase.rpc('nm_admin_metrics'),
-      supabase.rpc('nm_admin_report_queue'),
-      supabase.rpc('nm_admin_growth', { p_days: 14 })
-    ])
+    let summary, queue, trend
+    try {
+      [summary, queue, trend] = await Promise.all([
+        supabase.rpc('nm_admin_metrics'),
+        supabase.rpc('nm_admin_report_queue'),
+        supabase.rpc('nm_admin_growth', { p_days: 14 })
+      ])
+    } catch (err) {
+      if (requestId !== reloadSequence.current) return
+      setHealth('error'); setMetrics(null); setGrowth(null); setReports([])
+      setError('เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')
+      setBusy(false)
+      return
+    }
+    if (requestId !== reloadSequence.current) return
     setLatency(Math.round(performance.now() - startedAt))
     setLastChecked(new Date())
     setHealth(summary.error ? 'error' : 'ok')
-    if (summary.error) setError('โหลดสถิติไม่ได้ กรุณาตรวจสิทธิ์ Admin และรัน SQL social_features_admin_v1.sql')
+    if (summary.error) { setMetrics(null); setError('โหลดสถิติไม่ได้ กรุณาตรวจสิทธิ์ Admin และรัน SQL social_features_admin_v1.sql') }
     else { setMetrics(summary.data); setError('') }
     if (!queue.error) setReports(Array.isArray(queue.data) ? queue.data : [])
     else setReports([])
@@ -2604,7 +2616,8 @@ function AdminDashboard({ onBack }) {
     else { setGrowth(null); setGrowthError('ยังไม่ได้ติดตั้ง SQL nm_admin_growth_v2.sql หรือไม่มีสิทธิ์เข้าถึง') }
     setBusy(false)
   }, [])
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => { reload(); return () => { reloadSequence.current += 1 } }, [reload])
+  const growthMax = Math.max(1,...(growth || []).flatMap(d=>[Number(d.new_profiles)||0,Number(d.new_matches)||0]))
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
@@ -2619,7 +2632,7 @@ function AdminDashboard({ onBack }) {
     <section aria-label="สถานะการเชื่อมต่อฐานข้อมูล" style={{padding:16,border:'1px solid #ffffff25',borderRadius:16,marginBottom:14,background:'#ffffff08'}}><strong style={{display:'flex',alignItems:'center',gap:8}}><span aria-hidden="true" style={{width:9,height:9,borderRadius:'50%',background:health==='ok'?'#4ade80':health==='error'?'#fb7185':'#fbbf24'}}/>Supabase: {health==='ok'?'ตอบสนองปกติ':health==='error'?'ตรวจสอบไม่สำเร็จ':'กำลังตรวจสอบ'}</strong><p style={{fontSize:12,opacity:.75,margin:'8px 0 0'}}>ตรวจจาก Admin Metrics RPC เท่านั้น ไม่ใช่สถานะระบบ Supabase ทั้งหมด{latency!==null ? ` · ${latency} ms (คำขอชุดนี้)` : ''}{lastChecked ? ` · ตรวจล่าสุด ${lastChecked.toLocaleTimeString('th-TH')}` : ''}</p></section>
     {error && <p role="alert">{error}</p>}
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
-    <section className="nm-admin-queue"><h3>การเติบโต 14 วันล่าสุด</h3><p>นับตามวันที่ประเทศไทย · แสดงจำนวนโปรไฟล์ใหม่และแมตช์ใหม่ต่อวัน</p>{growthError && <p role="status">{growthError}</p>}{growth && growth.length>0 && <div role="img" aria-label="กราฟแท่งจำนวนสมาชิกใหม่และแมตช์ใหม่ย้อนหลัง 14 วัน" style={{display:'flex',alignItems:'end',gap:7,height:140,overflowX:'auto',padding:'12px 2px 20px',marginBottom:12,borderBottom:'1px solid #ffffff20'}}>{growth.map(row=>{const max=Math.max(1,...growth.flatMap(d=>[Number(d.new_profiles)||0,Number(d.new_matches)||0]));return <div key={row.day} title={`${row.day}: สมาชิก ${row.new_profiles}, แมตช์ ${row.new_matches}`} style={{flex:'1 0 18px',minWidth:18,height:'100%',display:'flex',alignItems:'end',gap:2}}><div style={{height:`${Math.max(2,Number(row.new_profiles||0)/max*100)}%`,flex:1,background:'#f472b6',borderRadius:'4px 4px 0 0'}}/><div style={{height:`${Math.max(2,Number(row.new_matches||0)/max*100)}%`,flex:1,background:'#a78bfa',borderRadius:'4px 4px 0 0'}}/></div>})}</div>}{growth && <p style={{fontSize:12,opacity:.8}}> <span style={{color:'#f472b6'}}>■</span> สมาชิกใหม่ &nbsp; <span style={{color:'#a78bfa'}}>■</span> แมตช์ใหม่</p>}{growth && <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:8}}>วันที่</th><th style={{textAlign:'right',padding:8}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:8}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(row=><tr key={row.day}><td style={{padding:8,borderTop:'1px solid #ffffff20'}}>{row.day}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div>}</section>
+    <section className="nm-admin-queue"><h3>การเติบโต 14 วันล่าสุด</h3><p>นับตามวันที่ประเทศไทย · แสดงจำนวนโปรไฟล์ใหม่และแมตช์ใหม่ต่อวัน</p>{growthError && <p role="status">{growthError}</p>}{growth && growth.length>0 && <div role="img" aria-label="กราฟแท่งจำนวนสมาชิกใหม่และแมตช์ใหม่ย้อนหลัง 14 วัน" style={{display:'flex',alignItems:'end',gap:7,height:140,overflowX:'auto',padding:'12px 2px 20px',marginBottom:12,borderBottom:'1px solid #ffffff20'}}>{growth.map(row=>{const max=growthMax;return <div key={row.day} title={`${row.day}: สมาชิก ${row.new_profiles}, แมตช์ ${row.new_matches}`} style={{flex:'1 0 18px',minWidth:18,height:'100%',display:'flex',alignItems:'end',gap:2}}><div style={{height:`${Math.max(2,Number(row.new_profiles||0)/max*100)}%`,flex:1,background:'#f472b6',borderRadius:'4px 4px 0 0'}}/><div style={{height:`${Math.max(2,Number(row.new_matches||0)/max*100)}%`,flex:1,background:'#a78bfa',borderRadius:'4px 4px 0 0'}}/></div>})}</div>}{growth && <p style={{fontSize:12,opacity:.8}}> <span style={{color:'#f472b6'}}>■</span> สมาชิกใหม่ &nbsp; <span style={{color:'#a78bfa'}}>■</span> แมตช์ใหม่</p>}{growth && <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:8}}>วันที่</th><th style={{textAlign:'right',padding:8}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:8}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(row=><tr key={row.day}><td style={{padding:8,borderTop:'1px solid #ffffff20'}}>{row.day}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div>}</section>
     <section className="nm-admin-queue"><h3>รายงานล่าสุด</h3><p>ใช้ตรวจสอบรายงานก่อนดำเนินการ ไม่มีการเปิดเผยข้อมูลส่วนตัวของผู้รายงาน</p>
     {reports.length ? reports.map((report,index)=><article key={report.id||index}><span className="nm-admin-queue-meta">{report.created_at ? new Date(report.created_at).toLocaleString('th-TH') : 'รายงาน'}</span><strong>{report.reason||'ไม่ระบุเหตุผล'}</strong><small>ผู้ถูกรายงาน: {report.reported||'ไม่ระบุ'}</small></article>) : <p>ไม่มีรายงานที่แสดงได้ หรือยังไม่ได้ติดตั้ง SQL สำหรับคิวรายงาน</p>}</section>
     </div>}
