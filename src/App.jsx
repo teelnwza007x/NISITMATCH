@@ -3895,6 +3895,25 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
+  // Warm the heavy profile editor while the browser is idle, so the first tap
+  // doesn't have to mount its photo editor, forms and gallery synchronously.
+  useEffect(() => {
+    if (!userId || !profile || profileVisited || view === 'profile') return
+    let cancelled = false
+    let idleId = null
+    let timerId = null
+    const warm = () => { if (!cancelled) setProfileVisited(true) }
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(warm, { timeout: 5000 })
+    } else {
+      timerId = window.setTimeout(warm, 1800)
+    }
+    return () => {
+      cancelled = true
+      if (idleId !== null) window.cancelIdleCallback(idleId)
+      if (timerId !== null) window.clearTimeout(timerId)
+    }
+  }, [userId, profile?.id, profileVisited, view])
   const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (window.location.pathname === '/admin') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile') setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const shown = (people || []).filter((p) => matchesSelectedGender(p) && campusFiltered(p) && (!fl.q || (p.display_name || '').toLowerCase().includes(fl.q.toLowerCase())))
