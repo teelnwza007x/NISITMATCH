@@ -3419,3 +3419,47 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(prefers-reduced-motion:reduce) {
   :root[data-theme] .discovery-aurora { animation:none!important; }
 }
+
+
+/* 8.0 theme coverage: Hangout, admin email panels and in-app guide. */
+:root[data-theme] .v76-page :is(.v76-event-card,.v76-hangout-form,.v76-hangout-safety,.nm-hangout-discovery,.hangout-venue-picker,.hangout-venue-results,.hangout-venue-option,.hangout-selected-venue) {
+  background:var(--theme-panel);border-color:var(--theme-border);color:var(--theme-text);
+}
+:root[data-theme] .v76-page :is(.v76-event-card,.v76-hangout-form,.nm-hangout-discovery) :is(h2,h3,strong,b) {color:var(--theme-text);}
+:root[data-theme] .v76-page :is(.v76-event-desc,.v76-event-footer,small,p) {color:var(--theme-muted);}
+:root[data-theme] .v76-page :is(.v76-event-date,.v76-event-tag) {
+  background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel));color:var(--theme-accent);
+}
+:root[data-theme] .v76-page :is(input,select,textarea,.hangout-venue-search) {
+  background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-text);accent-color:var(--theme-accent);
+}
+:root[data-theme] .v76-page :is(input,textarea)::placeholder {color:var(--theme-muted);}
+:root[data-theme] :is(.nm-admin-dashboard,.nm-admin-overview,.nm-admin-queue) {color:var(--theme-text);}
+:root[data-theme] .nm-admin-dashboard :is(article,section,table,thead,tbody tr,.nm-admin-queue) {border-color:var(--theme-border);}
+:root[data-theme] .nm-admin-dashboard :is(input,textarea,select) {
+  background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-text);
+}
+:root[data-theme] .nm-admin-dashboard :is(input,textarea)::placeholder {color:var(--theme-muted);}
+:root[data-theme] .nm-admin-dashboard :is(button,.nm-admin-tabs button):focus-visible {outline:2px solid var(--theme-accent);outline-offset:2px;}
+:root[data-theme] .nm-admin-tabs button.is-active {background:var(--theme-accent);color:#fff;}
+:root[data-theme] .nm-guide-open-btn {
+  background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel));
+  border-color:color-mix(in srgb,var(--theme-accent) 45%,var(--theme-border));
+  color:var(--theme-text);
+}
+:root[data-theme] .nm-guide-v2 {
+  background:radial-gradient(ellipse at 85% 0%,color-mix(in srgb,var(--theme-accent2) 14%,transparent),transparent 55%),var(--theme-panel);
+  border-color:var(--theme-border);color:var(--theme-text);
+}
+:root[data-theme] .nm-guide-v2 :is(h2,h3,strong) {color:var(--theme-text);}
+:root[data-theme] .nm-guide-v2 :is(p,small) {color:var(--theme-muted);}
+:root[data-theme] .nm-guide-v2 :is(.nm-guide-v2-kicker,.nm-guide-v2-brand,.nm-guide-v2-counter) {color:var(--theme-accent);}
+:root[data-theme] .nm-guide-v2 :is(.nm-guide-v2-visual,.nm-guide-v2-icon) {
+  background:color-mix(in srgb,var(--theme-accent2) 12%,var(--theme-sidebar));border-color:var(--theme-border);color:var(--theme-accent);
+}
+:root[data-theme] .nm-guide-v2 .nm-guide-v2-progress button.active {background:var(--theme-accent);}
+:root[data-theme] .nm-guide-v2 .nm-guide-v2-next {background:linear-gradient(110deg,var(--theme-accent),var(--theme-accent2));color:#fff;}
+:root[data-theme] .nm-guide-v2 .nm-guide-v2-back {background:var(--theme-sidebar);border-color:var(--theme-border);color:var(--theme-text);}
+@media(prefers-reduced-motion:reduce) {
+  :root[data-theme] .nm-guide-open-btn {transition:none;}
+}
