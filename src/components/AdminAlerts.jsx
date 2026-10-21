@@ -4,6 +4,7 @@ import { supabase } from '../supabase'
 export default function AdminAlerts() {
   const [reports, setReports] = useState([])
   const [domainRequests, setDomainRequests] = useState([])
+  const [domainError, setDomainError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [checkedAt, setCheckedAt] = useState(null)
@@ -25,7 +26,12 @@ export default function AdminAlerts() {
       if (rpcError) throw rpcError
       setReports(Array.isArray(data) ? data : [])
       // Older databases may not have the 8.3 migration yet; keep reports usable.
-      setDomainRequests(domainResult.error ? [] : (Array.isArray(domainResult.data) ? domainResult.data : []))
+      if (domainResult.error) {
+        setDomainError('โหลดคำขอโดเมนไม่ได้: ' + domainResult.error.message)
+      } else {
+        setDomainRequests(Array.isArray(domainResult.data) ? domainResult.data : [])
+        setDomainError('')
+      }
       setError('')
       setCheckedAt(new Date())
     } catch (err) {
@@ -58,6 +64,7 @@ export default function AdminAlerts() {
     <p>รายงานสมาชิกจาก Supabase · รีเฟรชอัตโนมัติทุก 60 วินาทีเมื่อเปิดแท็บนี้</p>
     <p><strong>รายงานรอตรวจสอบ {pending.length} รายการ</strong> · รายงานล่าสุด {reports.length} รายการ</p>
     <p><strong>คำขอเพิ่มโดเมนมหาวิทยาลัย {domainRequests.length} รายการล่าสุด</strong></p>
+    {domainError && <p role="alert">{domainError} — ตรวจว่าได้รัน V138_ADMIN_DOMAIN_REQUEST_QUEUE.sql ใน Supabase แล้ว</p>}
     {domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{domainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td></tr>)}</tbody></table></div>}
     <button type="button" className="btn btn-ghost" onClick={reload} disabled={loading}>{loading ? 'กำลังโหลด…' : 'รีเฟรชรายการ'}</button>
     {checkedAt && <p style={{fontSize:12,opacity:.7}}>ตรวจล่าสุด {checkedAt.toLocaleTimeString('th-TH')}</p>}
