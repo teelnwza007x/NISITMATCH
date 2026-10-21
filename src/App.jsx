@@ -2871,7 +2871,13 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
     if(!window.confirm('ปิดห้อง Hangout นี้ใช่ไหม? คนอื่นจะเข้าร่วมใหม่ไม่ได้ และห้องจะหายจากรายการเปิด')) return
     const {error}=await supabase.from('hangout_events').update({status:'closed'}).eq('id',event.id).eq('creator_id',user.id)
     if(error) return notify('ปิดห้องไม่สำเร็จ: '+error.message)
-    if(chatEvent?.id===event.id)setChatEvent(null); notify('ปิดห้อง Hangout แล้ว'); refresh()
+    // Remove the closed room immediately instead of waiting for a network refresh.
+    setEvents(old => old.filter(item => item.id !== event.id))
+    setJoined(old => old.filter(id => id !== event.id))
+    setCounts(old => { const next = {...old}; delete next[event.id]; return next })
+    if(chatEvent?.id===event.id)setChatEvent(null)
+    notify('ปิดห้อง Hangout แล้ว')
+    refresh()
   }
   const loadChat = useCallback(async event => {
     setChatEvent(event); setChatMessages([]); setChatNames({}); setChatMembers([])
