@@ -2538,7 +2538,8 @@ body:has(.app-shell.home-swipe-locked){height:100%;overflow:hidden;overscroll-be
 .swipe-more-divider{height:1px;margin:5px 7px;background:rgba(255,255,255,.1)}
 @keyframes nm-swipe-menu-in{from{opacity:0;transform:translate3d(0,-5px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
 .swipe-action-area .swipe-controls{gap:clamp(20px,5vw,34px);padding:8px 14px}
-.swipe-action-area .swipe-control{animation:nm-swipe-button-bob 2.8s ease-in-out infinite;will-change:transform}
+.swipe-action-area .swipe-control{animation:none;will-change:auto}
+.swipe-action-area .swipe-control.super:not(:disabled){animation:nm-swipe-button-bob 2.8s ease-in-out infinite;will-change:transform}
 .swipe-action-area .swipe-control.accept{animation-delay:-.8s;box-shadow:0 10px 30px rgba(237,72,149,.3),0 0 0 0 rgba(237,72,149,.12),inset 0 1px rgba(255,255,255,.65)}
 .swipe-action-area .swipe-control.reject{animation-delay:-1.5s}
 .swipe-action-area .swipe-control.super{animation-delay:-.25s}
