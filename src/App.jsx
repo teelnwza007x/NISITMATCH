@@ -950,7 +950,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refreshInbox)
       .subscribe()
     // Fallback for projects without Realtime publication enabled for messages.
-    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 12000)
+    // Realtime is primary; use a less frequent visible-only fallback to limit
+    // two queries per match on mobile connections.
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 30000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
     return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
@@ -966,8 +968,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       if (alive) setLastSeenAt(!error && data?.[0]?.last_seen_at ? data[0].last_seen_at : null)
     }
     loadPresence()
-    const timer=setInterval(loadPresence,60000)
-    return ()=>{alive=false;clearInterval(timer)}
+    const timer=setInterval(() => { if (document.visibilityState === 'visible') loadPresence() },60000)
+    const onVisible = () => { if (document.visibilityState === 'visible') loadPresence() }
+    document.addEventListener('visibilitychange', onVisible)
+    return ()=>{alive=false;clearInterval(timer);document.removeEventListener('visibilitychange', onVisible)}
   },[sel?.p?.id])
   const lastSeenLabel = lastSeenAt && Date.now()-new Date(lastSeenAt).getTime()<120000 ? 'ออนไลน์เมื่อสักครู่' : lastSeenAt ? 'ใช้งานล่าสุด '+new Date(lastSeenAt).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'แตะเพื่อดูโปรไฟล์ · รูปภาพ · เพลง'
 
