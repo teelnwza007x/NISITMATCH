@@ -27,7 +27,9 @@ Deno.serve(async req=>{
    if(charge.livemode!==false||charge.amount!==payment.amount||charge.currency!=='THB')return json({error:'Charge verification failed'},502)
    const status=['successful','failed','expired'].includes(charge.status)?charge.status:'pending'
    await db.from('opn_promptpay_payments').update({status,updated_at:new Date().toISOString()}).eq('charge_id',payment.charge_id).eq('user_id',user.id)
-   return json({ok:true,test:true,charge_id:payment.charge_id,status,paid:charge.paid===true,plan:payment.plan,amount:payment.amount,qr_url:charge.source?.scannable_code?.image?.download_uri||null,expires_at:charge.expires_at,premium_unlocked:false})
+   let testPremiumExpiresAt=null
+   if(status==='successful'&&charge.paid===true){const {data:grant,error:grantError}=await db.rpc('fulfill_opn_test_payment',{p_charge_id:payment.charge_id});if(grantError)return json({error:'Test entitlement processing failed'},500);testPremiumExpiresAt=grant?.[0]?.expires_at||null}
+   return json({ok:true,test:true,charge_id:payment.charge_id,status,paid:charge.paid===true,plan:payment.plan,amount:payment.amount,qr_url:charge.source?.scannable_code?.image?.download_uri||null,expires_at:charge.expires_at,test_premium_expires_at:testPremiumExpiresAt,premium_unlocked:false})
   }
   if(body.action!=='create'||!Object.hasOwn(amounts,body.plan))return json({error:'Invalid action or plan'},400)
   const amount=amounts[body.plan]
