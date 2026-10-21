@@ -1,11 +1,20 @@
 self.addEventListener('push', event => {
-  let data = {}; try { data = event.data?.json() || {} } catch {}
-  const title = data.title || 'Nisit Match 💗'
-  event.waitUntil(self.registration.showNotification(title, {
-    body: data.body || 'มีเรื่องราวใหม่รอคุณอยู่',
-    icon: '/nisit-match-logo.png', badge: '/nisit-match-logo.png',
-    tag: data.tag || 'nisit-match', data: { url: '/' }
-  }))
+  event.waitUntil((async () => {
+    let data = {}
+    try { data = event.data?.json() || {} } catch {}
+    // Suppress OS notifications while any NISIT MATCH window is actively visible.
+    // Background and closed-app notifications continue as before.
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    if (windows.some(client => client.visibilityState === 'visible' && client.focused)) return
+    const title = data.title || 'Nisit Match 💗'
+    await self.registration.showNotification(title, {
+      body: data.body || 'มีเรื่องราวใหม่รอคุณอยู่',
+      icon: '/nisit-match-logo.png',
+      badge: '/nisit-match-logo.png',
+      tag: data.tag || 'nisit-match',
+      data: { url: '/' }
+    })
+  })())
 })
 self.addEventListener('notificationclick', event => {
   event.notification.close()
