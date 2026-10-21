@@ -695,7 +695,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const [hangoutRooms, setHangoutRooms] = useState([])
   useEffect(() => {
     let alive = true
+    let inFlight = false
     const loadHangoutRooms = async () => {
+      if (!alive || inFlight || document.visibilityState !== 'visible') return
+      inFlight = true
+      try {
       const [membershipResult, createdResult] = await Promise.all([
         supabase.from("hangout_rsvps").select("event_id").eq("user_id", me),
         supabase.from("hangout_events").select("id,title,venue,city,starts_at,status,capacity,creator_id").eq("creator_id", me).order("starts_at", { ascending: false }).limit(30),
@@ -705,6 +709,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       const { data, error } = await supabase.from("hangout_events").select("id,title,venue,city,starts_at,status,capacity,creator_id").in("id", ids).order("starts_at", { ascending: false }).limit(40)
       // Closed rooms should disappear from the Messages inbox after the next refresh.
       if (alive) setHangoutRooms((error ? (createdResult.data || []) : (data || [])).filter(room => room.status === 'open'))
+      } finally { inFlight = false }
     }
     loadHangoutRooms()
     // Avoid repeated Supabase reads while Safari/PWA is in the background.
