@@ -10,13 +10,16 @@ const button=(active=false)=>({border:'1px solid '+(active?'var(--theme-accent)'
 const field={background:'var(--theme-sidebar)',border:'1px solid var(--theme-border)',borderRadius:12,padding:'12px 14px',color:'var(--theme-text)',minWidth:0}
 export default function EmailCenter(){
  const [panel,setPanel]=useState('emails')
+ const [otpRows,setOtpRows]=useState([]),[otpTotal,setOtpTotal]=useState(0),[otpPage,setOtpPage]=useState(0),[otpSearch,setOtpSearch]=useState(''),[otpQuery,setOtpQuery]=useState(''),[otpError,setOtpError]=useState(''),[otpLoading,setOtpLoading]=useState(false)
  const [domainRows,setDomainRows]=useState([]),[domainTotal,setDomainTotal]=useState(0),[domainPage,setDomainPage]=useState(0),[domainSearch,setDomainSearch]=useState(''),[domainQuery,setDomainQuery]=useState(''),[domainError,setDomainError]=useState(''),[domainLoading,setDomainLoading]=useState(false)
  const [rows,setRows]=useState([]),[stats,setStats]=useState(null),[search,setSearch]=useState(''),[query,setQuery]=useState(''),[type,setType]=useState(''),[status,setStatus]=useState(''),[page,setPage]=useState(0),[total,setTotal]=useState(0),[error,setError]=useState(''),[loading,setLoading]=useState(false)
+ const loadOtp=async()=>{setOtpLoading(true);setOtpError('');try{const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{mode:'otp_verified',search:otpQuery,page:otpPage,limit:25}});if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูล OTP ไม่สำเร็จ');setOtpRows(data.rows||[]);setOtpTotal(data.total||0)}catch(e){setOtpError(e.message)}finally{setOtpLoading(false)}}
  const loadDomains=async()=>{setDomainLoading(true);setDomainError('');try{const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{mode:'domain_requests',search:domainQuery,page:domainPage,limit:25}});if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดคำขอไม่ได้');setDomainRows(data.rows||[]);setDomainTotal(data.total||0)}catch(e){setDomainError(e.message)}finally{setDomainLoading(false)}}
  const load=async()=>{setLoading(true);setError('');try{const {data,error}=await supabase.functions.invoke('admin-email-logs',{body:{search:query,type,status,page,limit:25}});if(error||!data?.ok)throw new Error(data?.error||error?.message||'โหลดข้อมูลไม่สำเร็จ');setRows(data.rows||[]);setStats(data.stats||null);setTotal(data.total||0)}catch(e){setError(e.message)}finally{setLoading(false)}}
+ useEffect(()=>{if(panel==='otp')loadOtp()},[panel,otpPage,otpQuery])
  useEffect(()=>{if(panel==='domains')loadDomains()},[panel,domainPage,domainQuery])
  useEffect(()=>{if(panel==='emails')load()},[panel,type,status,page,query])
- const refresh=()=>panel==='domains'?loadDomains():load()
+ const refresh=()=>panel==='otp'?loadOtp():panel==='domains'?loadDomains():load()
  const pill=status=>({display:'inline-block',padding:'5px 10px',borderRadius:99,background:status==='failed'||status==='bounced'?'#582c40':status==='delivered'?'#244b48':'#453454',color:status==='failed'||status==='bounced'?'#ffb1bf':status==='delivered'?'#9aebd1':'#e8c3fa',fontSize:12,fontWeight:700,whiteSpace:'nowrap'})
  const td={padding:'15px 12px',borderBottom:'1px solid var(--theme-border)',verticalAlign:'top'}
  const th={...td,color:'var(--theme-muted)',fontWeight:600,fontSize:12,whiteSpace:'nowrap'}
@@ -24,13 +27,21 @@ export default function EmailCenter(){
  return <section style={{marginTop:24,padding:'clamp(16px,3vw,28px)',border:'1px solid var(--theme-border)',borderRadius:24,background:'var(--theme-panel)',color:'var(--theme-text)',boxShadow:'0 18px 55px #09061155'}}>
   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:22}}>
    <div><div style={{fontSize:11,letterSpacing:2.5,color:theme.accent,fontWeight:800}}>NISIT MATCH / ADMIN</div><h2 style={{margin:'8px 0 5px',fontSize:'clamp(23px,3vw,32px)'}}>Email Center</h2><div style={{color:theme.muted,fontSize:13}}>จัดการและตรวจสอบประวัติการส่งอีเมล</div></div>
-   <button type="button" style={button(true)} onClick={refresh} disabled={panel==='domains'?domainLoading:loading}>{(panel==='domains'?domainLoading:loading)?'กำลังโหลด...':'↻ รีเฟรชข้อมูล'}</button>
+   <button type="button" style={button(true)} onClick={refresh} disabled={panel==='otp'?otpLoading:panel==='domains'?domainLoading:loading}>{(panel==='otp'?otpLoading:panel==='domains'?domainLoading:loading)?'กำลังโหลด...':'↻ รีเฟรชข้อมูล'}</button>
   </div>
   <div style={{display:'flex',gap:9,flexWrap:'wrap',marginBottom:22}}>
    <button type="button" style={button(panel==='emails')} onClick={()=>setPanel('emails')}>✉ ประวัติการส่งอีเมล</button>
+   <button type="button" style={button(panel==='otp')} onClick={()=>setPanel('otp')}>✓ ยืนยัน OTP 6 หลัก</button>
    <button type="button" style={button(panel==='domains')} onClick={()=>setPanel('domains')}>◈ คำขอเพิ่มโดเมน</button>
   </div>
-  {panel==='domains'?<>
+  {panel==='otp'?<>
+   <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:18}}>{stat('ยืนยัน OTP สำเร็จ',otpTotal,'เฉพาะหลักฐานที่บันทึกหลังติดตั้งระบบนี้')}</div>
+   <p style={{color:theme.muted,fontSize:13,lineHeight:1.7}}>แสดงเฉพาะบัญชีที่ตรวจสอบรหัส OTP มหาวิทยาลัย 6 หลักสำเร็จและมีหลักฐานจากเซิร์ฟเวอร์ ไม่รวมการส่งรหัส การยืนยันบัญชีทั่วไป หรือสถานะเก่าที่ไม่มีหลักฐาน OTP</p>
+   <form onSubmit={e=>{e.preventDefault();setOtpPage(0);setOtpQuery(otpSearch);if(otpPage===0&&otpQuery===otpSearch)loadOtp()}} style={{display:'flex',gap:9,flexWrap:'wrap',marginBottom:16}}><input aria-label="ค้นหาอีเมล OTP ที่ยืนยันแล้ว" style={{...field,flex:'1 1 220px'}} placeholder="ค้นหาอีเมลมหาวิทยาลัยที่ยืนยันแล้ว..." value={otpSearch} onChange={e=>setOtpSearch(e.target.value)}/><button type="submit" style={button(true)}>ค้นหา</button><button type="button" style={button()} onClick={()=>{setOtpSearch('');setOtpQuery('');setOtpPage(0)}}>ล้าง</button></form>
+   {otpError&&<p role="alert" style={{color:'#ff9aaa'}}>{otpError}</p>}
+   <div style={{overflowX:'auto',background:theme.surface,border:theme.border,borderRadius:18}}><table style={{width:'100%',minWidth:760,borderCollapse:'collapse',textAlign:'left',fontSize:13}}><thead><tr>{['ยืนยันเมื่อ','อีเมลมหาวิทยาลัย','มหาวิทยาลัย (ID)','ผู้ใช้ (ID)','สถานะ'].map(x=><th key={x} style={th}>{x}</th>)}</tr></thead><tbody>{otpRows.map(r=><tr key={r.user_id}><td style={td}>{date(r.verified_at)}</td><td style={{...td,overflowWrap:'anywhere'}}>{r.verified_email}</td><td style={td}>{r.university_id}</td><td style={{...td,overflowWrap:'anywhere'}}>{r.user_id}</td><td style={td}><span style={{color:'#9aebd1',fontWeight:700}}>✓ OTP สำเร็จ</span></td></tr>)}</tbody></table>{otpLoading&&<p style={{padding:16}}>กำลังโหลด...</p>}{!otpRows.length&&!otpLoading&&!otpError&&<p style={{padding:16,color:theme.muted}}>ยังไม่มีหลักฐานการยืนยัน OTP 6 หลักหลังเปิดใช้ระบบ</p>}</div>
+   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap',marginTop:18}}><span style={{color:theme.muted,fontSize:13}}>หน้า {otpPage+1} · ทั้งหมด {otpTotal} รายการ</span><div style={{display:'flex',gap:8}}><button style={button()} disabled={otpPage===0||otpLoading} onClick={()=>setOtpPage(p=>p-1)}>← ก่อนหน้า</button><button style={button()} disabled={(otpPage+1)*25>=otpTotal||otpLoading} onClick={()=>setOtpPage(p=>p+1)}>ถัดไป →</button></div></div>
+  </>:panel==='domains'?<>
    <div style={{background:theme.surface,border:theme.border,borderRadius:18,padding:18,marginBottom:16}}><h3 style={{margin:'0 0 7px'}}>คำขอเพิ่มโดเมนมหาวิทยาลัย</h3><p style={{color:theme.muted,fontSize:13,margin:'0 0 16px'}}>รายการที่ผู้ใช้ขอให้เพิ่มโดเมนอีเมลมหาวิทยาลัย ไม่ใช่ประวัติการส่ง OTP</p>
     <form onSubmit={e=>{e.preventDefault();setDomainPage(0);setDomainQuery(domainSearch);if(domainPage===0&&domainQuery===domainSearch)loadDomains()}} style={{display:'flex',gap:9,flexWrap:'wrap'}}><input style={{...field,flex:'1 1 220px'}} placeholder="ค้นหามหาวิทยาลัยหรือโดเมน..." value={domainSearch} onChange={e=>setDomainSearch(e.target.value)}/><button type="submit" style={button(true)}>ค้นหา</button><button type="button" style={button()} onClick={()=>{setDomainSearch('');setDomainQuery('');setDomainPage(0)}}>ล้าง</button></form>
    </div>
