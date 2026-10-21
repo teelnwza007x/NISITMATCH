@@ -416,7 +416,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     dragNow.current = { x: 0, y: 0 }
     paint(0, 0)
   }, [person?.id, paint])
-  const photos = person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : []
+  const photos = useMemo(() => person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : [], [person?.avatar_path, person?.photo_paths])
   useEffect(() => {
     let active = true
     setCardVideos([])
