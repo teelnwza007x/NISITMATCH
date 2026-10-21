@@ -3763,3 +3763,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-tap-sound-wrap>video{width:100%;height:100%;object-fit:cover;cursor:pointer}
 .nm-tap-sound-feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:rgba(10,8,20,.62);color:white;font-size:30px;pointer-events:none;animation:nm-sound-pop .2s ease-out}
 @keyframes nm-sound-pop{from{opacity:0;transform:translate(-50%,-50%) scale(.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* Keep both verification action buttons aligned and prevent right-edge overflow. */
+.nm-account-otp-actions,.v27-verify-form{min-width:0;max-width:100%;box-sizing:border-box}
+.nm-account-otp-actions .btn,.v27-verify-form > .btn{display:flex;align-items:center;justify-content:center;width:100%;max-width:100%;min-width:0;box-sizing:border-box;margin-left:0;margin-right:0;white-space:normal;text-align:center;overflow:hidden}
+.nm-account-otp-actions .nm-account-otp-send{min-height:51px;border-radius:13px}
