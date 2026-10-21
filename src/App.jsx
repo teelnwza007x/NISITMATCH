@@ -2584,7 +2584,7 @@ function AdminDashboard({ onBack }) {
   </section>
 }
 
-function DailyRewardsAndSafety({ user, notify }) {
+function DailyRewardsAndSafety({ user, notify, mode = 'safety' }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(false)
   const [blocked, setBlocked] = useState([])
@@ -2607,7 +2607,7 @@ function DailyRewardsAndSafety({ user, notify }) {
       const { data, error } = await supabase.rpc('nm_daily_claim')
       if (error) throw error
       if (data?.status) setStatus(data.status)
-      notify(data?.claimed ? 'เช็กอินสำเร็จ! ได้รับ ' + data.earned_points + ' แต้ม' : 'วันนี้คุณเช็กอินแล้ว')
+      notify(data?.claimed ? 'เช็กอินรายวันสำเร็จ!' : 'วันนี้คุณเช็กอินแล้ว')
     } catch (error) { notify('ยังเช็กอินไม่ได้ กรุณาติดตั้ง SQL nm_daily_rewards_v1.sql: ' + error.message) }
     finally { setLoading(false) }
   }
@@ -2619,16 +2619,16 @@ function DailyRewardsAndSafety({ user, notify }) {
     if (error) notify('ปลดบล็อกไม่สำเร็จ: ' + error.message)
     else { notify('ปลดบล็อกแล้ว'); refreshBlocked() }
   }
-  return <div style={{display:'grid',gap:16,margin:'20px 0'}}>
-    <section style={{padding:20,borderRadius:20,background:'linear-gradient(135deg,#382044,#211a35)',color:'#fff',border:'1px solid #6c3b6b'}}>
+  return <div style={{display:'grid',gap:16,margin: mode === 'daily' ? '0' : '20px 0'}}>
+    {mode === 'daily' && <section style={{padding:20,borderRadius:20,background:'linear-gradient(135deg,#382044,#211a35)',color:'#fff',border:'1px solid #6c3b6b'}}>
       <span style={{fontSize:12,letterSpacing:2,color:'#f4a6ce'}}>DAILY REWARDS</span>
-      <h3 style={{margin:'8px 0'}}>🎁 เช็กอินรับแต้มทุกวัน</h3>
-      <p style={{opacity:.8,fontSize:13}}>สะสมวันต่อเนื่อง รับ 10 แต้มต่อวัน วันที่ 3 ได้ 15 แต้ม และวันที่ 7 ได้ 30 แต้ม (ยังแลก Premium ไม่ได้)</p>
-      <div style={{display:'flex',gap:16,marginBottom:14}}><strong>🔥 {status?.streak ?? '—'} วัน</strong><strong>✨ {status?.total_points ?? '—'} แต้ม</strong></div>
-      <button type="button" className="btn btn-primary" onClick={claim} disabled={loading || !status || status.today_claimed}>{loading ? 'กำลังรับ...' : status?.today_claimed ? 'รับรางวัลวันนี้แล้ว ✓' : 'รับแต้มวันนี้'}</button>
+      <h3 style={{margin:'8px 0'}}>🎁 Daily Login</h3>
+      <p style={{opacity:.8,fontSize:13}}>ล็อกอินรายวันเพื่อรักษาสถิติต่อเนื่อง · ของรางวัล Super Like เพิ่มเติมยังไม่เปิดใช้งาน</p>
+      <div style={{display:'flex',gap:16,marginBottom:14}}><strong>🔥 {status?.streak ?? '—'} วัน</strong></div>
+      <button type="button" className="btn btn-primary" onClick={claim} disabled={loading || !status || status.today_claimed}>{loading ? 'กำลังรับ...' : status?.today_claimed ? 'รับรางวัลวันนี้แล้ว ✓' : 'เช็กอินวันนี้'}</button>
       {!status && <p style={{fontSize:12}}>หากยังไม่แสดงแต้ม กรุณาติดตั้ง SQL Daily Rewards ก่อน</p>}
-    </section>
-    <section className="nm-settings-install" aria-label="ศูนย์ความปลอดภัย NISIT MATCH" style={{flexWrap:'wrap'}}>
+    </section>}
+    {mode === 'safety' && <section className="nm-settings-install" aria-label="ศูนย์ความปลอดภัย NISIT MATCH" style={{flexWrap:'wrap'}}>
       <div className="nm-settings-install-symbol"><ShieldCheck size={25}/></div>
       <div className="nm-settings-install-copy"><span className="theme-kicker">SAFETY CENTER</span><h3>ศูนย์ความปลอดภัย</h3><p>จัดการบัญชีที่บล็อกและดูแลความเป็นส่วนตัวของคุณ</p></div>
       <button type="button" className="nm-settings-install-action" aria-expanded={safetyOpen} onClick={() => setSafetyOpen(x => !x)}>{safetyOpen ? <>ปิดรายการ <X size={17}/></> : <>จัดการ <ArrowRight size={17}/></>}</button>
@@ -2637,7 +2637,7 @@ function DailyRewardsAndSafety({ user, notify }) {
         {!blocked.length && <p style={{fontSize:13,margin:0}}>ไม่มีบัญชีที่บล็อก หรือยังโหลดรายการไม่ได้</p>}
         {blocked.map(item => <div key={item.blocked} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,overflowWrap:'anywhere'}}><small>{item.blocked}</small><button type="button" className="nm-settings-install-action" disabled={safetyBusy} onClick={() => unblock(item.blocked)}>ปลดบล็อก</button></div>)}
       </div>}
-    </section>
+    </section>}
   </div>
 }
 
@@ -2732,7 +2732,7 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
-    <DailyRewardsAndSafety user={user} notify={notify} />
+    <DailyRewardsAndSafety user={user} notify={notify} mode="safety" />
     <section className="nm-settings-install" aria-label="ติดตั้งแอป NISIT MATCH"><div className="nm-settings-install-symbol"><Globe2 size={25}/></div><div className="nm-settings-install-copy"><span className="theme-kicker">INSTALL THE APP</span><h3>ติดตั้ง NISIT MATCH</h3><p>{isInstalled ? 'กำลังใช้งานผ่านแอปที่ติดตั้งแล้ว' : 'เพิ่มแอปลงหน้าจอโฮม เปิดใช้งานง่าย ไม่ต้องค้นหาเว็บไซต์'}</p></div><button type="button" className="nm-settings-install-action" onClick={onInstall} disabled={isInstalled}>{isInstalled ? <><Check size={16}/> ติดตั้งแล้ว</> : <>ติดตั้งแอป <ArrowRight size={17}/></>}</button></section>
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
@@ -3826,7 +3826,7 @@ const loadMatches = useCallback(async () => {
       <main className="main-area">
         <div className="page-content">
           {view === 'home' && <>
-            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
+            <Heading kicker="DISCOVER" title="พบคนที่ใช่ในแบบของคุณ" sub="ทำความรู้จักคนใหม่ ๆ จากมหาวิทยาลัยที่คุณสนใจ"><div className="v76-home-actions"><div style={{position:'relative'}}><button type="button" aria-label="เปิดหรือปิด Daily Login" className="btn btn-ghost" style={{borderRadius:15,color:'#ff86cf',border:'1px solid #b64a91',boxShadow:'0 0 15px #ec4f9833'}} onClick={() => document.getElementById('nm-daily-popup')?.classList.toggle('nm-daily-open')}><Gift size={22}/></button><div id="nm-daily-popup" className="nm-daily-popup" style={{display:'none',position:'absolute',right:0,top:'calc(100% + 10px)',zIndex:40,width:'min(330px,85vw)',background:'#1e1429',border:'1px solid #b64a91',borderRadius:18,boxShadow:'0 20px 50px #0009'}}><DailyRewardsAndSafety user={user} notify={notify} mode="daily" /></div></div><button className="btn btn-ghost premium-sparkle-button" onClick={() => go('premium')}><Crown size={16}/> Premium <Sparkles size={14} className="premium-button-sparkle"/></button><button className="btn btn-ghost" onClick={() => setDiscoveryEditing(true)}><SlidersHorizontal size={17}/> แก้ไขสเปก</button></div></Heading>
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
             
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
