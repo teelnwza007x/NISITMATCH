@@ -3827,3 +3827,20 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   box-shadow:0 3px 18px rgba(0,0,0,.13)!important;
 }
 .nm-tap-sound-feedback svg{width:27px;height:27px}
+
+/* Profile preview: isolate the close button from gallery and native video overlays. */
+.nm-self-preview-modal{isolation:isolate}
+.nm-self-preview-modal>.detail-close-btn{
+  position:sticky!important;top:10px!important;right:10px!important;float:right!important;
+  z-index:100!important;display:grid!important;place-items:center!important;
+  width:36px!important;height:36px!important;min-width:36px!important;
+  margin:10px 10px -46px 0!important;padding:0!important;
+  border-radius:50%!important;background:rgba(17,13,27,.78)!important;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transform:none!important;
+}
+.nm-self-preview-modal>.detail-close-btn::before,
+.nm-self-preview-modal>.detail-close-btn::after{content:none!important}
+.nm-self-preview-modal .detail-gallery{position:relative;z-index:1}
+.nm-self-preview-modal .nm-tap-sound-wrap>video::-webkit-media-controls,
+.nm-self-preview-modal .nm-tap-sound-wrap>video::-webkit-media-controls-overlay-play-button{display:none!important}
