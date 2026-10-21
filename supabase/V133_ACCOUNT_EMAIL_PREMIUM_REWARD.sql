@@ -7,6 +7,7 @@ create table if not exists public.account_email_premium_rewards (
 );
 alter table public.account_email_premium_rewards enable row level security;
 revoke all on public.account_email_premium_rewards from public, anon, authenticated;
+drop policy if exists "read own account email reward" on public.account_email_premium_rewards;
 create policy "read own account email reward" on public.account_email_premium_rewards for select to authenticated using ((select auth.uid()) = user_id);
 grant select on public.account_email_premium_rewards to authenticated;
 
