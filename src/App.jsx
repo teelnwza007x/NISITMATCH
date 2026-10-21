@@ -2727,6 +2727,7 @@ function AdminDashboard({ onBack }) {
   const [reports, setReports] = useState([])
   const [growth, setGrowth] = useState(null)
   const [growthError, setGrowthError] = useState('')
+  const [reportError, setReportError] = useState('')
   const [lastChecked, setLastChecked] = useState(null)
   const [latency, setLatency] = useState(null)
   const [health, setHealth] = useState('checking')
@@ -2759,8 +2760,8 @@ function AdminDashboard({ onBack }) {
     setHealth(summary.error ? 'error' : 'ok')
     if (summary.error) { setMetrics(null); setError('โหลดสถิติไม่ได้ กรุณาตรวจสิทธิ์ Admin และรัน SQL social_features_admin_v1.sql') }
     else { setMetrics(summary.data); setError('') }
-    if (!queue.error) setReports(Array.isArray(queue.data) ? queue.data : [])
-    else setReports([])
+    if (!queue.error) { setReports(Array.isArray(queue.data) ? queue.data : []); setReportError('') }
+    else { setReports([]); setReportError(`โหลดรายงานไม่สำเร็จ: ${queue.error.message} (ตรวจสอบฟังก์ชัน nm_admin_report_queue ใน Supabase)`) }
     if (!trend.error) { setGrowth(Array.isArray(trend.data) ? trend.data : []); setGrowthError('') }
     else { setGrowth(null); setGrowthError('ยังไม่ได้ติดตั้ง SQL nm_admin_growth_v2.sql หรือไม่มีสิทธิ์เข้าถึง') }
     setBusy(false)
@@ -2785,6 +2786,7 @@ function AdminDashboard({ onBack }) {
     {metrics ? <div className="nm-admin-metrics">{[['สมาชิก',metrics.profiles],['แมตช์',metrics.matches],['รายงาน',metrics.reports],['รอยืนยันมหาวิทยาลัย',metrics.pending_verifications]].map(([label,value])=><article key={label}><small>{label}</small><strong>{Number(value||0).toLocaleString('th-TH')}</strong></article>)}</div> : !error && <div className="page-center"><span className="spin"/></div>}
     <section className="nm-admin-queue"><h3>การเติบโต 14 วันล่าสุด</h3><p>นับตามวันที่ประเทศไทย · แสดงจำนวนโปรไฟล์ใหม่และแมตช์ใหม่ต่อวัน</p>{growthError && <p role="status">{growthError}</p>}{growth && growth.length>0 && <div role="img" aria-label="กราฟแท่งจำนวนสมาชิกใหม่และแมตช์ใหม่ย้อนหลัง 14 วัน" style={{display:'flex',alignItems:'end',gap:7,height:140,overflowX:'auto',padding:'12px 2px 20px',marginBottom:12,borderBottom:'1px solid #ffffff20'}}>{growth.map(row=>{const max=growthMax;return <div key={row.day} title={`${row.day}: สมาชิก ${row.new_profiles}, แมตช์ ${row.new_matches}`} style={{flex:'1 0 18px',minWidth:18,height:'100%',display:'flex',alignItems:'end',gap:2}}><div style={{height:`${Math.max(2,Number(row.new_profiles||0)/max*100)}%`,flex:1,background:'#f472b6',borderRadius:'4px 4px 0 0'}}/><div style={{height:`${Math.max(2,Number(row.new_matches||0)/max*100)}%`,flex:1,background:'#a78bfa',borderRadius:'4px 4px 0 0'}}/></div>})}</div>}{growth && <p style={{fontSize:12,opacity:.8}}> <span style={{color:'#f472b6'}}>■</span> สมาชิกใหม่ &nbsp; <span style={{color:'#a78bfa'}}>■</span> แมตช์ใหม่</p>}{growth && <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr><th style={{textAlign:'left',padding:8}}>วันที่</th><th style={{textAlign:'right',padding:8}}>สมาชิกใหม่</th><th style={{textAlign:'right',padding:8}}>แมตช์ใหม่</th></tr></thead><tbody>{growth.map(row=><tr key={row.day}><td style={{padding:8,borderTop:'1px solid #ffffff20'}}>{row.day}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_profiles||0).toLocaleString('th-TH')}</td><td style={{padding:8,textAlign:'right',borderTop:'1px solid #ffffff20'}}>{Number(row.new_matches||0).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div>}</section>
     <section className="nm-admin-queue"><h3>รายงานล่าสุด</h3><p>ใช้ตรวจสอบรายงานก่อนดำเนินการ ไม่มีการเปิดเผยข้อมูลส่วนตัวของผู้รายงาน</p>
+    {reportError && <p role="alert">{reportError}</p>}
     {reports.length ? reports.map((report,index)=><article key={report.id||index}><span className="nm-admin-queue-meta">{report.created_at ? new Date(report.created_at).toLocaleString('th-TH') : 'รายงาน'}</span><strong>{report.reason||'ไม่ระบุเหตุผล'}</strong><small>ผู้ถูกรายงาน: {report.reported||'ไม่ระบุ'}</small></article>) : <p>ไม่มีรายงานที่แสดงได้ หรือยังไม่ได้ติดตั้ง SQL สำหรับคิวรายงาน</p>}</section>
     </div>}
   </section>
