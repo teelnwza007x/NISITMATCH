@@ -2120,7 +2120,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [profileVideos, setProfileVideos] = useState([])
   const [newVideos, setNewVideos] = useState([])
   const [mainPhoto, setMainPhoto] = useState(profile?.avatar_path || '')
-  const [photoOrder, setPhotoOrder] = useState([])
+  const [photoOrder, setPhotoOrder] = useState(() => Array.isArray(profile?.media_order) ? profile.media_order : [])
   const draggingPhoto = useRef(null)
   const holdTimer = useRef(null)
   const [activeDragKey, setActiveDragKey] = useState(null)
@@ -2179,7 +2179,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         if (d.song !== undefined) setSong(d.song)
         if (Array.isArray(d.newPhotos)) setNewPhotos(d.newPhotos.filter(x => x.file instanceof Blob).map(x => ({ ...x, url: URL.createObjectURL(x.file) })))
         if (typeof d.mainPhoto === 'string') setMainPhoto(d.mainPhoto)
-        if (Array.isArray(d.photoOrder)) setPhotoOrder(d.photoOrder)
+        if (Array.isArray(d.photoOrder) && d.photoOrder.length) setPhotoOrder(d.photoOrder)
       }
       setDraftReady(true)
     }).catch(err => { console.warn('Draft restore unavailable:', err); if (alive) setDraftReady(true) })
@@ -2297,7 +2297,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     }
     const photo_paths = [...new Set(orderedKeys.map(key => keyMap[key] || key).filter(key => uploaded.includes(key)))].slice(0, 6)
     const avatar_path = photo_paths[0] || null
-    const payload = { display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
+    const payload = { media_order: orderedKeys.map(key => keyMap[key] || key), display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
@@ -2309,13 +2309,13 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       if (videoUploadError) { setBusy(false); return notify(`อัปโหลดวิดีโอไม่สำเร็จ: ${videoUploadError.message} · ตรวจว่ารัน SQL v76 แล้ว`) }
       const { data: mediaRow, error: mediaError } = await supabase.from('profile_media').insert({ profile_id: user.id, media_type: 'video', storage_path: path }).select('id,media_type,storage_path,created_at').single()
       if (mediaError) { setBusy(false); return notify(`บันทึกวิดีโอไม่สำเร็จ: ${mediaError.message}`) }
-      setProfileVideos(old => [...old, mediaRow])
+      setProfileVideos(old => [...old, mediaRow]); keyMap[item.key] = mediaRow.id
     }
     setBusy(false)
     skipDraftSave.current = true
     draftRevision.current++
     await draftAction(user.id, 'delete').catch(err => console.warn('Draft cleanup unavailable:', err))
-    setPhotos(photo_paths); setPhotoOrder(photo_paths); setNewPhotos([]); newVideos.forEach(item => URL.revokeObjectURL(item.url)); setNewVideos([]); setMainPhoto(avatar_path || '')
+    setPhotos(photo_paths); setPhotoOrder(orderedKeys.map(key => keyMap[key] || key)); setNewPhotos([]); newVideos.forEach(item => URL.revokeObjectURL(item.url)); setNewVideos([]); setMainPhoto(avatar_path || '')
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
   const toggle = (i) => setF({ ...f, interests: f.interests.includes(i) ? f.interests.filter((x) => x !== i) : [...f.interests, i].slice(0, 12) })
