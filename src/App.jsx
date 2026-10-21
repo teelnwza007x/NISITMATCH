@@ -646,12 +646,15 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       if (alive) setHangoutRooms((error ? (createdResult.data || []) : (data || [])).filter(room => room.status === 'open'))
     }
     loadHangoutRooms()
-    const poll = setInterval(loadHangoutRooms, 12000)
+    // Avoid repeated Supabase reads while Safari/PWA is in the background.
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') loadHangoutRooms() }, 12000)
+    const onVisible = () => { if (document.visibilityState === 'visible') loadHangoutRooms() }
+    document.addEventListener('visibilitychange', onVisible)
     const channel = supabase.channel(`hangout-room-list-${me}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hangout_rsvps', filter: `user_id=eq.${me}` }, loadHangoutRooms)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hangout_events', filter: `creator_id=eq.${me}` }, loadHangoutRooms)
       .subscribe()
-    return () => { alive = false; clearInterval(poll); supabase.removeChannel(channel) }
+    return () => { alive = false; clearInterval(poll); document.removeEventListener('visibilitychange', onVisible); supabase.removeChannel(channel) }
   }, [me])
   const [hangoutChatEvent, setHangoutChatEvent] = useState(null)
   const [hangoutChatMessages, setHangoutChatMessages] = useState([])
@@ -773,6 +776,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
         }
       }).subscribe()
     const fallbackPoll = setInterval(async () => {
+      if (document.visibilityState !== 'visible') return
       const [{ data }, { data: latestEvent }] = await Promise.all([
         supabase.from('hangout_messages').select('id,event_id,user_id,body,attachment_type,attachment_path,created_at').eq('event_id', eventId).order('created_at', { ascending: true }).limit(300),
         supabase.from('hangout_events').select('id,title,venue,city,starts_at,status,capacity,creator_id').eq('id', eventId).maybeSingle(),
@@ -930,7 +934,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refreshInbox)
       .subscribe()
     // Fallback for projects without Realtime publication enabled for messages.
-    const poll = setInterval(refreshInbox, 12000)
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 12000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
     return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
