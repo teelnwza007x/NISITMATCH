@@ -3710,3 +3710,17 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(max-width:900px){.nm-lobby-floating-card{display:none}.nm-lobby-glow{right:-28%;width:95vw}.landing-editorial .editorial-title-wrap h1{font-size:clamp(43px,8vw,84px)}}
 @media(max-width:600px){.landing-editorial .editorial-title-wrap h1{font-size:clamp(38px,10.5vw,60px);letter-spacing:-.05em}.nm-lobby-perks{gap:7px}.nm-lobby-perks span{font-size:10px;padding:6px 9px}.nm-lobby-sparkles span:nth-child(2){right:4%;top:38%}.landing-editorial .editorial-primary{width:100%;justify-content:center}}
 @media(prefers-reduced-motion:reduce){.nm-lobby-live-dot,.nm-lobby-glow,.nm-lobby-sparkles span,.nm-lobby-floating-card,.landing-editorial .editorial-orbit{animation:none}}
+
+
+/* Account email verification: separate from campus OTP */
+.nm-account-otp-card{margin:0 0 22px;padding:22px;border:1px solid rgba(181,133,255,.28);border-radius:22px;background:linear-gradient(145deg,rgba(110,63,169,.19),rgba(22,23,41,.88));box-shadow:0 14px 36px rgba(0,0,0,.12)}
+.nm-account-otp-heading{display:flex;align-items:center;gap:14px;color:#d4b6ff}
+.nm-account-otp-heading h3{margin:4px 0;color:#fff;font-size:1.25rem}
+.nm-account-otp-heading p,.nm-account-otp-card>p{color:#bcb5d1;font-size:.91rem}
+.nm-account-otp-address{margin:16px 0;padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.23);color:#f7f1ff;overflow-wrap:anywhere}
+.nm-account-otp-card label{display:grid;gap:8px;color:#e8def9}
+.nm-account-otp-card input{width:100%;padding:13px;border:1px solid rgba(188,152,255,.32);border-radius:12px;background:#141423;color:#fff;letter-spacing:.3em;font-size:1.15rem}
+.nm-account-otp-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.nm-account-otp-actions button{min-height:42px}
+.nm-account-otp-success{display:flex;align-items:center;gap:8px;color:#92e2bb!important;font-weight:700}
+@media(max-width:540px){.nm-account-otp-card{padding:16px}.nm-account-otp-actions button{width:100%}}
