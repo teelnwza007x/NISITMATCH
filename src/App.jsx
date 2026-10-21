@@ -2339,6 +2339,8 @@ const VERIFIED_CAMPUS_DOMAINS = {
   up: { name: 'มหาวิทยาลัยพะเยา', domains: ['up.ac.th'] },
   mu: { name: 'มหาวิทยาลัยมหิดล', domains: ['mu.ac.th'] },
   mfu: { name: 'มหาวิทยาลัยแม่ฟ้าหลวง', domains: ['mfu.ac.th'] },
+  nmu: { name: 'มหาวิทยาลัยนวมินทราธิราช', domains: ['nmu.ac.th'] },
+  ssru: { name: 'มหาวิทยาลัยราชภัฏสวนสุนันทา', domains: ['ssru.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
@@ -2349,7 +2351,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐ', ['ku','chula','tu','buu','swu','su','nu','up','mu','mfu']],
+    ['มหาวิทยาลัยของรัฐ', ['ku','chula','tu','buu','swu','su','nu','up','mu','mfu','nmu','ssru']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit']]
   ]
