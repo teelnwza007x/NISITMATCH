@@ -15,6 +15,10 @@ export default function AdminAlerts() {
   const [showDomains, setShowDomains] = useState(false)
   const [showHealthDetails, setShowHealthDetails] = useState(false)
   const [domainSearch, setDomainSearch] = useState('')
+  const [approvingId, setApprovingId] = useState(null)
+  const [approvalError, setApprovalError] = useState('')
+  const [approvalSuccess, setApprovalSuccess] = useState('')
+  const [universityIds, setUniversityIds] = useState({})
   const aliveRef = useRef(true)
   const requestRef = useRef(0)
   const reload = useCallback(async () => {
@@ -70,6 +74,30 @@ export default function AdminAlerts() {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [reload])
+  const approveDomain = async request => {
+    const universityId = String(universityIds[request.id] || '').trim().toLowerCase()
+    if (!/^[a-z0-9_-]{1,40}$/.test(universityId)) {
+      setApprovalError('กรุณากรอกรหัสมหาวิทยาลัยที่มีอยู่ในระบบ เช่น su หรือ cra')
+      return
+    }
+    if (!window.confirm(`อนุมัติ @${request.email_domain} ให้มหาวิทยาลัยรหัส ${universityId} ใช่ไหม?`)) return
+    setApprovingId(request.id)
+    setApprovalError('')
+    setApprovalSuccess('')
+    try {
+      const { data, error } = await supabase.rpc('nm_admin_approve_domain_request', {
+        p_request_id: request.id, p_university_id: universityId
+      })
+      if (error) throw error
+      setDomainRequests(rows => rows.filter(row => row.id !== request.id))
+      setApprovalSuccess(`อนุมัติ @${data?.domain || request.email_domain} สำเร็จ`)
+      setUniversityIds(ids => { const next = { ...ids }; delete next[request.id]; return next })
+    } catch (err) {
+      setApprovalError('อนุมัติไม่สำเร็จ: ' + (err?.message || 'กรุณาตรวจสอบ SQL V140 และสิทธิ์แอดมิน'))
+    } finally {
+      setApprovingId(null)
+    }
+  }
   const pending = reports.filter(r => ['pending', 'open', 'new'].includes(String(r.status || '').toLowerCase()))
   const visibleReports = showAll ? reports : pending
   const filteredDomainRequests = domainRequests.filter(r => `${r.university_name || ''} ${r.email_domain || ''}`.toLocaleLowerCase().includes(domainSearch.trim().toLocaleLowerCase()))
@@ -100,7 +128,9 @@ export default function AdminAlerts() {
     {domainError && <p role="alert">{domainError} — ตรวจว่าได้รัน V138_ADMIN_DOMAIN_REQUEST_QUEUE.sql ใน Supabase แล้ว</p>}
     {domainRequests.length > 0 && <button type="button" className="btn btn-ghost" onClick={() => setShowDomains(v => !v)}>{showDomains ? 'ซ่อนคำขอมหาวิทยาลัย' : 'ดูคำขอมหาวิทยาลัย'}</button>}
     {showDomains && domainRequests.length > 0 && <label style={{display:'block',marginTop:10}}>ค้นหาคำขอมหาวิทยาลัย <input type="search" value={domainSearch} onChange={e => setDomainSearch(e.target.value)} placeholder="ชื่อมหาวิทยาลัยหรือโดเมน" style={{display:'block',width:'100%',maxWidth:380,marginTop:6}} /></label>}
-    {showDomains && domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{filteredDomainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td></tr>)}</tbody></table></div>}
+    {approvalError && <p role="alert">{approvalError}</p>}
+    {approvalSuccess && <p role="status">{approvalSuccess}</p>}
+    {showDomains && domainRequests.length > 0 && <div style={{overflowX:'auto',marginTop:12}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}><thead><tr>{['วันที่','มหาวิทยาลัย','โดเมนที่ขอ','อนุมัติ'].map(h=><th key={h} style={{textAlign:'left',padding:10}}>{h}</th>)}</tr></thead><tbody>{filteredDomainRequests.map(r=><tr key={r.id}><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.created_at ? new Date(r.created_at).toLocaleString('th-TH') : '—'}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.university_name}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}>{r.email_domain}</td><td style={{padding:10,borderTop:'1px solid #ffffff20'}}><input aria-label={`รหัสมหาวิทยาลัยสำหรับ ${r.email_domain}`} placeholder="รหัส เช่น cra" value={universityIds[r.id] || ''} onChange={e => setUniversityIds(ids => ({...ids,[r.id]:e.target.value}))} style={{width:110,maxWidth:'100%',padding:8,marginRight:6}}/><button type="button" className="btn btn-pink" disabled={approvingId !== null} onClick={() => approveDomain(r)}>{approvingId === r.id ? 'กำลังอนุมัติ…' : 'อนุมัติ'}</button></td></tr>)}</tbody></table></div>}
     <button type="button" className="btn btn-ghost" onClick={reload} disabled={loading}>{loading ? 'กำลังโหลด…' : 'รีเฟรชรายการ'}</button>
     {checkedAt && <p style={{fontSize:12,opacity:.7}}>ตรวจล่าสุด {checkedAt.toLocaleTimeString('th-TH')}</p>}
     <button type="button" className="btn btn-ghost" style={{marginLeft:8}} onClick={() => setShowAll(v => !v)}>{showAll ? 'เฉพาะรอตรวจสอบ' : 'ดูรายงานทั้งหมด'}</button>
