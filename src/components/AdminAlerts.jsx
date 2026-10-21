@@ -5,6 +5,8 @@ export default function AdminAlerts() {
   const [reports, setReports] = useState([])
   const [domainRequests, setDomainRequests] = useState([])
   const [domainError, setDomainError] = useState('')
+  const [health, setHealth] = useState(null)
+  const [healthError, setHealthError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [checkedAt, setCheckedAt] = useState(null)
@@ -17,9 +19,10 @@ export default function AdminAlerts() {
     loadingRef.current = true
     const requestId = ++requestRef.current
     try {
-      const [reportResult, domainResult] = await Promise.all([
+      const [reportResult, domainResult, healthResult] = await Promise.all([
         supabase.rpc('nm_admin_report_queue'),
-        supabase.rpc('nm_admin_domain_request_queue')
+        supabase.rpc('nm_admin_domain_request_queue'),
+        supabase.rpc('nm_admin_health_summary')
       ])
       const { data, error: rpcError } = reportResult
       if (!aliveRef.current || requestId !== requestRef.current) return
@@ -31,6 +34,13 @@ export default function AdminAlerts() {
       } else {
         setDomainRequests(Array.isArray(domainResult.data) ? domainResult.data : [])
         setDomainError('')
+      }
+      if (healthResult.error) {
+        setHealth(null)
+        setHealthError('โหลดสถานะระบบไม่ได้: ' + healthResult.error.message)
+      } else {
+        setHealth(healthResult.data && typeof healthResult.data === 'object' ? healthResult.data : null)
+        setHealthError('')
       }
       setError('')
       setCheckedAt(new Date())
@@ -62,6 +72,19 @@ export default function AdminAlerts() {
   return <section className="nm-admin-queue" aria-label="ศูนย์แจ้งเตือนแอดมิน">
     <h3>ศูนย์แจ้งเตือนแอดมิน</h3>
     <p>รายงานสมาชิกจาก Supabase · รีเฟรชอัตโนมัติทุก 60 วินาทีเมื่อเปิดแท็บนี้</p>
+    <div className="nm-admin-health" aria-label="สถานะระบบ" style={{margin:'14px 0',padding:14,border:'1px solid #ffffff24',borderRadius:14}}>
+      <h4 style={{margin:'0 0 8px'}}>สถานะระบบ NISIT MATCH</h4>
+      {healthError && <p role="alert">{healthError} — ตรวจว่าได้รัน V139_ADMIN_HEALTH_READ_ONLY.sql แล้ว</p>}
+      {health && <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(125px,1fr))',gap:10}}>
+        {[
+          ['รายงานรอตรวจสอบ',health.pending_reports],
+          ['คำขอโดเมน',health.domain_requests],
+          ['Push รอส่ง',health.pending_push],
+          ['Push ส่งไม่สำเร็จ',health.failed_push]
+        ].map(([label,value]) => <div key={label} style={{padding:12,borderRadius:10,background:'#ffffff0a'}}><div style={{fontSize:22,fontWeight:700}}>{Number(value ?? 0).toLocaleString('th-TH')}</div><div style={{fontSize:12,opacity:.75}}>{label}</div></div>)}
+      </div>}
+      {health?.checked_at && <p style={{fontSize:12,opacity:.65,margin:'8px 0 0'}}>ตรวจสอบ {new Date(health.checked_at).toLocaleString('th-TH')}</p>}
+    </div>
     <p><strong>รายงานรอตรวจสอบ {pending.length} รายการ</strong> · รายงานล่าสุด {reports.length} รายการ</p>
     <p><strong>คำขอเพิ่มโดเมนมหาวิทยาลัย {domainRequests.length} รายการล่าสุด</strong></p>
     {domainError && <p role="alert">{domainError} — ตรวจว่าได้รัน V138_ADMIN_DOMAIN_REQUEST_QUEUE.sql ใน Supabase แล้ว</p>}
