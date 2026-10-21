@@ -3572,3 +3572,20 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-sound-volume{box-sizing:border-box;min-width:0;max-width:100%;width:100%}
 .nm-sound-volume input[type="range"]{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;margin:6px 0;padding:0;touch-action:pan-y}
 .nm-sound-volume span{min-width:0;flex-wrap:wrap}
+
+/* Searchable university preferences picker */
+.pref-uni-picker{display:grid;gap:12px;margin-top:14px;min-width:0}
+.pref-uni-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pref-uni-search{display:flex;align-items:center;gap:9px;flex:1 1 190px;min-width:0;padding:11px 13px;border:1px solid rgba(190,165,235,.32);border-radius:14px;background:rgba(255,255,255,.055);color:#d9c7f5}
+.pref-uni-search:focus-within{border-color:#c78bff;box-shadow:0 0 0 3px rgba(171,99,238,.13)}
+.pref-uni-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
+.pref-uni-search input::placeholder{color:#a9a0b7}
+.pref-uni-count{font-size:12px;font-weight:750;color:#edc9ff;white-space:nowrap}
+.pref-uni-selected{padding:12px;border:1px solid rgba(196,137,255,.24);border-radius:14px;background:rgba(147,72,209,.09)}
+.pref-uni-selected-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:12px}
+.pref-uni-selected-head button{border:0;background:none;color:#e5b7ff;font:inherit;cursor:pointer}
+.pref-uni-chips{display:flex;gap:7px;flex-wrap:wrap}
+.pref-uni-chips button{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:7px 9px;border-radius:10px;border:1px solid rgba(209,151,255,.35);background:rgba(153,83,218,.2);color:#f5eaff;font-size:12px;cursor:pointer}
+.pref-uni-chips button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pref-uni-picker .pref-uni-list{margin-top:0;max-height:260px;overflow-y:auto;overscroll-behavior:contain}
+.pref-uni-empty{padding:16px;text-align:center;color:#c4b8d0;font-size:13px}
