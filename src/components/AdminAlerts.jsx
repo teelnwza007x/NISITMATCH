@@ -13,6 +13,7 @@ export default function AdminAlerts() {
   const [showAll, setShowAll] = useState(false)
   const loadingRef = useRef(false)
   const [showDomains, setShowDomains] = useState(false)
+  const [showHealthDetails, setShowHealthDetails] = useState(false)
   const aliveRef = useRef(true)
   const requestRef = useRef(0)
   const reload = useCallback(async () => {
@@ -86,6 +87,8 @@ export default function AdminAlerts() {
           ['Push ส่งไม่สำเร็จ',health.failed_push]
         ].map(([label,value]) => <div key={label} style={{padding:12,borderRadius:10,background:'#ffffff0a'}}><div style={{fontSize:22,fontWeight:700}}>{Number(value ?? 0).toLocaleString('th-TH')}</div><div style={{fontSize:12,opacity:.75}}>{label}</div></div>)}
       </div>}
+      <button type="button" className="btn btn-ghost" onClick={() => setShowHealthDetails(v => !v)} aria-expanded={showHealthDetails}>{showHealthDetails ? 'ซ่อนคำแนะนำตรวจสอบระบบ' : 'วิธีตรวจสอบระบบ'}</button>
+      {showHealthDetails && <div style={{fontSize:13,opacity:.85,marginTop:8}}><p>Push รอส่ง: ตรวจ Cron และ Edge Function send-push</p><p>Push ส่งไม่สำเร็จ: ตรวจ Edge Function Logs และการตั้งค่า VAPID</p><p>ข้อมูลนี้เป็นจำนวนรายการในคิว ไม่ใช่ผลการตรวจสอบสถานะบริการแบบเรียลไทม์</p></div>}
       {failedPushCount > 0 && <p role="alert" style={{margin:'10px 0',color:'#ffb4a8'}}>พบ Push Notification ส่งไม่สำเร็จ {failedPushCount.toLocaleString('th-TH')} รายการ กรุณาตรวจสอบ Edge Function send-push และ Cron</p>}
       {waitingPushCount > 0 && <p style={{margin:'10px 0',opacity:.8}}>มี Push Notification รอส่ง {waitingPushCount.toLocaleString('th-TH')} รายการ</p>}
       {health?.checked_at && <p style={{fontSize:12,opacity:.65,margin:'8px 0 0'}}>ตรวจสอบ {new Date(health.checked_at).toLocaleString('th-TH')}</p>}
