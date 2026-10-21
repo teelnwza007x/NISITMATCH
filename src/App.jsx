@@ -3215,8 +3215,13 @@ const loadMatches = useCallback(async () => {
     setPeople(null)
     setDiscoveryEditing(false)
     setFl(f => ({...f, uni: '', gender: prefs.gender, min: prefs.min, max: prefs.max}))
-    const {error} = await supabase.from('discovery_preferences').upsert({user_id:userId, preferences:prefs}, {onConflict:'user_id'})
-    if (error) notify('บันทึกสเปคในเครื่องแล้ว แต่ซิงก์ Supabase ไม่สำเร็จ')
+    // Save to the server in the background: navigation and the new swipe deck must
+    // never wait for a slow network request. Local preferences remain authoritative.
+    Promise.resolve().then(() => supabase.from('discovery_preferences').upsert(
+      {user_id:userId, preferences:prefs}, {onConflict:'user_id'}
+    )).then(({error}) => {
+      if (error) notify('บันทึกสเปคในเครื่องแล้ว แต่ซิงก์ Supabase ไม่สำเร็จ')
+    }).catch(() => notify('บันทึกสเปคในเครื่องแล้ว แต่ซิงก์ Supabase ไม่สำเร็จ'))
   }
   const campusFiltered = useCallback(p => {
     if (!discovery) return true
