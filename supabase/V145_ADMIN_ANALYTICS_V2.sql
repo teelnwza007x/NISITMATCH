@@ -24,7 +24,7 @@ begin
    from public.profiles group by 1 order by members desc limit 10
  )
  select jsonb_build_object(
-  'daily', (select coalesce(jsonb_agg(jsonb_build_object('day',d.activity_date,'messages',coalesce(a.messages,0),'chat_users',coalesce(a.chat_users,0),'active_chats',coalesce(a.active_chats,0)) order by d.day),'[]'::jsonb) from days d left join activity a using(activity_date)),
+  'daily', (select coalesce(jsonb_agg(jsonb_build_object('day',d.activity_date,'messages',coalesce(a.messages,0),'chat_users',coalesce(a.chat_users,0),'active_chats',coalesce(a.active_chats,0)) order by d.activity_date),'[]'::jsonb) from days d left join activity a using(activity_date)),
   'universities',(select coalesce(jsonb_agg(jsonb_build_object('name',university,'members',members)),'[]'::jsonb) from university_counts)
  ) into result;
  return result;
