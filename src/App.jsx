@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown } from 'lucide-react'
 import { supabase } from './supabase'
 import EmailCenter from './components/EmailCenter'
+import PromptPayTest from './components/PromptPayTest'
 import { authRedirectUrl, isAuthCallbackPath, clearAuthCallbackUrl } from './authRedirect'
 import './authLink.css'
 import { UNIVERSITIES, FACULTIES } from './data/universities'
@@ -2393,8 +2394,9 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
-    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button></nav>
+    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>PromptPay Test</button></nav>
     {adminTab === "email" && <EmailCenter />}
+    {adminTab === "payments" && <PromptPayTest />}
     {adminTab === "overview" && <div className="nm-admin-overview">
     <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>↻ รีเฟรชข้อมูล</button>
     {error && <p role="alert">{error}</p>}
