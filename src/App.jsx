@@ -1052,11 +1052,13 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const [openChatImage, setOpenChatImage] = useState(null)
   const [pendingChatPhoto, setPendingChatPhoto] = useState(null)
   const [photoSending, setPhotoSending] = useState(false)
+  const [photoUploadStage, setPhotoUploadStage] = useState('idle')
   const pendingChatPhotoRef = useRef(null)
   const closeChatPhotoPreview = () => {
     if (pendingChatPhotoRef.current?.url) URL.revokeObjectURL(pendingChatPhotoRef.current.url)
     pendingChatPhotoRef.current = null
     setPendingChatPhoto(null)
+    setPhotoUploadStage('idle')
   }
   const compressChatPhoto = async file => {
     if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size < 700 * 1024) return file
@@ -1088,7 +1090,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const pending = pendingChatPhotoRef.current
     if (!pending || photoSending || uploading || !pending.roomId) return
     setPhotoSending(true)
-    try { const optimized = await compressChatPhoto(pending.file); await sendMedia(optimized, 'image', pending.roomId); closeChatPhotoPreview() }
+    try { const optimized = await compressChatPhoto(pending.file); setPhotoUploadStage('uploading'); const ok = await sendMedia(optimized, 'image', pending.roomId); if (ok) { setPhotoUploadStage('done'); closeChatPhotoPreview() } else setPhotoUploadStage('failed') } catch (error) { setPhotoUploadStage('failed'); notify('ส่งรูปไม่สำเร็จ: ' + (error?.message || 'กรุณาลองอีกครั้ง')) }
     finally { setPhotoSending(false) }
   }
   useEffect(() => { setOpenChatImage(null); setReplyTo(null); setMessageMenu(null) }, [selectedId])
@@ -1414,11 +1416,12 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const extension = (file.name?.split('.').pop() || (type === 'audio' ? 'webm' : 'jpg')).replace(/[^a-z0-9]/gi, '').toLowerCase()
     const path = `${targetRoom}/${makeClientId()}.${extension}`
     const { error: uploadError } = await supabase.storage.from('chat-media').upload(path, file, { contentType: file.type.split(';')[0], upsert: false })
-    if (uploadError) { setUploading(false); return notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message) }
+    if (uploadError) { setUploading(false); notify('อัปโหลดไม่สำเร็จ: ' + uploadError.message); return false }
     const { error } = await supabase.from('messages').insert({ match_id: targetRoom, sender_id: me, body: type === 'image' ? '📷 รูปภาพ' : '🎤 ข้อความเสียง', attachment_type: type, attachment_path: path })
     setUploading(false)
-    if (error) { await supabase.storage.from('chat-media').remove([path]); notify('ส่งไฟล์ไม่สำเร็จ: ' + error.message) }
-    else if (roomId === targetRoom) { forceNextScroll.current = true; scrollToLatest(true) }
+    if (error) { await supabase.storage.from('chat-media').remove([path]); notify('ส่งไฟล์ไม่สำเร็จ: ' + error.message); return false }
+    if (roomId === targetRoom) { forceNextScroll.current = true; scrollToLatest(true) }
+    return true
   }
   const toggleRecord = async () => {
     if (recording) { recorder.current?.stop(); setRecording(false); setMicStream(null); return }
@@ -1517,7 +1520,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><strong style={{fontSize:18}}>ตรวจสอบรูปก่อนส่ง</strong><button type="button" disabled={photoSending} onClick={closeChatPhotoPreview} aria-label="ปิดพรีวิว" style={{background:'rgba(255,255,255,.12)',color:'#fff',border:0,borderRadius:99,padding:9,display:'flex'}}><X size={21}/></button></div>
             <img src={pendingChatPhoto.url} alt="รูปภาพที่เลือกเพื่อส่ง" style={{display:'block',width:'100%',maxHeight:'min(65dvh,620px)',objectFit:'contain',borderRadius:18,background:'#191423'}} />
             <div style={{fontSize:13,opacity:.7,textAlign:'center'}}>ส่งให้ {partnerName(sel?.p)} · {(pendingChatPhoto.file.size / 1024 / 1024).toFixed(1)} MB</div>
-            <div style={{display:'flex',gap:12}}><button type="button" disabled={photoSending} onClick={closeChatPhotoPreview} style={{flex:1,padding:14,borderRadius:14,border:'1px solid rgba(255,255,255,.22)',background:'transparent',color:'#fff',fontWeight:700}}>ยกเลิก</button><button type="button" disabled={photoSending} onClick={confirmChatPhoto} style={{flex:2,padding:14,borderRadius:14,border:0,background:'#ee5b98',color:'#fff',fontWeight:800}}>{photoSending ? 'กำลังส่ง...' : 'ส่งรูปภาพ'} <Send size={16} style={{verticalAlign:'middle'}}/></button></div>
+            {photoUploadStage !== 'idle' && <div role="status" style={{fontSize:13,color:photoUploadStage === 'failed' ? '#ffb4c4' : '#d9d0e6',textAlign:'center'}}>{photoUploadStage === 'uploading' ? 'กำลังอัปโหลดรูปภาพ กรุณารอสักครู่…' : photoUploadStage === 'failed' ? 'ส่งไม่สำเร็จ รูปยังอยู่ กดลองส่งอีกครั้งได้' : 'ส่งสำเร็จ'}</div>}
+            <div style={{display:'flex',gap:12}}><button type="button" disabled={photoSending} onClick={closeChatPhotoPreview} style={{flex:1,padding:14,borderRadius:14,border:'1px solid rgba(255,255,255,.22)',background:'transparent',color:'#fff',fontWeight:700}}>ยกเลิก</button><button type="button" disabled={photoSending} onClick={confirmChatPhoto} style={{flex:2,padding:14,borderRadius:14,border:0,background:'#ee5b98',color:'#fff',fontWeight:800}}>{photoSending ? 'กำลังส่ง...' : photoUploadStage === 'failed' ? 'ลองส่งอีกครั้ง' : 'ส่งรูปภาพ'} <Send size={16} style={{verticalAlign:'middle'}}/></button></div>
           </div>
         </div>, document.body)}
         <form className="chat-compose" onSubmit={send}>
