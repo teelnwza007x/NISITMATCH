@@ -15,6 +15,7 @@ begin
         count(*) over()
  from public.hangout_events h
  left join public.profiles p on p.id=h.creator_id
+ where h.status = 'open' and h.starts_at >= now()
  order by h.created_at desc,h.id
  limit least(greatest(coalesce(p_limit,40),1),50)
  offset greatest(coalesce(p_offset,0),0);
