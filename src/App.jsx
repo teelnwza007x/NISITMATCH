@@ -4080,26 +4080,7 @@ const loadMatches = useCallback(async () => {
     }
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
-  // Warm the heavy profile editor while the browser is idle, so the first tap
-  // doesn't have to mount its photo editor, forms and gallery synchronously.
-  useEffect(() => {
-    if (!userId || !profile || profileVisited || view === 'profile') return
-    let cancelled = false
-    let idleId = null
-    let timerId = null
-    const warm = () => { if (!cancelled) setProfileVisited(true) }
-    if (typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(warm, { timeout: 5000 })
-    } else {
-      timerId = window.setTimeout(warm, 1800)
-    }
-    return () => {
-      cancelled = true
-      if (idleId !== null) window.cancelIdleCallback(idleId)
-      if (timerId !== null) window.clearTimeout(timerId)
-    }
-  }, [userId, profile?.id, profileVisited, view])
-  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (window.location.pathname === '/admin') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile') setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (window.location.pathname === '/admin') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const filteredPeople = useMemo(() => (people || []).filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)), [people, discovery?.gender, campusFiltered])
   // Never bypass the chosen campus radius when no nearby profile exists.
@@ -4151,7 +4132,7 @@ const loadMatches = useCallback(async () => {
           {view === 'messages' && <Messages me={user.id} matches={matches} notify={notify} reload={loadMatches} onOpenProfile={openDetail} onMessagesRead={() => { loadUnreadMessages(); loadUnread() }} onOpenHangoutChat={(eventId) => { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, eventId) } catch {}; go('messages') }} />}
           {view === 'notifs' && <Notifs me={user.id} refresh={loadUnread} go={go} />}
           {view === 'verification' && <section className="nm-direct-verification"><button type="button" className="btn btn-ghost" onClick={() => go('hangout')}><ArrowRight size={18}/> กลับไป Hangout</button><Heading kicker="CAMPUS VERIFICATION" title="ยืนยันอีเมลมหาวิทยาลัย" sub="ยืนยันสถานะนักศึกษาเพื่อเข้าร่วม Hangout" /><CampusEmailVerification user={user} /></section>}
-          {(view === 'profile' || profileVisited) && <div style={view === 'profile' ? undefined : { display: 'none' }} aria-hidden={view !== 'profile'}><ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} /></div>}
+          {view === 'profile' && <ProfilePage user={user} profile={profile} onSaved={loadProfile} notify={notify} ownerPremium={ownerPremium} initialEditTab={profileEntryTab} />}
           {view === 'settings' && <SettingsPage user={user} notify={notify} onInstall={openInstall} isInstalled={isInstalled} onAdmin={profile?.is_admin ? () => go('admin') : null} />}{view === 'admin' && profile?.is_admin && <AdminDashboard onBack={() => go('settings')} />}
           <footer className="app-footer"><span>© 2026 nisit match</span><span>สร้างด้วยความใส่ใจ <Heart size={12} fill="currentColor" /></span><button type="button" className="nm-guide-open-btn" onClick={() => { setGuideStep(0); setGuideOpen(true) }}><Sparkles size={15}/> ดูคู่มือการใช้งาน <ArrowRight size={15}/></button></footer>
         </div>
