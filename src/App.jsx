@@ -2691,6 +2691,58 @@ function PreferencesEditor({ initial, profile, onSave, onClose }) {
   </div>
 }
 
+function ReferralPanel({ user }) {
+  const [code, setCode] = useState('')
+  const [input, setInput] = useState('')
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let active = true
+    supabase.rpc('nm_get_referral_code').then(({ data, error }) => {
+      if (!active) return
+      if (error) setMessage('ระบบชวนเพื่อนยังไม่พร้อมใช้งาน กรุณาติดตั้ง SQL ก่อน')
+      else setCode(data || '')
+    }).catch(() => { if (active) setMessage('ไม่สามารถโหลดรหัสเชิญได้') })
+    return () => { active = false }
+  }, [user.id])
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const incoming = params.get('ref')
+    if (incoming && /^[a-z0-9]{10,20}$/i.test(incoming)) {
+      setInput(incoming.toUpperCase())
+      try { localStorage.setItem('nisit-referral-pending', incoming.toUpperCase()) } catch {}
+    } else {
+      try { const saved = localStorage.getItem('nisit-referral-pending'); if (saved) setInput(saved) } catch {}
+    }
+  }, [])
+  const claim = async () => {
+    if (!/^[A-Z0-9]{10,20}$/.test(input.trim().toUpperCase()) || busy) return
+    setBusy(true); setMessage('')
+    try {
+      const { error } = await supabase.rpc('nm_claim_referral', { p_code: input.trim().toUpperCase() })
+      if (error) throw error
+      setMessage('บันทึกคำเชิญแล้ว รอการตรวจสอบอีเมลมหาวิทยาลัยเพื่อรับรางวัล')
+      try { localStorage.removeItem('nisit-referral-pending') } catch {}
+    } catch (error) { setMessage(error?.message || 'บันทึกรหัสไม่สำเร็จ') }
+    finally { setBusy(false) }
+  }
+  const link = code ? window.location.origin + '/?ref=' + encodeURIComponent(code) : ''
+  return <section className="v76-premium-hero" style={{marginTop:20,textAlign:'left',padding:24}}>
+    <h2 style={{marginBottom:8}}>🎁 ชวนเพื่อน รับ Premium ฟรี</h2>
+    <p>เพื่อนยืนยันอีเมลมหาวิทยาลัยสำเร็จ คนชวนรับ 7 วัน เพื่อนรับ 3 วัน</p>
+    {code && <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginTop:16}}>
+      <strong style={{letterSpacing:2}}>{code}</strong>
+      <button type="button" className="v76-secondary-link" onClick={async () => { try { await navigator.clipboard.writeText(link); setMessage('คัดลอกลิงก์แล้ว') } catch { setMessage(link) } }}>คัดลอกลิงก์เชิญ</button>
+    </div>}
+    <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
+      <input aria-label="รหัสชวนเพื่อน" placeholder="กรอกรหัสที่เพื่อนส่งมา" value={input} onChange={e=>setInput(e.target.value.toUpperCase())} maxLength={20} style={{flex:'1 1 180px',minWidth:0,padding:12,borderRadius:12}} />
+      <button type="button" className="v76-secondary-link" disabled={busy || !/^[A-Z0-9]{10,20}$/.test(input.trim())} onClick={claim}>{busy ? 'กำลังบันทึก...' : 'ใช้รหัสเชิญ'}</button>
+    </div>
+    {message && <p role="status" style={{marginTop:12}}>{message}</p>}
+    <small>ระบบจะให้รางวัลหลังตรวจสอบสิทธิ์จากเซิร์ฟเวอร์เท่านั้น</small>
+  </section>
+}
+
 function PremiumPage({ user, onGoVisitors }) {
   const [status, setStatus] = useState(null)
   useEffect(() => {
@@ -2712,6 +2764,7 @@ function PremiumPage({ user, onGoVisitors }) {
       <p>ฟีเจอร์ Premium กำลังเตรียมเปิดให้บริการ ขณะนี้ยังไม่สามารถสมัครหรือชำระเงินได้</p>
       <div className="nm-coming-soon-pill"><Sparkles size={17}/> เร็ว ๆ นี้ <Sparkles size={17}/></div>
     </div>
+    <ReferralPanel user={user} />
     <div className="v76-premium-features">
       <div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div>
       <div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div>
