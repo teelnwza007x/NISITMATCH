@@ -3734,7 +3734,8 @@ const loadMatches = useCallback(async () => {
     loadProfile()
     loadUnread()
   }, [userId, loadProfile, loadUnread])
-  useEffect(() => { if (profile) loadMatches() }, [profile, loadMatches])
+  // Match list depends on account identity, not profile object refreshes.
+  useEffect(() => { if (profile?.id) loadMatches() }, [profile?.id, loadMatches])
   useEffect(() => {
     if (!profile || !discoveryReady || !discovery) return
     // Discard a deck loaded for older preferences before requesting new matches.
