@@ -3589,3 +3589,25 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .pref-uni-chips button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pref-uni-picker .pref-uni-list{margin-top:0;max-height:260px;overflow-y:auto;overscroll-behavior:contain}
 .pref-uni-empty{padding:16px;text-align:center;color:#c4b8d0;font-size:13px}
+
+
+/* 8.1 — brighter, clearer university multi-picker in Edit Preferences */
+.pref-uni-picker{padding:14px;border:1px solid rgba(208,169,255,.38);border-radius:22px;background:linear-gradient(145deg,rgba(118,66,182,.23),rgba(67,52,125,.22) 50%,rgba(210,107,194,.12));box-shadow:inset 0 1px rgba(255,255,255,.13),0 12px 36px rgba(19,8,41,.16)}
+.pref-uni-picker .pref-uni-toolbar{gap:10px;margin-bottom:13px}
+.pref-uni-picker .pref-uni-search{background:rgba(255,255,255,.14);border:1px solid rgba(227,197,255,.55);border-radius:15px;color:#fff;box-shadow:inset 0 1px rgba(255,255,255,.1);min-height:46px}
+.pref-uni-picker .pref-uni-search:focus-within{background:rgba(255,255,255,.19);border-color:#e6b6ff;box-shadow:0 0 0 3px rgba(210,143,255,.22)}
+.pref-uni-picker .pref-uni-search input::placeholder{color:#d9cce9}
+.pref-uni-picker .pref-uni-count{color:#fff;background:linear-gradient(120deg,#9457da,#c36bc6);padding:9px 12px;border-radius:999px;box-shadow:0 3px 14px rgba(116,53,180,.24)}
+.pref-uni-picker .pref-uni-selected{background:rgba(180,111,233,.19);border:1px solid rgba(220,175,255,.43);border-radius:16px;margin-bottom:12px}
+.pref-uni-picker .pref-uni-selected-head{color:#fff}
+.pref-uni-picker .pref-uni-selected-head button{color:#ffdbf7;font-weight:700}
+.pref-uni-picker .pref-uni-chips button{background:rgba(185,114,235,.29);border:1px solid rgba(230,193,255,.54);color:#fff;border-radius:999px;padding:9px 12px}
+.pref-uni-picker .pref-uni-list{display:grid;gap:8px;padding:3px 3px 5px;max-height:310px}
+.pref-uni-picker .pref-uni-list>button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:50px;padding:12px 14px;border:1px solid rgba(219,195,248,.27);border-radius:14px;background:rgba(255,255,255,.11);color:#fff;text-align:left;font-weight:600;line-height:1.4;transition:background .18s,border-color .18s,transform .18s;cursor:pointer}
+.pref-uni-picker .pref-uni-list>button:hover{background:rgba(214,165,255,.23);border-color:rgba(238,203,255,.6)}
+.pref-uni-picker .pref-uni-list>button:focus-visible{outline:3px solid #e9bbff;outline-offset:2px}
+.pref-uni-picker .pref-uni-list>button.is-active{background:linear-gradient(115deg,rgba(159,88,230,.52),rgba(222,111,196,.36));border-color:#e9baff;box-shadow:inset 0 1px rgba(255,255,255,.17)}
+.pref-uni-picker .pref-uni-check{display:grid;place-items:center;flex:0 0 23px;width:23px;height:23px;border-radius:8px;border:1.5px solid rgba(234,209,255,.7);background:rgba(255,255,255,.11)}
+.pref-uni-picker .is-active .pref-uni-check{background:#f4dcff;color:#7037b1;border-color:#f4dcff}
+@media(max-width:480px){.pref-uni-picker{padding:11px;border-radius:17px}.pref-uni-picker .pref-uni-toolbar{flex-wrap:wrap}.pref-uni-picker .pref-uni-search{flex:1 1 100%}.pref-uni-picker .pref-uni-count{font-size:11px}.pref-uni-picker .pref-uni-list>button{min-height:54px}}
+@media(prefers-reduced-motion:reduce){.pref-uni-picker .pref-uni-list>button{transition:none}}
