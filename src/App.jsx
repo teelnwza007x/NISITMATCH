@@ -2771,12 +2771,22 @@ function AdminDashboard({ onBack }) {
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
-    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "premium" ? "is-active" : ""} onClick={() => setAdminTab("premium")}>สมาชิก Premium</button><button type="button" className={adminTab === "alerts" ? "is-active" : ""} onClick={() => setAdminTab("alerts")}>แจ้งเตือนแอดมิน</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button><button type="button" className={adminTab === 'profiles' ? 'is-active' : ''} onClick={() => setAdminTab('profiles')}>โปรไฟล์สมาชิก</button><button type="button" className={adminTab === 'hangouts' ? 'is-active' : ''} onClick={() => setAdminTab('hangouts')}>ห้อง Hangout</button></nav>
+    <div className="nm-admin-navigation" style={{display:'grid',gap:12,marginBottom:20}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><strong style={{fontSize:17}}>ศูนย์จัดการระบบ</strong><p style={{margin:'4px 0 0',fontSize:13,opacity:.7}}>เลือกงานที่ต้องการจัดการได้จากหมวดด้านล่าง</p></div><span style={{fontSize:12,opacity:.65}}>สำหรับผู้ดูแลระบบ</span></div>
+      <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ" style={{display:'flex',flexWrap:'wrap',gap:8}}>
+        {[['overview','ภาพรวม'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','ห้อง Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
+      </nav>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('alerts')}>ตรวจคำขอมหาวิทยาลัย <ArrowRight size={15}/></button>
+        <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('profiles')}>ค้นหาสมาชิก <ArrowRight size={15}/></button>
+      </div>
+    </div>
     {adminTab === 'premium' && <AdminPremiumDirectory/>}
     {adminTab === 'alerts' && <AdminAlerts/>}
     {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
     {adminTab === 'hangouts' && <AdminDirectory kind="hangouts"/>}
     {adminTab === "email" && <EmailCenter />}
+    {adminTab === 'overview' && <details style={{margin:'0 0 16px',padding:'12px 16px',border:'1px solid #ffffff24',borderRadius:14}}><summary style={{cursor:'pointer',fontWeight:600}}>การชำระเงิน (ปิดชั่วคราว)</summary><p style={{fontSize:13,opacity:.75}}>ระบบชำระเงินยังไม่เปิดให้บริการ</p></details>}
     {adminTab === "payments" && <div role="status" style={{padding:24,borderRadius:16,background:"#251b30",color:"#e6d8ed"}}><h3>ระบบชำระเงินปิดให้บริการชั่วคราว</h3><p>ยังไม่เปิดรับชำระเงินผ่าน PromptPay หรือช่องทางอื่น ข้อมูลการชำระเงินเดิมยังคงอยู่</p></div>}
     {adminTab === "overview" && <div className="nm-admin-overview">
     <button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{busy ? 'กำลังรีเฟรช…' : '↻ รีเฟรชข้อมูล'}</button>
