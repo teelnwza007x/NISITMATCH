@@ -28,5 +28,6 @@ export default function EmailCenter(){
   {error&&<p role="alert" style={{color:'#ff9696'}}>{error}</p>}
   <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:13}}><thead><tr>{['เวลา','ผู้รับ','ประเภท','สถานะ','รายละเอียด'].map(x=><th key={x} style={{padding:10,borderBottom:'1px solid #62456d'}}>{x}</th>)}</tr></thead><tbody>{rows.map(r=><tr key={r.id}>{[date(r.created_at),r.recipient_email,r.email_type,r.status,r.error_message||r.provider_message_id||'—'].map((v,i)=><td key={i} style={{padding:10,borderBottom:'1px solid #49344e',overflowWrap:'anywhere'}}>{v}</td>)}</tr>)}</tbody></table>{!rows.length&&!loading&&<p>ยังไม่มีข้อมูล</p>}</div>
   <div style={{display:'flex',alignItems:'center',gap:12,marginTop:12}}><button type="button" disabled={page===0||loading} onClick={()=>setPage(x=>x-1)}>ก่อนหน้า</button><span>หน้า {page+1} · {total} รายการ</span><button type="button" disabled={(page+1)*25>=total||loading} onClick={()=>setPage(x=>x+1)}>ถัดไป</button></div>
+ </>}
  </section>
 }
