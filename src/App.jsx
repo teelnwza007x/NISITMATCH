@@ -1391,12 +1391,32 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       document.removeEventListener('focusout', sync)
     }
   }, [roomId])
+  const outgoingTyping = useRef(false)
+  const outgoingTypingTimer = useRef(null)
+  useEffect(() => {
+    outgoingTyping.current = false
+    lastTypingSent.current = 0
+    return () => clearTimeout(outgoingTypingTimer.current)
+  }, [roomId])
   const onCompose = (value) => {
     setText(value)
+    clearTimeout(outgoingTypingTimer.current)
+    const active = !!value.trim()
     const now = Date.now()
-    if (roomId && now - lastTypingSent.current > 1200) {
+    const shouldSend = roomId && (active !== outgoingTyping.current || (active && now - lastTypingSent.current > 1200))
+    if (shouldSend) {
+      outgoingTyping.current = active
       lastTypingSent.current = now
-      typingChannel.current?.send({ type: 'broadcast', event: 'typing', payload: { sender: me, typing: !!value.trim() } }).catch(() => {})
+      typingChannel.current?.send({ type: 'broadcast', event: 'typing', payload: { sender: me, typing: active } }).catch(() => {})
+    }
+    if (active && roomId) {
+      const channel = typingChannel.current
+      const targetRoom = roomId
+      outgoingTypingTimer.current = setTimeout(() => {
+        if (!outgoingTyping.current || targetRoom !== roomId) return
+        outgoingTyping.current = false
+        channel?.send({ type: 'broadcast', event: 'typing', payload: { sender: me, typing: false } }).catch(() => {})
+      }, 1800)
     }
   }
   const sendingGuard = useRef(false)
