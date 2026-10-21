@@ -1350,30 +1350,31 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   useEffect(() => {
     if (!roomId || typeof window === 'undefined') { setChatViewport(null); return }
     const viewport = window.visualViewport
-    if (!viewport) return
+    // Fall back to the layout viewport on browsers without VisualViewport.
     // iOS Safari/PWA changes the *visual* viewport during keyboard animation.
     // Re-read it on focus and orientation changes as well as resize/scroll.
     let frame = 0
     const sync = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        const height = Math.max(1, Math.floor(viewport.height))
-        const top = Math.max(0, Math.floor(viewport.offsetTop))
-        const keyboardOpen = viewport.height < window.innerHeight - 100
-        setChatViewport({ height, top, keyboardOpen })
+        const height = Math.max(1, Math.floor(viewport?.height ?? window.innerHeight))
+        const top = Math.max(0, Math.floor(viewport?.offsetTop ?? 0))
+        const keyboardOpen = !!viewport && height < window.innerHeight - 100
+        setChatViewport(prev => prev?.height === height && prev?.top === top && prev?.keyboardOpen === keyboardOpen
+          ? prev : { height, top, keyboardOpen })
       })
     }
     sync()
-    viewport.addEventListener('resize', sync)
-    viewport.addEventListener('scroll', sync)
+    viewport?.addEventListener('resize', sync)
+    viewport?.addEventListener('scroll', sync)
     window.addEventListener('resize', sync)
     window.addEventListener('orientationchange', sync)
     document.addEventListener('focusin', sync)
     document.addEventListener('focusout', sync)
     return () => {
       cancelAnimationFrame(frame)
-      viewport.removeEventListener('resize', sync)
-      viewport.removeEventListener('scroll', sync)
+      viewport?.removeEventListener('resize', sync)
+      viewport?.removeEventListener('scroll', sync)
       window.removeEventListener('resize', sync)
       window.removeEventListener('orientationchange', sync)
       document.removeEventListener('focusin', sync)
