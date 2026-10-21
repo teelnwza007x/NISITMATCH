@@ -1214,7 +1214,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       if (!active) return
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        if (active) { box.scrollTop = box.scrollHeight; stickToBottom.current = true; setShowLatestButton(false) }
+        if (active && !userReadingHistory.current && stickToBottom.current) { box.scrollTop = box.scrollHeight; setShowLatestButton(false) }
       })
     }
     pin()
@@ -1246,7 +1246,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const keepBottom = () => {
       if (!stickToBottom.current || userReadingHistory.current) return
       cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => { if (stickToBottom.current && !userReadingHistory.current) box.scrollTo({ top: box.scrollHeight, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }) })
+      frame = requestAnimationFrame(() => { if (stickToBottom.current && !userReadingHistory.current) box.scrollTop = box.scrollHeight })
     }
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(keepBottom) : null
     observer?.observe(box)
