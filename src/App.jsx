@@ -1,4 +1,5 @@
 import AdminPremiumDirectory from './components/AdminPremiumDirectory'
+import AdminAlerts from './components/AdminAlerts'
 import './dailyRewards.css'
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
@@ -2754,13 +2755,14 @@ function AdminDashboard({ onBack }) {
     else { setGrowth(null); setGrowthError('ยังไม่ได้ติดตั้ง SQL nm_admin_growth_v2.sql หรือไม่มีสิทธิ์เข้าถึง') }
     setBusy(false)
   }, [])
-  useEffect(() => { reload(); return () => { reloadSequence.current += 1 } }, [reload])
+  useEffect(() => { if (adminTab === 'overview') reload(); return () => { reloadSequence.current += 1 } }, [reload, adminTab])
   const growthMax = Math.max(1,...(growth || []).flatMap(d=>[Number(d.new_profiles)||0,Number(d.new_matches)||0]))
   return <section className="nm-admin-dashboard">
     <div className="nm-admin-topbar"><button type="button" className="nm-admin-back" onClick={onBack}><ArrowLeft size={18}/> <span>กลับไปตั้งค่า</span></button></div>
     <Heading kicker="ADMIN ONLY" title="Admin Dashboard" sub="สถิติและคิวรายงานสำหรับผู้ดูแลระบบเท่านั้น" />
-    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "premium" ? "is-active" : ""} onClick={() => setAdminTab("premium")}>สมาชิก Premium</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button><button type="button" className={adminTab === 'profiles' ? 'is-active' : ''} onClick={() => setAdminTab('profiles')}>โปรไฟล์สมาชิก</button><button type="button" className={adminTab === 'hangouts' ? 'is-active' : ''} onClick={() => setAdminTab('hangouts')}>ห้อง Hangout</button></nav>
+    <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ"><button type="button" className={adminTab === "overview" ? "is-active" : ""} onClick={() => setAdminTab("overview")}>ภาพรวม</button><button type="button" className={adminTab === "premium" ? "is-active" : ""} onClick={() => setAdminTab("premium")}>สมาชิก Premium</button><button type="button" className={adminTab === "alerts" ? "is-active" : ""} onClick={() => setAdminTab("alerts")}>แจ้งเตือนแอดมิน</button><button type="button" className={adminTab === "email" ? "is-active" : ""} onClick={() => setAdminTab("email")}>Email Center</button><button type="button" className={adminTab === "payments" ? "is-active" : ""} onClick={() => setAdminTab("payments")}>การชำระเงิน (ปิดชั่วคราว)</button><button type="button" className={adminTab === 'profiles' ? 'is-active' : ''} onClick={() => setAdminTab('profiles')}>โปรไฟล์สมาชิก</button><button type="button" className={adminTab === 'hangouts' ? 'is-active' : ''} onClick={() => setAdminTab('hangouts')}>ห้อง Hangout</button></nav>
     {adminTab === 'premium' && <AdminPremiumDirectory/>}
+    {adminTab === 'alerts' && <AdminAlerts/>}
     {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
     {adminTab === 'hangouts' && <AdminDirectory kind="hangouts"/>}
     {adminTab === "email" && <EmailCenter />}
