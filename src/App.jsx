@@ -2584,6 +2584,62 @@ function AdminDashboard({ onBack }) {
   </section>
 }
 
+function DailyRewardsAndSafety({ user, notify }) {
+  const [status, setStatus] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [blocked, setBlocked] = useState([])
+  const [safetyBusy, setSafetyBusy] = useState(false)
+  const [safetyOpen, setSafetyOpen] = useState(false)
+  const refreshRewards = useCallback(async () => {
+    const { data, error } = await supabase.rpc('nm_daily_status')
+    if (!error) setStatus(data)
+  }, [])
+  const refreshBlocked = useCallback(async () => {
+    const { data, error } = await supabase.from('blocks').select('blocked').eq('blocker', user.id)
+    if (!error) setBlocked(data || [])
+  }, [user.id])
+  useEffect(() => { refreshRewards() }, [refreshRewards])
+  useEffect(() => { if (safetyOpen) refreshBlocked() }, [safetyOpen, refreshBlocked])
+  const claim = async () => {
+    if (loading || status?.today_claimed) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('nm_daily_claim')
+      if (error) throw error
+      if (data?.status) setStatus(data.status)
+      notify(data?.claimed ? 'เช็กอินสำเร็จ! ได้รับ ' + data.earned_points + ' แต้ม' : 'วันนี้คุณเช็กอินแล้ว')
+    } catch (error) { notify('ยังเช็กอินไม่ได้ กรุณาติดตั้ง SQL nm_daily_rewards_v1.sql: ' + error.message) }
+    finally { setLoading(false) }
+  }
+  const unblock = async id => {
+    if (safetyBusy || !window.confirm('ต้องการปลดบล็อกบัญชีนี้ใช่ไหม?')) return
+    setSafetyBusy(true)
+    const { error } = await supabase.from('blocks').delete().eq('blocker', user.id).eq('blocked', id)
+    setSafetyBusy(false)
+    if (error) notify('ปลดบล็อกไม่สำเร็จ: ' + error.message)
+    else { notify('ปลดบล็อกแล้ว'); refreshBlocked() }
+  }
+  return <div style={{display:'grid',gap:16,margin:'20px 0'}}>
+    <section style={{padding:20,borderRadius:20,background:'linear-gradient(135deg,#382044,#211a35)',color:'#fff',border:'1px solid #6c3b6b'}}>
+      <span style={{fontSize:12,letterSpacing:2,color:'#f4a6ce'}}>DAILY REWARDS</span>
+      <h3 style={{margin:'8px 0'}}>🎁 เช็กอินรับแต้มทุกวัน</h3>
+      <p style={{opacity:.8,fontSize:13}}>สะสมวันต่อเนื่อง รับ 10 แต้มต่อวัน วันที่ 3 ได้ 15 แต้ม และวันที่ 7 ได้ 30 แต้ม (ยังแลก Premium ไม่ได้)</p>
+      <div style={{display:'flex',gap:16,marginBottom:14}}><strong>🔥 {status?.streak ?? '—'} วัน</strong><strong>✨ {status?.total_points ?? '—'} แต้ม</strong></div>
+      <button type="button" className="btn btn-primary" onClick={claim} disabled={loading || !status || status.today_claimed}>{loading ? 'กำลังรับ...' : status?.today_claimed ? 'รับรางวัลวันนี้แล้ว ✓' : 'รับแต้มวันนี้'}</button>
+      {!status && <p style={{fontSize:12}}>หากยังไม่แสดงแต้ม กรุณาติดตั้ง SQL Daily Rewards ก่อน</p>}
+    </section>
+    <section style={{padding:20,borderRadius:20,background:'var(--card-bg,rgba(255,255,255,.05))',border:'1px solid rgba(255,255,255,.13)'}}>
+      <h3 style={{margin:'0 0 8px'}}>🛡️ Safety Center</h3>
+      <p style={{fontSize:13,opacity:.8}}>บล็อกหรือรายงานบุคคลได้จากเมนูในหน้าโปรไฟล์และห้องแชต อย่าแชร์รหัสผ่านหรือโอนเงินให้คนที่เพิ่งรู้จัก</p>
+      <button type="button" className="btn btn-ghost" onClick={() => setSafetyOpen(x => !x)}>{safetyOpen ? 'ซ่อนบัญชีที่บล็อก' : 'จัดการบัญชีที่บล็อก'}</button>
+      {safetyOpen && <div style={{marginTop:12,display:'grid',gap:8}}>
+        {!blocked.length && <p style={{fontSize:13}}>ไม่มีบัญชีที่บล็อก หรือยังโหลดรายการไม่ได้</p>}
+        {blocked.map(item => <div key={item.blocked} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,overflowWrap:'anywhere'}}><small>{item.blocked}</small><button type="button" className="btn btn-ghost" disabled={safetyBusy} onClick={() => unblock(item.blocked)}>ปลดบล็อก</button></div>)}
+      </div>}
+    </section>
+  </div>
+}
+
 function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem(THEME_KEY) || 'midnight' } catch { return 'midnight' }
@@ -2675,6 +2731,7 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
+    <DailyRewardsAndSafety user={user} notify={notify} />
     <section className="nm-settings-install" aria-label="ติดตั้งแอป NISIT MATCH"><div className="nm-settings-install-symbol"><Globe2 size={25}/></div><div className="nm-settings-install-copy"><span className="theme-kicker">INSTALL THE APP</span><h3>ติดตั้ง NISIT MATCH</h3><p>{isInstalled ? 'กำลังใช้งานผ่านแอปที่ติดตั้งแล้ว' : 'เพิ่มแอปลงหน้าจอโฮม เปิดใช้งานง่าย ไม่ต้องค้นหาเว็บไซต์'}</p></div><button type="button" className="nm-settings-install-action" onClick={onInstall} disabled={isInstalled}>{isInstalled ? <><Check size={16}/> ติดตั้งแล้ว</> : <>ติดตั้งแอป <ArrowRight size={17}/></>}</button></section>
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
