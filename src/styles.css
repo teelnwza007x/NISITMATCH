@@ -3611,3 +3611,14 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .pref-uni-picker .is-active .pref-uni-check{background:#f4dcff;color:#7037b1;border-color:#f4dcff}
 @media(max-width:480px){.pref-uni-picker{padding:11px;border-radius:17px}.pref-uni-picker .pref-uni-toolbar{flex-wrap:wrap}.pref-uni-picker .pref-uni-search{flex:1 1 100%}.pref-uni-picker .pref-uni-count{font-size:11px}.pref-uni-picker .pref-uni-list>button{min-height:54px}}
 @media(prefers-reduced-motion:reduce){.pref-uni-picker .pref-uni-list>button{transition:none}}
+
+/* Google OAuth login / signup */
+.nm-google-auth{margin:18px 0 10px}
+.nm-google-auth-divider{display:flex;align-items:center;gap:12px;margin-bottom:14px;color:var(--text-muted,#aaa0b7);font-size:12px;text-align:center}
+.nm-google-auth-divider::before,.nm-google-auth-divider::after{content:"";height:1px;flex:1;background:var(--border,rgba(255,255,255,.15))}
+.nm-google-auth-button{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:49px;padding:12px 18px;border:1px solid #e5e7eb;border-radius:13px;background:#fff;color:#202124;font:inherit;font-weight:650;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+.nm-google-auth-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.nm-google-auth-button:focus-visible{outline:3px solid #a78bfa;outline-offset:3px}
+.nm-google-auth-button:disabled{opacity:.65;cursor:wait}
+.nm-google-auth-button svg{flex:none}
+@media(prefers-reduced-motion:reduce){.nm-google-auth-button{transition:none}}
