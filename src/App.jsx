@@ -3101,6 +3101,7 @@ function TapSoundVideo({ className, src, label, onPointerDown, onPointerUp, ...r
   const [soundOn, setSoundOn] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const feedbackTimer = useRef(null)
+  const tapOrigin = useRef(null)
   useEffect(() => { setSoundOn(false); setShowFeedback(false); if (videoRef.current) videoRef.current.muted = true }, [src])
   useEffect(() => () => window.clearTimeout(feedbackTimer.current), [])
   const toggleSound = e => {
@@ -3116,7 +3117,7 @@ function TapSoundVideo({ className, src, label, onPointerDown, onPointerUp, ...r
     if (video.paused) video.play().catch(() => {})
   }
   return <div className="nm-tap-sound-wrap" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-    <video {...rest} ref={videoRef} className={className} src={src} muted playsInline loop autoPlay preload="metadata" onCanPlay={e => { const p = e.currentTarget.play(); if (p?.catch) p.catch(() => {}) }} aria-label={label} controls={false} onClick={toggleSound}/>
+    <video {...rest} ref={videoRef} className={className} src={src} muted playsInline loop autoPlay preload="metadata" onCanPlay={e => { const p = e.currentTarget.play(); if (p?.catch) p.catch(() => {}) }} aria-label={label} controls={false} onPointerDown={e => { tapOrigin.current = { x: e.clientX, y: e.clientY, id: e.pointerId }; onPointerDown?.(e) }} onPointerUp={e => { const origin = tapOrigin.current; tapOrigin.current = null; if (origin?.id === e.pointerId && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) < 12) toggleSound(e); onPointerUp?.(e) }} onPointerCancel={() => { tapOrigin.current = null }} onClick={e => e.stopPropagation()}/>
     {showFeedback && <span className="nm-tap-sound-feedback" aria-hidden="true" key={soundOn ? "sound-on" : "sound-off"}>{soundOn ? <Volume2 size={30} strokeWidth={1.8}/> : <VolumeX size={30} strokeWidth={1.8}/>}</span>}
   </div>
 }
