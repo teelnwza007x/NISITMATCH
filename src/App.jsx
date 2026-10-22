@@ -14,6 +14,17 @@ import { supabase } from './supabase'
 const PREMIUM_STATUS_TTL_MS = 2 * 60 * 1000
 const premiumStatusCache = new Map()
 const premiumStatusRequests = new Map()
+const PREMIUM_MAX_CONCURRENT = 6
+let premiumActiveRequests = 0
+const premiumRequestQueue = []
+const withPremiumRequestSlot = async task => {
+  if (premiumActiveRequests >= PREMIUM_MAX_CONCURRENT) await new Promise(resolve => premiumRequestQueue.push(resolve))
+  premiumActiveRequests++
+  try { return await task() } finally {
+    premiumActiveRequests--
+    premiumRequestQueue.shift()?.()
+  }
+}
 const getPublicPremiumStatus = async (profileId) => {
   const cached = premiumStatusCache.get(profileId)
   if (cached && cached.expiresAt > Date.now()) return cached.value
@@ -21,7 +32,7 @@ const getPublicPremiumStatus = async (profileId) => {
   if (pending) return pending
   const request = (async () => {
     try {
-      const { data, error } = await supabase.rpc('is_profile_premium', { p_profile_id: profileId })
+      const { data, error } = await withPremiumRequestSlot(() => supabase.rpc('is_profile_premium', { p_profile_id: profileId }))
       if (error) return null
       const value = data === true
       premiumStatusCache.set(profileId, { value, expiresAt: Date.now() + PREMIUM_STATUS_TTL_MS })
@@ -4315,7 +4326,7 @@ const loadMatches = useCallback(async () => {
   }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
   // Public Premium status for swipe cards: use a short cache so advancing the deck
   // does not re-query the same profile IDs over and over.
-  const premiumCandidateKey = (people || []).map(p => p.id).filter(Boolean).join('|')
+  const premiumCandidateKey = (people || []).slice(0, 40).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
     if (!premiumCandidateKey) return
     let active = true
@@ -4326,7 +4337,16 @@ const loadMatches = useCallback(async () => {
     })).then(results => {
       if (!active) return
       const status = new Map(results.filter(Boolean))
-      setPeople(current => (current || []).map(person => status.has(person.id) ? { ...person, is_premium: status.get(person.id) } : person))
+      setPeople(current => {
+        if (!current) return current
+        let changed = false
+        const updated = current.map(person => {
+          if (!status.has(person.id) || person.is_premium === status.get(person.id)) return person
+          changed = true
+          return { ...person, is_premium: status.get(person.id) }
+        })
+        return changed ? updated : current
+      })
     })
     return () => { active = false }
   }, [premiumCandidateKey])
