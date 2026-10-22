@@ -4065,3 +4065,33 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nm-bell-glow{0%,16%,100%{box-shadow:0 4px 16px rgba(0,0,0,.14)}8%{box-shadow:0 0 20px rgba(250,103,182,.48)}}
 @keyframes nm-bell-halo{0%,4%,17%,100%{opacity:0;transform:scale(.95)}8%{opacity:1;transform:scale(1.12)}}
 @media(prefers-reduced-motion:reduce){.nm-notification-bell-unread,.nm-notification-bell-unread::before,.nm-notification-bell-unread>svg{animation:none!important}}
+
+
+/* Unread notification bells: gentle attention without distracting motion. */
+@keyframes nm-unread-bell-swing{
+  0%,4%,18%,100%{transform:rotate(0)}
+  6%{transform:rotate(-13deg)}
+  9%{transform:rotate(12deg)}
+  12%{transform:rotate(-8deg)}
+  15%{transform:rotate(5deg)}
+}
+@keyframes nm-unread-bell-dot{
+  0%,4%,18%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,104,171,0)}
+  9%{transform:scale(1.15);box-shadow:0 0 0 5px rgba(255,104,171,.14)}
+}
+.bottom-nav-item.has-unread-notifications .bottom-icon svg,
+.nav-item.has-unread-notifications > svg{
+  animation:nm-unread-bell-swing 4.2s ease-in-out infinite;
+  transform-origin:50% 12%;
+  color:#ff8dc4;
+}
+.bottom-nav-item.has-unread-notifications .bottom-dot,
+.nav-item.has-unread-notifications .nav-count{
+  animation:nm-unread-bell-dot 4.2s ease-in-out infinite;
+}
+@media(prefers-reduced-motion:reduce){
+  .bottom-nav-item.has-unread-notifications .bottom-icon svg,
+  .nav-item.has-unread-notifications > svg,
+  .bottom-nav-item.has-unread-notifications .bottom-dot,
+  .nav-item.has-unread-notifications .nav-count{animation:none!important}
+}
