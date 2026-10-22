@@ -4933,3 +4933,27 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nmAvailableBreath {0%,100%{box-shadow:inset 0 1px rgba(255,255,255,.2),0 3px 13px rgba(190,106,222,.22),0 0 13px rgba(255,206,128,.12)}50%{box-shadow:inset 0 1px rgba(255,255,255,.26),0 3px 16px rgba(190,106,222,.3),0 0 19px rgba(255,206,128,.23)}}
 @keyframes nmAvailableTwinkle {0%,100%{opacity:.3;transform:scale(.65) rotate(-20deg)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
 @media(prefers-reduced-motion:reduce){.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill,.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill::before,.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill::after{animation:none!important}}
+
+/* Discovery Premium button: sparkles contained inside the rounded frame. */
+.nm-discover-actions .nm-discover-premium {
+  position:relative; isolation:isolate; overflow:hidden;
+  border:1px solid rgba(249,210,133,.55);
+  background:linear-gradient(120deg,rgba(73,43,72,.93),rgba(92,52,107,.95),rgba(66,42,77,.93));
+  box-shadow:inset 0 1px rgba(255,255,255,.14),0 0 12px rgba(245,194,102,.13);
+}
+.nm-discover-actions .nm-discover-premium::before {
+  content:"";position:absolute;z-index:-1;inset:-60% auto -60% -55%;width:35%;
+  background:linear-gradient(95deg,transparent,rgba(255,243,197,.06),rgba(255,235,167,.65),transparent);
+  transform:skewX(-22deg);pointer-events:none;animation:nmDiscoverPremiumSweep 4.4s ease-in-out infinite;
+}
+.nm-discover-actions .nm-discover-premium::after {
+  content:"✦";position:absolute;right:6px;top:2px;font-size:8px;line-height:1;color:#fff0b5;
+  text-shadow:0 0 6px rgba(255,217,124,.9);pointer-events:none;animation:nmDiscoverPremiumStar 2.7s ease-in-out infinite;
+}
+.nm-discover-actions .nm-discover-premium .nm-discover-premium-sparkle {
+  color:#ffe6a5;filter:drop-shadow(0 0 4px rgba(255,221,146,.8));
+  animation:nmDiscoverPremiumStar 2.7s ease-in-out infinite .65s;
+}
+@keyframes nmDiscoverPremiumSweep {0%,60%{left:-55%;opacity:0}72%{opacity:.9}92%,100%{left:135%;opacity:0}}
+@keyframes nmDiscoverPremiumStar {0%,100%{opacity:.45;transform:scale(.78) rotate(-12deg)}50%{opacity:1;transform:scale(1.13) rotate(15deg)}}
+@media(prefers-reduced-motion:reduce){.nm-discover-actions .nm-discover-premium::before,.nm-discover-actions .nm-discover-premium::after,.nm-discover-actions .nm-discover-premium .nm-discover-premium-sparkle{animation:none!important}}
