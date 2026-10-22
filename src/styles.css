@@ -3996,3 +3996,14 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-ku-campus-picker select{width:100%;min-height:46px;padding:10px 14px;border-radius:12px;border:1px solid rgba(160,170,190,.3);background:#181b25;color:#fff;font:inherit}
 .nm-ku-campus-picker select:focus-visible{outline:2px solid #d6b76e;outline-offset:2px}
 .nm-ku-campus-picker small{opacity:.7}
+
+/* University campus cards and campus-only discovery filter */
+.nm-ku-campus-picker{background:linear-gradient(140deg,rgba(214,183,110,.10),rgba(255,255,255,.025));border-color:rgba(214,183,110,.3)}
+.nm-ku-campus-picker select{transition:border-color .2s ease,box-shadow .2s ease}
+.nm-ku-campus-picker select:focus{border-color:#d6b76e;box-shadow:0 0 0 3px rgba(214,183,110,.12)}
+.nm-campus-filter{display:flex;flex-direction:column;gap:6px;margin:14px 0;padding:14px;border:1px solid rgba(214,183,110,.25);border-radius:14px;background:rgba(214,183,110,.06)}
+.nm-campus-filter label{display:flex;align-items:center;gap:10px;font-weight:650;cursor:pointer}
+.nm-campus-filter input{accent-color:#d6b76e;width:19px;height:19px;flex:none}
+.nm-campus-filter small{opacity:.75;font-size:12px;line-height:1.5}
+@media(max-width:480px){.nm-ku-campus-picker,.nm-campus-filter{padding:12px;margin:12px 0}.nm-ku-campus-picker select{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.nm-ku-campus-picker select{transition:none}}
