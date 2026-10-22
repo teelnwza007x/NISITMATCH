@@ -3575,38 +3575,111 @@ function ReferralPanel({ user }) {
 
 function PremiumPage({ user, onGoVisitors }) {
   const [status, setStatus] = useState(null)
-  useEffect(() => {
-    let active = true
-    supabase.from('premium_subscriptions').select('plan,status,ends_at').eq('user_id', user.id).maybeSingle()
-      .then(({ data, error }) => { if (active && !error) setStatus(data) })
-      .catch(() => {})
-    return () => { active = false }
+  const [plan, setPlan] = useState('weekly')
+  const [slipFile, setSlipFile] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('info')
+  const [showPayment, setShowPayment] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const loadStatus = useCallback(async () => {
+    const { data, error } = await supabase.from('premium_subscriptions')
+      .select('plan,status,ends_at').eq('user_id', user.id).maybeSingle()
+    if (!error) setStatus(data)
   }, [user.id])
 
+  useEffect(() => { loadStatus() }, [loadStatus])
+
   const activePlan = status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date()
+  const submitSlip = async () => {
+    if (!slipFile) {
+      setMessage('กรุณาเลือกรูปสลิปก่อนส่งตรวจสอบ')
+      setMessageType('error')
+      return
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(slipFile.type)) {
+      setMessage('รองรับไฟล์ JPG, PNG, WEBP หรือ GIF เท่านั้น')
+      setMessageType('error')
+      return
+    }
+    if (slipFile.size > 4 * 1024 * 1024) {
+      setMessage('ไฟล์สลิปต้องมีขนาดไม่เกิน 4 MB')
+      setMessageType('error')
+      return
+    }
+    setBusy(true)
+    setMessage('กำลังตรวจสอบสลิปกับระบบ กรุณาอย่าปิดหน้านี้')
+    setMessageType('info')
+    try {
+      const form = new FormData()
+      form.append('image', slipFile, slipFile.name)
+      form.append('plan', plan)
+      const { data, error } = await supabase.functions.invoke('thunder-verify-slip', { body: form })
+      if (error) throw error
+      if (!data?.verified || !data?.activated) {
+        throw new Error(data?.error || 'ตรวจสอบสลิปไม่ผ่าน กรุณาตรวจยอดเงินและรูปสลิป')
+      }
+      setSlipFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      setMessage(data.message || 'ตรวจสอบสำเร็จ')
+      setMessageType('success')
+      await loadStatus()
+    } catch (error) {
+      setMessage(error?.message || 'ส่งตรวจสอบไม่สำเร็จ กรุณาลองใหม่')
+      setMessageType('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const selectedAmount = plan === 'weekly' ? 39 : 119
+  const selectedDuration = plan === 'weekly' ? '7 วัน' : '30 วัน'
   return <div className="v76-page nm-coming-soon-page nm-premium-clean">
     <header className="nm-premium-page-heading">
       <span className="nm-premium-page-kicker">NISIT MATCH <i /> PREMIUM</span>
-      <h1>สิทธิพิเศษที่กำลังจะมา</h1>
-      <p>ประสบการณ์ทำความรู้จักที่พิเศษกว่าเดิม ในแบบของคุณ</p>
+      <h1>อัปเกรดเป็น Premium</h1>
+      <p>ปลดล็อกประสบการณ์ทำความรู้จักให้เต็มที่กว่าเดิม</p>
     </header>
     <div className="v76-premium-hero nm-coming-soon-hero nm-premium-hero-clean">
       {activePlan && <div className="nm-premium-active-chip"><Crown size={14}/> ใช้งาน Premium ถึง {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
       <div className="v76-premium-orb"><Crown size={30}/></div>
       <span className="v76-eyebrow">A LITTLE MORE MAGIC</span>
-      <h2>Premium กำลังเตรียมเปิดตัว</h2>
-      <p>ตอนนี้ยังสมัครหรือชำระเงินไม่ได้ เราจะแจ้งให้ทราบเมื่อพร้อมเปิดบริการ</p>
-      <div className="nm-coming-soon-pill"><Sparkles size={15}/> เร็ว ๆ นี้</div>
+      <h2>{activePlan ? 'Premium ของคุณกำลังทำงาน' : 'ให้ทุกการปัดพิเศษกว่าเดิม'}</h2>
+      <p>{activePlan ? 'สิทธิ์ Premium ของคุณเปิดใช้งานอยู่แล้ว' : 'เลือกแพ็กเกจ สแกน QR เพื่อชำระเงิน แล้วส่งสลิปให้ระบบตรวจสอบอัตโนมัติ'}</p>
+      <div className="nm-coming-soon-pill"><Sparkles size={15}/> ปัดได้ไม่จำกัดโควต้า*</div>
     </div>
     <section className="nm-premium-benefits" aria-label="สิทธิพิเศษ Premium">
-      <div className="nm-premium-benefit nm-premium-unlimited"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>ปัดได้ไม่จำกัดโควต้า</b><small>สิทธิพิเศษที่วางแผนไว้สำหรับ Premium เมื่อเปิดให้บริการ</small></span></div>
+      <div className="nm-premium-benefit nm-premium-unlimited"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>ปัดได้ไม่จำกัดโควต้า</b><small>สำหรับสมาชิก Premium เมื่อเปิดใช้งาน</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><HeartHandshake size={19}/></span><span><b>คนที่กดใจคุณ</b><small>รู้ว่าใครสนใจคุณ</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><EyeIcon size={19}/></span><span><b>ผู้เข้าชมโปรไฟล์</b><small>ดูคนที่แวะมาเยี่ยมชม</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>สิทธิพิเศษอื่น ๆ</b><small>ทยอยเปิดให้ใช้ในอนาคต</small></span></div>
     </section>
+    {!activePlan && <section style={{marginTop:18,padding:16,border:'1px solid rgba(244,114,182,.24)',borderRadius:20,background:'linear-gradient(145deg,rgba(42,23,47,.92),rgba(19,16,31,.96))'}}>
+      <h2 style={{margin:'0 0 6px',fontSize:19}}>เลือกแพ็กเกจ Premium</h2>
+      <p style={{margin:'0 0 14px',fontSize:13,opacity:.76}}>ชำระด้วย QR PromptPay แล้วแนบสลิปเพื่อตรวจสอบ</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
+        {[{id:'weekly',amount:39,duration:'7 วัน',label:'รายสัปดาห์'},{id:'monthly',amount:119,duration:'30 วัน',label:'รายเดือน'}].map(item=><button key={item.id} type="button" onClick={()=>{setPlan(item.id);setMessage('')}} aria-pressed={plan===item.id} style={{textAlign:'left',padding:14,borderRadius:16,border:plan===item.id?'1.5px solid #f472b6':'1px solid rgba(255,255,255,.12)',background:plan===item.id?'rgba(190,24,93,.18)':'rgba(255,255,255,.035)',color:'inherit',cursor:'pointer'}}>
+          <span style={{display:'block',fontSize:12,opacity:.75}}>{item.label}</span><strong style={{display:'block',fontSize:25,margin:'4px 0'}}>{item.amount} บาท</strong><span style={{fontSize:12,opacity:.75}}>{item.duration}</span>{plan===item.id&&<span style={{display:'block',fontSize:11,color:'#f9a8d4',marginTop:7}}>✓ เลือกแล้ว</span>}
+        </button>)}
+      </div>
+      <button type="button" onClick={()=>{setShowPayment(v=>!v);setMessage('')}} style={{width:'100%',marginTop:14,padding:'13px 16px',border:0,borderRadius:14,background:'linear-gradient(100deg,#ec4899,#a855f7)',color:'#fff',fontWeight:750,fontSize:15,cursor:'pointer'}}>{showPayment?'ซ่อน QR และแบบฟอร์ม':'แสดง QR เพื่อชำระเงิน · '+selectedAmount+' บาท}</button>
+      {showPayment&&<div style={{marginTop:16,paddingTop:16,borderTop:'1px solid rgba(255,255,255,.1)'}}>
+        <div style={{display:'grid',placeItems:'center',gap:8}}>
+          <img src={plan==='weekly'?'/premium-39.jpg':'/premium-119.jpg'} alt={'QR PromptPay '+selectedAmount+' บาท'} style={{display:'block',width:'min(100%,300px)',aspectRatio:'1/1',objectFit:'contain',background:'#fff',borderRadius:14,padding:8}}/>
+          <strong style={{fontSize:18}}>ยอดชำระ {selectedAmount} บาท</strong>
+          <span style={{fontSize:12,opacity:.75}}>แพ็กเกจ {selectedDuration} · ตรวจสอบชื่อผู้รับก่อนโอนทุกครั้ง</span>
+        </div>
+        <label htmlFor="premium-slip-upload" style={{display:'block',marginTop:18,marginBottom:7,fontSize:13,fontWeight:700}}>แนบสลิปการโอน</label>
+        <input ref={fileInputRef} id="premium-slip-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" disabled={busy} onChange={e=>{setSlipFile(e.target.files?.[0]||null);setMessage('')}} style={{width:'100%',boxSizing:'border-box',padding:11,borderRadius:12,border:'1px solid rgba(255,255,255,.16)',background:'rgba(255,255,255,.04)',color:'inherit'}}/>
+        <p style={{fontSize:12,opacity:.7,margin:'7px 0 12px'}}>รองรับ JPG / PNG / WEBP / GIF ไม่เกิน 4 MB · สลิปซ้ำหรือยอดไม่ตรงจะไม่ผ่าน</p>
+        <button type="button" disabled={busy||!slipFile} onClick={submitSlip} style={{width:'100%',padding:'13px 16px',border:0,borderRadius:14,background:busy||!slipFile?'#51465b':'#db2777',color:'#fff',fontWeight:750,fontSize:15,cursor:busy||!slipFile?'not-allowed':'pointer'}}>{busy?'กำลังตรวจสอบสลิป…':'ส่งสลิปตรวจสอบอัตโนมัติ'}</button>
+      </div>}
+      {message&&<p role="status" aria-live="polite" style={{margin:'12px 0 0',padding:11,borderRadius:12,fontSize:13,background:messageType==='error'?'rgba(239,68,68,.12)':messageType==='success'?'rgba(34,197,94,.12)':'rgba(168,85,247,.12)',color:messageType==='error'?'#fca5a5':messageType==='success'?'#86efac':'#e9d5ff'}}>{message}</p>}
+    </section>}
     <button type="button" className="v76-secondary-link nm-premium-visitors-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูผู้เข้าชมโปรไฟล์</button>
     <ReferralPanel user={user} />
-    <p className="v76-disclaimer">ระบบ Premium ยังไม่เปิดรับชำระเงินในขณะนี้</p>
+    <p className="v76-disclaimer">* สิทธิ์และระยะเวลา Premium จะเปิดใช้งานเมื่อระบบตรวจสอบสลิปสำเร็จเท่านั้น โปรดตรวจชื่อบัญชีผู้รับก่อนชำระเงิน</p>
   </div>
 }
 
