@@ -4160,13 +4160,15 @@ const loadMatches = useCallback(async () => {
     if (error) {
       // A silent refresh must not leave the deck stuck on its initial spinner.
       // Keep existing cards when refreshing in the background.
-      setPeople(current => (silent && current !== null) ? current : [])
+      setPeople(current => ((silent || nextPage) && current !== null) ? current : [])
       if (!silent) notify('ค้นหาสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง')
       return
     }
     setDiscoveryLimited(false)
-    discoveryOffset.current = offset + (data?.length || 0)
-    discoveryHasMore.current = (data?.length || 0) === 30
+    if (!silent) {
+      discoveryOffset.current = offset + (data?.length || 0)
+      discoveryHasMore.current = (data?.length || 0) === 30
+    }
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
     const sessionKey = userId || ''
     if (discoverySession.current !== sessionKey) {
