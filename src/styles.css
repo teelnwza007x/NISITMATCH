@@ -4741,7 +4741,7 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  position:absolute!important;top:50%!important;left:50%!important;
  right:auto!important;bottom:auto!important;margin:0!important;
  width:21px!important;height:21px!important;
- transform:translate(-50%,-50%)!important;
+ transform:translate(-50%,calc(-50% - 2px))!important;
  transform-origin:center!important;vertical-align:middle!important;
 }
 .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control.accept>svg{
