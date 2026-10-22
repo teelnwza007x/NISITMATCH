@@ -3912,3 +3912,30 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .chat-compose .send-btn:focus-visible,.swipe-controls .swipe-control:focus-visible{
   outline:2px solid #dba4ff!important;outline-offset:3px;
 }
+
+
+/* NISIT MATCH mobile performance guardrails.
+   Keep all screens and interactions intact while reducing expensive GPU effects
+   on touch devices (especially iOS Safari/PWA). */
+@media (hover: none) and (pointer: coarse) {
+  *, *::before, *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .glow,
+  .banner-orb,
+  .preview-glow,
+  .match-dialog:before {
+    filter: none !important;
+  }
+  .hero-heart,
+  .sparkle {
+    animation: none !important;
+  }
+  .person-card:hover,
+  .step:hover,
+  .settings-card:hover,
+  .university-option:hover {
+    transform: none !important;
+  }
+}
