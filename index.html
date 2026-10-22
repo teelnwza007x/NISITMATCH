@@ -8,7 +8,7 @@
   <style>
 html,body{margin:0;min-height:100%;background:#110e1b;color:#fff}
 #root{min-height:100vh;min-height:100dvh;background:#110e1b}
-#nm-first-paint{position:fixed;inset:0;z-index:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse 72% 40% at 50% 49%,rgba(130,48,105,.34) 0%,rgba(76,31,81,.18) 44%,transparent 100%),#110e1b;font-family:Kanit,system-ui,sans-serif}
+#nm-first-paint{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden;opacity:1;visibility:visible;transition:opacity .38s ease,visibility .38s ease;background:radial-gradient(ellipse 72% 40% at 50% 49%,rgba(130,48,105,.34) 0%,rgba(76,31,81,.18) 44%,transparent 100%),#110e1b;font-family:Kanit,system-ui,sans-serif}
 #nm-first-paint .nm-boot-center{display:flex;flex-direction:column;align-items:center;width:100%;transform:translateY(-3%);padding:24px;box-sizing:border-box}
 #nm-first-paint .nm-boot-logo-wrap{position:relative;width:120px;height:120px;filter:drop-shadow(0 15px 42px rgba(255,68,150,.22))}
 #nm-first-paint .nm-boot-logo{display:block;width:100%;height:100%;object-fit:contain;border-radius:28px}
@@ -18,7 +18,7 @@ html,body{margin:0;min-height:100%;background:#110e1b;color:#fff}
 #nm-first-paint .nm-boot-tagline{margin:24px 0 0;color:#d7c2d6;font-size:clamp(15px,4.4vw,20px);font-weight:400;letter-spacing:.01em}
 #nm-first-paint .nm-boot-track{margin-top:46px;width:120px;height:4px;border-radius:99px;background:#3d304b;overflow:hidden}
 #nm-first-paint .nm-boot-progress{display:block;width:43%;height:100%;border-radius:99px;background:linear-gradient(90deg,#ff78b3,#a779ef);animation:nm-boot-progress 1.4s ease-in-out infinite alternate}
-#root:not(:empty)+#nm-first-paint{display:none}
+#nm-first-paint.nm-boot-done{opacity:0;visibility:hidden;pointer-events:none}
 @keyframes nm-boot-progress{from{transform:translateX(-100%)}to{transform:translateX(230%)}}
 @keyframes nm-boot-twinkle{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
 @media(prefers-reduced-motion:reduce){#nm-first-paint .nm-boot-progress,#nm-first-paint .nm-boot-sparkle{animation:none}}
@@ -39,5 +39,5 @@ html,body{margin:0;min-height:100%;background:#110e1b;color:#fff}
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 </head>
-<body><div id="root"></div><div id="nm-first-paint" aria-hidden="true"><div class="nm-boot-center"><div class="nm-boot-logo-wrap"><img class="nm-boot-logo" src="/app-icon-source-1024.png" alt="" /><span class="nm-boot-sparkle">✦</span></div><div class="nm-boot-title">NISIT <strong>MATCH</strong></div><p class="nm-boot-tagline">เจอคนใหม่ ๆ ที่เข้าใจกัน</p><div class="nm-boot-track"><span class="nm-boot-progress"></span></div></div></div><script type="module" src="/src/main.jsx"></script></body>
+<body><div id="root"></div><div id="nm-first-paint" aria-hidden="true"><div class="nm-boot-center"><div class="nm-boot-logo-wrap"><img class="nm-boot-logo" src="/nisit-match-logo.png" alt="" /><span class="nm-boot-sparkle">✦</span></div><div class="nm-boot-title">NISIT <strong>MATCH</strong></div><p class="nm-boot-tagline">เจอคนใหม่ ๆ ที่เข้าใจกัน</p><div class="nm-boot-track"><span class="nm-boot-progress"></span></div></div></div><script type="module" src="/src/main.jsx"></script><script>(function(){var splash=document.getElementById("nm-first-paint"),root=document.getElementById("root");function finish(){if(root&&root.childElementCount>0){splash.classList.add("nm-boot-done");setTimeout(function(){splash.remove()},450)}else{var obs=new MutationObserver(function(){if(root.childElementCount>0){obs.disconnect();finish()}});obs.observe(root,{childList:true})}}setTimeout(finish,2000)})();</script></body>
 </html>
