@@ -4125,3 +4125,34 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   .chat-layout.chat-inbox-open .nm-inbox-head .nm-inbox-count,
   .nm-inbox-head .nm-inbox-count{font-size:15px!important}
 }
+
+
+/* NISIT MATCH polish pack: chat, match, discovery, notifications, profile, accessibility. */
+/* Chat: animate only newly painted content, never the entire scrolling pane. */
+@keyframes nm-chat-arrive{from{opacity:0;transform:translateY(7px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+.chat-window .chat-message:last-child,.chat-window .message-row:last-child{animation:nm-chat-arrive .23s cubic-bezier(.2,.8,.2,1) both}
+.typing-dots i,.hangout-typing-dots i{will-change:transform,opacity}
+.chat-person{transition:background-color .18s ease,border-color .18s ease,transform .18s ease}
+@media(hover:hover){.chat-person:hover{transform:translateY(-1px)}}
+/* Match: extra depth on existing success art, no new effects or timers. */
+.v26-match-dialog{isolation:isolate}
+.v67-match-crown{filter:drop-shadow(0 7px 22px rgba(255,93,171,.34))}
+.v26-match-dialog .match-close:focus-visible{outline:2px solid #ffd5eb;outline-offset:3px}
+/* Swipe: smoother compositing and visible keyboard focus. */
+.swipe-front{backface-visibility:hidden;transform-style:preserve-3d}
+.swipe-stage button:focus-visible{outline:2px solid #ff9acb;outline-offset:3px}
+/* Notification center: dated sections and clearer unread rows. */
+.nm-notif-date-heading{font-size:12px;font-weight:700;letter-spacing:0;line-height:1.5;color:#d4c3d6;padding:13px 5px 3px}
+.nm-notif-date-heading:first-child{padding-top:3px}
+.notif-row{transition:border-color .2s ease,background-color .2s ease,transform .2s ease}
+.notif-row.unread{background:linear-gradient(125deg,rgba(242,86,164,.13),rgba(17,22,35,.95));box-shadow:inset 3px 0 0 rgba(255,111,183,.8)}
+@media(hover:hover){.notif-row:hover{transform:translateY(-1px)}}
+/* Profile: image and action clarity without changing the data flow. */
+.profile-page img,.profile-edit-layout img{backface-visibility:hidden}
+.profile-page button:focus-visible,.profile-edit-layout button:focus-visible{outline:2px solid #ffa6d1;outline-offset:3px}
+/* Performance and motion accessibility. */
+@media(prefers-reduced-motion:reduce){
+ .chat-window .chat-message:last-child,.chat-window .message-row:last-child{animation:none!important}
+ .chat-person,.notif-row{transition:none!important}
+ .chat-person:hover,.notif-row:hover{transform:none!important}
+}
