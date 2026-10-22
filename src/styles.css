@@ -4371,3 +4371,41 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .nm-discover-header *::before,
  .app-shell.home-swipe-locked .nm-discover-header *::after{animation:none!important;transition:none!important}
 }
+
+/* Cross-page crisp top edge: remove translucent glass layer over content. */
+.topbar{background:var(--theme-bg,#0b101b)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;box-shadow:none!important}
+.topbar::before,.topbar::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important}
+@media(max-width:700px){
+ body::before,body::after{display:none!important;animation:none!important;filter:none!important}
+ .app-shell.home-swipe-locked .page-content{padding-top:calc(14px + env(safe-area-inset-top,0px))!important}
+ .app-shell.home-swipe-locked .nm-discover-header{margin-bottom:8px!important}
+ .app-shell.home-swipe-locked .nm-discover-notifications{
+  color:#f8d8ec!important;background:#2b1d34!important;border:1px solid #815172!important;
+  box-shadow:none!important;outline:none!important;filter:none!important
+ }
+ .app-shell.home-swipe-locked .nm-discover-notifications svg{color:#f8d8ec!important;stroke:#f8d8ec!important}
+ .app-shell.home-swipe-locked .nm-discover-notifications::before,
+ .app-shell.home-swipe-locked .nm-discover-notifications::after{display:none!important}
+ .app-shell.home-swipe-locked .nm-discover-actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)!important}
+ .app-shell.home-swipe-locked .nm-discover-actions>.btn{min-width:0!important;max-width:100%!important;overflow:hidden!important}
+ .app-shell.home-swipe-locked .nm-discover-premium{
+  background:linear-gradient(125deg,#49321c,#74511e 55%,#33251d)!important;
+  border:1px solid #b68a40!important;color:#ffe7ad!important;
+  box-shadow:none!important;animation:none!important;filter:none!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{
+  top:38px!important;left:10px!important;right:auto!important;
+  max-width:calc(100% - 20px)!important;box-sizing:border-box!important;
+  display:inline-flex!important;align-items:center!important;gap:4px!important;
+  width:max-content!important;padding:5px 8px!important;font-size:9px!important;
+  letter-spacing:.03em!important;border-radius:9px!important;animation:none!important;
+  background:#5d431e!important;color:#ffe4a0!important;border:1px solid #b48b4e!important;
+  box-shadow:none!important;filter:none!important;backdrop-filter:none!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge::before{display:none!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge svg{width:12px;height:12px;flex-shrink:0}
+}
+@media(max-width:360px){
+ .app-shell.home-swipe-locked .nm-discover-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .app-shell.home-swipe-locked .nm-discover-preferences{grid-column:1/-1!important}
+}
