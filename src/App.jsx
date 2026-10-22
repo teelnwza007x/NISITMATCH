@@ -3666,7 +3666,7 @@ function PremiumPage({ user, onGoVisitors }) {
       <button type="button" onClick={()=>{setShowPayment(v=>!v);setMessage('')}} style={{width:'100%',marginTop:14,padding:'13px 16px',border:0,borderRadius:14,background:'linear-gradient(100deg,#ec4899,#a855f7)',color:'#fff',fontWeight:750,fontSize:15,cursor:'pointer'}}>{showPayment?'ซ่อน QR และแบบฟอร์ม':'แสดง QR เพื่อชำระเงิน · '+selectedAmount+' บาท'}</button>
       {showPayment&&<div style={{marginTop:16,paddingTop:16,borderTop:'1px solid rgba(255,255,255,.1)'}}>
         <div style={{display:'grid',placeItems:'center',gap:8}}>
-          <img src={plan==='weekly'?'/premium-39.jpg':'/premium-119.jpg'} alt={'QR PromptPay '+selectedAmount+' บาท'} style={{display:'block',width:'min(100%,300px)',aspectRatio:'1/1',objectFit:'contain',background:'#fff',borderRadius:14,padding:8}}/>
+          <div style={{position:'relative',width:'min(100%,300px)',aspectRatio:'1/1',overflow:'hidden',borderRadius:18,background:'#fff',boxShadow:'0 10px 32px rgba(0,0,0,.24)',border:'1px solid rgba(255,255,255,.18)'}}><img src={plan==='weekly'?'/premium-39.jpg':'/premium-119.jpg'} alt={'QR PromptPay '+selectedAmount+' บาท'} style={{position:'absolute',display:'block',width:'200%',maxWidth:'none',height:'auto',left:'50%',top:'50%',transform:'translate(-50%,-50%)'}}/></div>
           <strong style={{fontSize:18}}>ยอดชำระ {selectedAmount} บาท</strong>
           <span style={{fontSize:12,opacity:.75}}>แพ็กเกจ {selectedDuration} · ตรวจสอบชื่อผู้รับก่อนโอนทุกครั้ง</span>
         </div>
