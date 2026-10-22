@@ -3268,7 +3268,12 @@ function SettingsPage({ user, notify, onInstall, isInstalled, onAdmin }) {
   const reset = async () => { const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${authRedirectUrl()}?flow=recovery` }); notify(error ? error.message : 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว') }
   return (<>
     <Heading kicker="YOUR ACCOUNT, YOUR RULES" title="การตั้งค่า" sub="จัดการบัญชีและดูแลความปลอดภัยของคุณ" />
-    <nav className="nm-settings-quick-nav" aria-label="ทางลัดการตั้งค่า">{[['nm-settings-appearance', <><Palette size={17}/> ธีมและเสียง</>], ['nm-settings-social', <><Bell size={17}/> การแจ้งเตือน</>], ['nm-settings-privacy', <><ShieldCheck size={17}/> ความเป็นส่วนตัว</>], ['nm-settings-account', <><LockKeyhole size={17}/> บัญชี</>]].map(([id, label]) => <button key={id} type="button" onClick={() => document.getElementById(id)?.scrollIntoView({behavior: 'smooth', block: 'start'})}>{label}</button>)}</nav>
+    <nav className="nm-settings-quick-nav" aria-label="ทางลัดการตั้งค่า">
+      <button type="button" onClick={() => document.getElementById('nm-settings-appearance')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><Palette size={17}/> ธีมและเสียง</button>
+      <button type="button" onClick={() => document.getElementById('nm-settings-social')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><Bell size={17}/> การแจ้งเตือน</button>
+      <button type="button" onClick={() => document.getElementById('nm-settings-privacy')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><ShieldCheck size={17}/> ความเป็นส่วนตัว</button>
+      <button type="button" onClick={() => document.getElementById('nm-settings-account')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><LockKeyhole size={17}/> บัญชีและแอป</button>
+    </nav>
     <div id="nm-settings-appearance" className="nm-settings-group-title"><Palette size={18}/> รูปลักษณ์และเสียง</div>
     <section className="nm-sound-settings" aria-label="ตั้งค่าเสียงเอฟเฟกต์">
       <div className="nm-sound-settings-info"><span className="nm-sound-settings-icon"><Music2 size={21}/></span><div><h3>เสียงเอฟเฟกต์</h3><p>เสียงน่ารักเบา ๆ ตอนกดถูกใจ เจอแมตช์ และมีข้อความใหม่</p></div></div>
