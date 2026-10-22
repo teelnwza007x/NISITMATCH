@@ -2905,25 +2905,22 @@ function AdminDashboard({ onBack }) {
   const [onlineError, setOnlineError] = useState(false)
   const [adminTab, setAdminTab] = useState('overview')
   useEffect(() => {
-    let active = true
-    let pending = false
-    const refreshOnline = async () => {
-      if (!active || pending || document.visibilityState !== 'visible') return
-      pending = true
-      try {
-        const { data, error } = await supabase.rpc('nm_admin_online_count')
-        if (active) {
-          if (error) { setOnlineError(true); setOnlineCount(null) }
-          else { setOnlineError(false); setOnlineCount(Number(data) || 0) }
-        }
-      } catch {
-        if (active) { setOnlineError(true); setOnlineCount(null) }
-      } finally { pending = false }
+    let alive = true
+    const channel = supabase.channel('nm-site-visitors-v1')
+    const update = () => {
+      if (!alive) return
+      const state = channel.presenceState()
+      const count = Object.values(state).reduce((total, entries) => total + entries.filter(entry => entry.active === true).length, 0)
+      setOnlineCount(count)
+      setOnlineError(false)
     }
-    refreshOnline()
-    const timer = setInterval(refreshOnline, 60000)
-    document.addEventListener('visibilitychange', refreshOnline)
-    return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', refreshOnline) }
+    channel.on('presence', { event: 'sync' }, update)
+    channel.subscribe(status => {
+      if (!alive) return
+      if (status === 'SUBSCRIBED') update()
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setOnlineError(true); setOnlineCount(null) }
+    })
+    return () => { alive = false; supabase.removeChannel(channel) }
   }, [])
   const [reports, setReports] = useState([])
   const [growth, setGrowth] = useState(null)
@@ -3015,7 +3012,7 @@ function AdminDashboard({ onBack }) {
       </header>
       {adminTab === 'overview' && <>
         <div className="nm-admin-summary-grid" aria-label="ภาพรวมตัวเลขสำคัญ">
-          <article className="nm-admin-summary-card is-online"><div className="nm-admin-summary-top"><span className="nm-admin-summary-icon"><Globe2 size={19}/></span><span className="nm-admin-summary-tag">2 นาทีล่าสุด</span></div><small>สมาชิกออนไลน์</small><strong>{onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong><span className="nm-admin-summary-note">{onlineError ? 'ไม่สามารถโหลดข้อมูลได้' : 'ผู้ใช้ที่เปิดเผยสถานะออนไลน์'}</span></article>
+          <article className="nm-admin-summary-card is-online"><div className="nm-admin-summary-top"><span className="nm-admin-summary-icon"><Globe2 size={19}/></span><span className="nm-admin-summary-tag">กำลังใช้งาน</span></div><small>สมาชิกออนไลน์</small><strong>{onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong><span className="nm-admin-summary-note">{onlineError ? 'ไม่สามารถโหลดข้อมูลได้' : 'ผู้เข้าชมที่เปิดหน้าเว็บอยู่ (นับตามแท็บ)'}</span></article>
           {[['สมาชิกทั้งหมด',metrics?.profiles,Users,'จำนวนบัญชี'],['แมตช์ทั้งหมด',metrics?.matches,Heart,'การจับคู่'],['คำขอรอตรวจสอบ',metrics?.pending_verifications,ShieldCheck,'ยืนยันมหาวิทยาลัย']].map(([label,value,Icon,note])=><article className="nm-admin-summary-card" key={label}><div className="nm-admin-summary-top"><span className="nm-admin-summary-icon"><Icon size={19}/></span></div><small>{label}</small><strong>{metrics === null ? '—' : Number(value || 0).toLocaleString('th-TH')}</strong><span className="nm-admin-summary-note">{note}</span></article>)}
         </div>
         <div className="nm-admin-block-title"><div><h3>จัดการด่วน</h3><p>งานที่ผู้ดูแลใช้งานบ่อย</p></div></div>
@@ -3800,6 +3797,26 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
     {mapTarget&&createPortal(<div className="hangout-overlay hangout-map-overlay-v96" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setMapTarget(null)}}><section className="hangout-map-modal hangout-map-modal-v96" role="dialog" aria-modal="true" aria-label="แผนที่ Hangout"><header><div><b><MapPinned size={18}/> แผนที่สถานที่</b><small>{mapTarget.name} · {mapTarget.city}</small></div><button type="button" className="icon-btn" onClick={()=>setMapTarget(null)} aria-label="ปิดแผนที่"><X size={20}/></button></header><iframe title={'แผนที่ '+mapTarget.name} src={`https://maps.google.com/maps?hl=th&z=15&q=${encodeURIComponent([mapTarget.name,mapTarget.city].filter(Boolean).join(' '))}&output=embed`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/><footer className="hangout-map-actions-v96"><span>เลื่อนแผนที่ภายในกรอบนี้ได้</span><a href={mapsSearchUrl(mapTarget.name,mapTarget.city)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> เปิด Google Maps</a></footer></section></div>, document.body)}
     {chatEvent&&<div className="hangout-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setChatEvent(null)}}><section className="hangout-chat-modal" role="dialog" aria-modal="true" aria-label="ห้องแชท Hangout"><header><div><b><MessageCircle size={18}/> {chatEvent.title}</b><small>{chatEvent.venue} · สมาชิก {chatMembers.map(id=>chatNames[id]||(id===user.id?'คุณ':'กำลังโหลดชื่อ')).join('、')||`${counts[chatEvent.id]||0}/${chatEvent.capacity} คน`}</small></div><button type="button" className="icon-btn" onClick={()=>setChatEvent(null)} aria-label="ปิดแชท"><X size={20}/></button></header><div className="hangout-chat-messages">{chatMessages.length?chatMessages.map(m=><div key={m.id} className={'hangout-chat-bubble'+(m.user_id===user.id?' mine':'')}><small>{m.user_id===user.id?'คุณ':(chatNames[m.user_id]||'กำลังโหลดชื่อ…')}</small>{m.attachment_type === 'image' && m.attachment_path ? (hangoutMediaUrls[m.attachment_path] ? <img className="hangout-chat-image" src={hangoutMediaUrls[m.attachment_path]} alt="รูปภาพในแชทกลุ่ม" loading="lazy" decoding="async" onClick={() => window.open(hangoutMediaUrls[m.attachment_path], '_blank', 'noopener,noreferrer')} /> : <p>กำลังโหลดรูปภาพ…</p>) : m.attachment_type === 'audio' && m.attachment_path ? (hangoutMediaUrls[m.attachment_path] ? <VoiceBubble src={hangoutMediaUrls[m.attachment_path]} mine={m.user_id===me} /> : <p>กำลังโหลดเสียง…</p>) : <p>{m.body}</p>}<time>{new Date(m.created_at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</time></div>):<div className="hangout-chat-empty"><MessageCircle size={25}/><b>เริ่มคุยกับคนในนัดนี้</b><span>ใช้แชทกลุ่มเพื่อคุยรายละเอียดก่อนเจอกัน</span></div>}</div><form className="hangout-chat-compose" onSubmit={sendChat}><input value={chatDraft} maxLength={1500} onChange={e=>setChatDraft(e.target.value)} placeholder="พิมพ์ข้อความถึงสมาชิก..." aria-label="ข้อความแชท"/><button disabled={chatBusy||!chatDraft.trim()} aria-label="ส่งข้อความ"><Send size={18}/></button></form></section></div>}
   </div>
+}
+
+// Anonymous, aggregate site activity: one presence per browser tab, no identity or profile data.
+function SiteVisitorPresence() {
+  useEffect(() => {
+    const visitorKey = 'nm-site-presence:' + Math.random().toString(36).slice(2)
+    const channel = supabase.channel('nm-site-visitors-v1', { config: { presence: { key: visitorKey } } })
+    let joined = false
+    const sync = async () => {
+      if (!joined) return
+      try {
+        if (document.visibilityState === 'visible') await channel.track({ active: true })
+        else await channel.untrack()
+      } catch (error) { console.warn('Site presence update failed', error) }
+    }
+    channel.subscribe(status => { if (status === 'SUBSCRIBED') { joined = true; sync() } })
+    document.addEventListener('visibilitychange', sync)
+    return () => { joined = false; document.removeEventListener('visibilitychange', sync); supabase.removeChannel(channel) }
+  }, [])
+  return null
 }
 
 function AppContent() {
@@ -4605,4 +4622,4 @@ class AppErrorBoundary extends React.Component {
     </main>
   }
 }
-export default function App() { return <AppErrorBoundary><AppContent/></AppErrorBoundary> }
+export default function App() { return <AppErrorBoundary><SiteVisitorPresence/><AppContent/></AppErrorBoundary> }
