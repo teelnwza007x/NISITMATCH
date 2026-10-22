@@ -524,7 +524,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
       .catch(() => {})
     return () => { active = false }
   }, [person?.id])
-  const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
+  const photoItems = useMemo(() => [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) }), [photos, cardVideos, person?.media_order])
   // Mobile: keep at most one upcoming image in memory. Never decode the
   // whole gallery eagerly; large images can heat up iOS devices.
   const galleryPreloads = useRef(new Map())
@@ -540,7 +540,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     image.src = url
     galleryPreloads.current.set(url, image)
     return () => { galleryPreloads.current.clear() }
-  }, [person?.id, photo, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
+  }, [person?.id, photo, photoItems])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
@@ -622,7 +622,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
-    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" loading="eager" fetchPriority="low" /></div>}
+    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" loading="lazy" fetchPriority="low" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
       {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={swipePhotoUrl(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} loading="eager" fetchPriority="high" decoding="async" onError={(e) => { const original = pub(photoItems[photo]?.path); if (original && e.currentTarget.src !== original) { e.currentTarget.src = original; return } e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
