@@ -3939,3 +3939,52 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     transform: none !important;
   }
 }
+
+
+/* Premium page refresh: cleaner hierarchy, compact benefits, and reordered actions. */
+.nm-premium-clean { width:min(100%,780px); margin-inline:auto; padding:clamp(14px,3vw,26px); gap:0; }
+.nm-premium-page-heading { margin:0 0 16px; padding:2px 2px 0; }
+.nm-premium-page-kicker { display:inline-flex; align-items:center; gap:8px; color:#d79acb; font-size:10px; font-weight:800; letter-spacing:1.8px; }
+.nm-premium-page-kicker i { width:4px; height:4px; border-radius:50%; background:#e879b9; }
+.nm-premium-page-heading h1 { margin:7px 0 4px; color:var(--theme-text,#f7f0fb); font-size:clamp(23px,5vw,30px); line-height:1.2; letter-spacing:-.5px; }
+.nm-premium-page-heading p { margin:0; color:var(--theme-muted,#a9a0b7); font-size:13px; line-height:1.55; }
+.nm-premium-hero-clean { padding:24px 18px 20px; border-radius:23px; box-shadow:0 14px 35px rgba(15,8,27,.16); animation:none; }
+.nm-premium-hero-clean:before { display:none; }
+.nm-premium-hero-clean:after { width:240px; height:240px; top:-155px; opacity:.55; }
+.nm-premium-hero-clean .v76-premium-orb { width:58px; height:58px; margin:0 auto 12px; border-radius:19px; animation:none; }
+.nm-premium-hero-clean .v76-eyebrow { font-size:9px; letter-spacing:1.5px; }
+.nm-premium-hero-clean h2 { margin:8px 0 6px; font-size:clamp(21px,4.5vw,28px); line-height:1.25; }
+.nm-premium-hero-clean p { max-width:420px; font-size:12px; line-height:1.6; }
+.nm-premium-hero-clean .nm-coming-soon-pill { margin-top:13px; padding:7px 12px; font-size:11px; }
+.nm-premium-active-chip { position:relative; z-index:2; display:inline-flex; align-items:center; gap:6px; margin:0 auto 13px; padding:6px 10px; border:1px solid rgba(187,247,208,.24); border-radius:999px; background:rgba(22,101,52,.20); color:#bbf7d0; font-size:11px; font-weight:650; }
+.nm-premium-benefits { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin:14px 0 0; }
+.nm-premium-benefit { min-width:0; display:flex; align-items:center; gap:9px; padding:12px 10px; border:1px solid var(--theme-border,rgba(255,255,255,.10)); border-radius:15px; background:var(--theme-panel,rgba(255,255,255,.035)); }
+.nm-premium-benefit-icon { flex:0 0 34px; width:34px; height:34px; display:grid; place-items:center; border-radius:11px; color:#e8a6d5; background:rgba(194,91,164,.12); }
+.nm-premium-benefit>span:last-child { display:flex; min-width:0; flex-direction:column; gap:3px; }
+.nm-premium-benefit b { color:var(--theme-text,#f6effa); font-size:11px; line-height:1.35; }
+.nm-premium-benefit small { color:var(--theme-muted,#a9a0b7); font-size:10px; line-height:1.35; }
+.nm-premium-visitors-link { width:100%; max-width:100%; min-height:42px; margin:10px 0 0; border-color:var(--theme-border,rgba(255,255,255,.13)); background:var(--theme-panel,rgba(255,255,255,.035)); color:var(--theme-text,#f1d9ef); }
+.nm-premium-clean .nm-referral-card { margin-top:16px; padding:18px; border-radius:20px; }
+.nm-premium-clean .nm-referral-heading h2 { margin:7px 0 4px; font-size:21px; }
+.nm-premium-clean .nm-referral-heading p { margin-bottom:14px; font-size:12px; }
+.nm-premium-clean .nm-referral-rewards { gap:8px; }
+.nm-premium-clean .nm-referral-rewards>div { padding:12px; border-radius:14px; }
+.nm-premium-clean .nm-referral-rewards strong { font-size:25px; }
+.nm-premium-clean .nm-referral-code-area { padding:13px; margin-top:12px; border-radius:14px; }
+.nm-premium-clean .v76-disclaimer { margin:10px auto 0; font-size:10px; }
+@media(max-width:560px) {
+ .nm-premium-clean { padding:12px; }
+ .nm-premium-page-heading { margin-bottom:12px; }
+ .nm-premium-hero-clean { padding:20px 14px 17px; border-radius:20px; }
+ .nm-premium-benefits { grid-template-columns:1fr; gap:7px; margin-top:10px; }
+ .nm-premium-benefit { padding:10px 12px; border-radius:13px; }
+ .nm-premium-benefit-icon { flex-basis:32px; width:32px; height:32px; }
+ .nm-premium-benefit b { font-size:12px; }
+ .nm-premium-benefit small { font-size:11px; }
+ .nm-premium-clean .nm-referral-card { padding:14px; margin-top:12px; }
+ .nm-premium-clean .nm-referral-heading h2 { font-size:19px; }
+ .nm-premium-clean .nm-referral-rewards strong { font-size:23px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .nm-premium-hero-clean,.nm-premium-hero-clean:before,.nm-premium-hero-clean:after,.nm-premium-hero-clean .v76-premium-orb { animation:none!important; }
+}

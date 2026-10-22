@@ -3383,26 +3383,29 @@ function PremiumPage({ user, onGoVisitors }) {
     return () => { active = false }
   }, [user.id])
 
-  return <div className="v76-page nm-coming-soon-page">
-    <Heading kicker="NISIT MATCH / PREMIUM" title="Premium Coming Soon ✨" sub="เตรียมพบกับประสบการณ์แมตช์ที่พิเศษกว่าเดิม เร็ว ๆ นี้" />
-    {status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date() &&
-      <div className="v76-active-plan"><Crown size={19}/> Premium เปิดใช้งานอยู่ · หมดอายุ {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
-    <div className="v76-premium-hero nm-coming-soon-hero">
-      <div className="v76-premium-orb"><Crown size={34}/></div>
-      <span className="v76-eyebrow">A LITTLE MORE MAGIC · COMING SOON</span>
-      <h2>สิ่งพิเศษกำลังจะมาถึง 💗</h2>
-      <p>ฟีเจอร์ Premium กำลังเตรียมเปิดให้บริการ ขณะนี้ยังไม่สามารถสมัครหรือชำระเงินได้</p>
-      <div className="nm-coming-soon-pill"><Sparkles size={17}/> เร็ว ๆ นี้ <Sparkles size={17}/></div>
+  const activePlan = status?.status === 'active' && status.ends_at && new Date(status.ends_at) > new Date()
+  return <div className="v76-page nm-coming-soon-page nm-premium-clean">
+    <header className="nm-premium-page-heading">
+      <span className="nm-premium-page-kicker">NISIT MATCH <i /> PREMIUM</span>
+      <h1>สิทธิพิเศษที่กำลังจะมา</h1>
+      <p>ประสบการณ์ทำความรู้จักที่พิเศษกว่าเดิม ในแบบของคุณ</p>
+    </header>
+    <div className="v76-premium-hero nm-coming-soon-hero nm-premium-hero-clean">
+      {activePlan && <div className="nm-premium-active-chip"><Crown size={14}/> ใช้งาน Premium ถึง {new Date(status.ends_at).toLocaleDateString('th-TH')}</div>}
+      <div className="v76-premium-orb"><Crown size={30}/></div>
+      <span className="v76-eyebrow">A LITTLE MORE MAGIC</span>
+      <h2>Premium กำลังเตรียมเปิดตัว</h2>
+      <p>ตอนนี้ยังสมัครหรือชำระเงินไม่ได้ เราจะแจ้งให้ทราบเมื่อพร้อมเปิดบริการ</p>
+      <div className="nm-coming-soon-pill"><Sparkles size={15}/> เร็ว ๆ นี้</div>
     </div>
+    <section className="nm-premium-benefits" aria-label="สิทธิพิเศษ Premium">
+      <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><HeartHandshake size={19}/></span><span><b>คนที่กดใจคุณ</b><small>รู้ว่าใครสนใจคุณ</small></span></div>
+      <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><EyeIcon size={19}/></span><span><b>ผู้เข้าชมโปรไฟล์</b><small>ดูคนที่แวะมาเยี่ยมชม</small></span></div>
+      <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>สิทธิพิเศษอื่น ๆ</b><small>ทยอยเปิดให้ใช้ในอนาคต</small></span></div>
+    </section>
+    <button type="button" className="v76-secondary-link nm-premium-visitors-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูผู้เข้าชมโปรไฟล์</button>
     <ReferralPanel user={user} />
-    <div className="v76-premium-features">
-      <div><HeartHandshake/><span><b>คนที่กดใจคุณ</b><small>ดูรายชื่อคนที่สนใจคุณก่อน</small></span></div>
-      <div><EyeIcon/><span><b>คนที่เข้าชมโปรไฟล์</b><small>รู้ว่าใครแวะมาทำความรู้จัก</small></span></div>
-      <div><Sparkles/><span><b>สิทธิพิเศษเพิ่มเติม</b><small>กำลังเตรียมเปิดตัวในอนาคต</small></span></div>
-    </div>
-    <div className="nm-coming-soon-disabled" role="status"><Crown size={18}/> ยังไม่เปิดให้สมัคร Premium</div>
-    <button type="button" className="v76-secondary-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูหน้าคนที่เข้าชมโปรไฟล์</button>
-    <p className="v76-disclaimer">ขณะนี้ระบบ Premium ยังไม่เปิดรับชำระเงิน โปรดติดตามประกาศเปิดให้บริการอย่างเป็นทางการ</p>
+    <p className="v76-disclaimer">ระบบ Premium ยังไม่เปิดรับชำระเงินในขณะนี้</p>
   </div>
 }
 
