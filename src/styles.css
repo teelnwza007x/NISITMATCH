@@ -4775,3 +4775,39 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   top:-10px!important;right:-5px!important;
  }
 }
+
+/* Mobile controls use the same flex centering as desktop, not mobile grid overrides. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  height:68px!important;min-height:68px!important;max-height:68px!important;
+  padding:7px 12px!important;box-sizing:border-box!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed>.swipe-controls.nm-swipe-primary-actions{
+  display:flex!important;flex-direction:row!important;
+  align-items:center!important;justify-content:space-evenly!important;
+  width:100%!important;max-width:220px!important;height:100%!important;
+  gap:10px!important;padding:0!important;margin:0 auto!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed>.swipe-controls.nm-swipe-primary-actions>.swipe-control{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  position:relative!important;top:auto!important;left:auto!important;
+  flex:0 0 43px!important;width:43px!important;height:43px!important;
+  min-width:43px!important;min-height:43px!important;
+  margin:0!important;padding:0!important;box-sizing:border-box!important;
+  transform:none!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed>.swipe-controls.nm-swipe-primary-actions>.swipe-control.accept{
+  flex:0 0 49px!important;width:49px!important;height:49px!important;
+  min-width:49px!important;min-height:49px!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed>.swipe-controls.nm-swipe-primary-actions>.swipe-control>svg{
+  position:static!important;inset:auto!important;
+  display:block!important;flex:none!important;
+  width:21px!important;height:21px!important;
+  margin:0!important;transform:none!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed>.swipe-controls.nm-swipe-primary-actions>.swipe-control.accept>svg{
+  width:24px!important;height:24px!important;
+ }
+}
