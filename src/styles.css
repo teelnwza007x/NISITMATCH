@@ -4349,3 +4349,13 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .nm-discover-mobile-shell .v76-home-actions>.nm-daily-trigger svg:last-child{display:none!important}
  .app-shell.home-swipe-locked .nm-discover-mobile-shell .v76-home-actions>.btn svg{width:12px!important;height:12px!important;flex-shrink:0!important}
 }
+
+/* Use spare vertical space below swipe controls, keeping bottom navigation visible. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .swipe-stage{padding-bottom:0!important;margin-bottom:0!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(360px,59dvh,650px)!important;max-height:650px!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:9px!important;margin-bottom:8px!important}
+}
+@media(max-width:700px) and (max-height:750px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(320px,53dvh,500px)!important}
+}
