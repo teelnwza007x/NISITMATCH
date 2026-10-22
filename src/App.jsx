@@ -95,6 +95,8 @@ const pub = (p) => {
 }
 const ph = (n) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f45ca5"/><stop offset="1" stop-color="#8e72ff"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><text x="50" y="66" font-size="48" text-anchor="middle" fill="#fff" font-family="sans-serif">${((n || '?').trim()[0]) || '?'}</text></svg>`)
 const photoCandidates = (u) => [...new Set([u?.avatar_path, ...(Array.isArray(u?.photo_paths) ? u.photo_paths : [])].filter(Boolean).map(pub).filter(Boolean))]
+// Preload only the next swipe card, avoiding downloads for the whole deck.
+const preloadImage = (src) => { if (!src || typeof Image === 'undefined') return; const image = new Image(); image.decoding = 'async'; image.src = src }
 const Av = ({ u, cls = 'avatar', loading = 'lazy', fetchPriority = 'auto' }) => {
   const candidates = photoCandidates(u)
   const [attempt, setAttempt] = useState(0)
@@ -454,6 +456,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
   const noRef = useRef(null)
   const busyRef = useRef(false)
   const person = people[0]
+  useEffect(() => { const next = people[1]; if (next) preloadImage(photoCandidates(next)[0]) }, [people[1]?.id, people[1]?.avatar_path])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
@@ -904,8 +907,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
           setHangoutChatMembers(old => [...new Set(old.concat(data.map(x => x.id)))])
         }
       }).subscribe()
+    let fallbackBusy = false
     const fallbackPoll = setInterval(async () => {
-      if (document.visibilityState !== 'visible') return
+      if (document.visibilityState !== 'visible' || fallbackBusy) return
+      fallbackBusy = true
+      try {
       const [{ data }, { data: latestEvent }] = await Promise.all([
         supabase.from('hangout_messages').select('id,event_id,user_id,body,attachment_type,attachment_path,created_at').eq('event_id', eventId).order('created_at', { ascending: true }).limit(300),
         supabase.from('hangout_events').select('id,title,venue,city,starts_at,status,capacity,creator_id').eq('id', eventId).maybeSingle(),
@@ -916,7 +922,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       if (members?.length) { const names = {}; const profileMap = {}; members.forEach(x => { names[x.id] = x.display_name || 'สมาชิก'; profileMap[x.id] = x }); setHangoutChatProfiles(old => ({ ...old, ...profileMap })); setHangoutChatNames(old => ({ ...old, ...names })); setHangoutChatMembers(members.map(x => x.id)) }
       const { data: receipts } = await supabase.from('hangout_message_reads').select('message_id,user_id,read_at').eq('event_id', eventId)
       if (receipts) setHangoutReadReceipts(receipts)
-    }, 5000)
+      } finally { fallbackBusy = false }
+    }, 15000)
     return () => { clearInterval(fallbackPoll); supabase.removeChannel(channel) }
   }, [hangoutChatEvent?.id])
   useEffect(() => {
@@ -1046,6 +1053,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const [inbox, setInbox] = useState({})
   const inboxRequest = useRef(0)
   const refreshInbox = useCallback(async () => {
+    if (document.visibilityState === 'hidden') return
     if (!me || !matches.length) { setInbox({}); return }
     const request = ++inboxRequest.current
     const results = await Promise.all(matches.map(async m => {
