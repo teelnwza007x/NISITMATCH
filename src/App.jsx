@@ -80,6 +80,29 @@ const optimizeProfilePhoto = async (file) => {
   }
 }
 
+// Store a smaller swipe variant alongside new profile photos; originals stay intact.
+const createSwipeThumbnail = async file => {
+  if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return null
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, 800 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) { bitmap.close?.(); return null }
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close?.()
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .78))
+    return blob && blob.size < file.size ? blob : null
+  } catch { return null }
+}
+const swipeThumbPath = p => typeof p === 'string' && /^([^/]+)\/(photo-[^.]+)\.(jpe?g|png|webp)$/i.test(p) ? p.replace(/\.(jpe?g|png|webp)$/i, '-swipe.jpg') : null
+const swipePhotoUrl = p => {
+  const thumb = swipeThumbPath(p)
+  return thumb ? supabase.storage.from('avatars').getPublicUrl(thumb).data.publicUrl : pub(p)
+}
+
 const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(b), c => c.charCodeAt(0)) }
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
@@ -2425,9 +2448,15 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       const uploadFile = await optimizeProfilePhoto(item.file)
       const ext = uploadFile.type === 'image/jpeg' ? 'jpg' : uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : (uploadFile.name.split('.').pop()?.toLowerCase() || 'jpg')
       const path = `${user.id}/photo-${makeClientId()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadFile, { contentType: uploadFile.type || item.file.type, upsert: false })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadFile, { contentType: uploadFile.type || item.file.type, upsert: false, cacheControl: '31536000' })
       if (uploadError) { await rollbackNewUploads(); setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
       newlyUploadedPaths.push(path)
+      const thumb = await createSwipeThumbnail(uploadFile)
+      const thumbPath = swipeThumbPath(path)
+      if (thumb && thumbPath) {
+        const { error: thumbError } = await supabase.storage.from('avatars').upload(thumbPath, thumb, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })
+        if (!thumbError) newlyUploadedPaths.push(thumbPath)
+      }
       uploaded.push(path); keyMap[item.key] = path
     }
     const photo_paths = [...new Set(orderedKeys.map(key => keyMap[key] || key).filter(key => uploaded.includes(key)))].slice(0, 6)
