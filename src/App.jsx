@@ -97,7 +97,7 @@ const createSwipeThumbnail = async file => {
     return blob && blob.size < file.size ? blob : null
   } catch { return null }
 }
-const swipeThumbPath = p => typeof p === 'string' && /^([^/]+)\/(photo-[^.]+)\.(jpe?g|png|webp)$/i.test(p) ? p.replace(/\.(jpe?g|png|webp)$/i, '-swipe.jpg') : null
+const swipeThumbPath = p => typeof p === 'string' && /^([^/]+)\/(photo-optimized-[^.]+)\.(jpe?g|png|webp)$/i.test(p) ? p.replace(/\.(jpe?g|png|webp)$/i, '-swipe.jpg') : null
 const swipePhotoUrl = p => {
   const thumb = swipeThumbPath(p)
   return thumb ? supabase.storage.from('avatars').getPublicUrl(thumb).data.publicUrl : pub(p)
@@ -2447,7 +2447,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     for (const item of newPhotos) {
       const uploadFile = await optimizeProfilePhoto(item.file)
       const ext = uploadFile.type === 'image/jpeg' ? 'jpg' : uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : (uploadFile.name.split('.').pop()?.toLowerCase() || 'jpg')
-      const path = `${user.id}/photo-${makeClientId()}.${ext}`
+      const path = `${user.id}/photo-optimized-${makeClientId()}.${ext}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadFile, { contentType: uploadFile.type || item.file.type, upsert: false, cacheControl: '31536000' })
       if (uploadError) { await rollbackNewUploads(); setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
       newlyUploadedPaths.push(path)
