@@ -945,8 +945,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       if (members?.length) { const names = {}; const profileMap = {}; members.forEach(x => { names[x.id] = x.display_name || 'สมาชิก'; profileMap[x.id] = x }); setHangoutChatProfiles(old => ({ ...old, ...profileMap })); setHangoutChatNames(old => ({ ...old, ...names })); setHangoutChatMembers(members.map(x => x.id)) }
       const { data: receipts } = await supabase.from('hangout_message_reads').select('message_id,user_id,read_at').eq('event_id', eventId)
       if (receipts) setHangoutReadReceipts(receipts)
+      } catch (error) {
+        console.warn('Hangout fallback refresh failed:', error)
       } finally { fallbackBusy = false }
-    }, 15000)
+    }, 30000)
     return () => { clearInterval(fallbackPoll); supabase.removeChannel(channel) }
   }, [hangoutChatEvent?.id])
   useEffect(() => {
