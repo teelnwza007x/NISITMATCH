@@ -2290,12 +2290,12 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   const [activeDragKey, setActiveDragKey] = useState(null)
   const [dragOffset, setDragOffset] = useState({x:0,y:0})
   const dragOrigin = useRef(null)
-  const photoKeys = [...photos, ...newPhotos.map(x => x.key), ...profileVideos.map(x => x.id), ...newVideos.map(x => x.key)]
+  const photoKeys = useMemo(() => [...photos, ...newPhotos.map(x => x.key), ...profileVideos.map(x => x.id), ...newVideos.map(x => x.key)], [photos, newPhotos, profileVideos, newVideos])
   const orderedKeys = useMemo(() => {
     const orderIndex = new Map(photoOrder.map((key, index) => [key, index]))
     const fallback = photoOrder.length
     return [...photoKeys].sort((a, b) => (orderIndex.get(a) ?? (fallback + photoKeys.indexOf(a))) - (orderIndex.get(b) ?? (fallback + photoKeys.indexOf(b))))
-  }, [photos, newPhotos, profileVideos, newVideos, photoOrder])
+  }, [photoKeys, photoOrder])
   const reorderPhoto = (from, to) => {
     if (!from || !to || from === to || !photoKeys.includes(from) || !photoKeys.includes(to)) return
     const next = [...orderedKeys]
@@ -2372,7 +2372,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
   useEffect(() => { photoUrls.current = newPhotos.map(p => p.url) }, [newPhotos])
   useEffect(() => () => photoUrls.current.forEach(url => URL.revokeObjectURL(url)), [])
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
-  const filteredUniversities = UNIVERSITIES.filter((u) => (uniType === 'ทั้งหมด' || u.type === uniType) && u.name.toLowerCase().includes(uniQuery.trim().toLowerCase()))
+  const filteredUniversities = useMemo(() => {
+    const query = uniQuery.trim().toLowerCase()
+    return UNIVERSITIES.filter(u => (uniType === 'ทั้งหมด' || u.type === uniType) && u.name.toLowerCase().includes(query))
+  }, [uniType, uniQuery])
   const previewKey = orderedKeys[0] || ''
   const preview = newPhotos.find(x => x.key === previewKey)?.url || pub(previewKey) || ph(f.display_name)
   const appendCropped = (file) => {
