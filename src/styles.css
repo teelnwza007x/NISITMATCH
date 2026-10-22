@@ -4417,3 +4417,12 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{display:flex!important;align-items:center!important;justify-content:space-evenly!important;gap:clamp(12px,4vw,22px)!important;width:min(100%,390px)!important;max-width:calc(100% - 12px)!important;box-sizing:border-box!important;padding:7px 12px!important;margin:0 auto!important}
  .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{flex-shrink:0!important}
 }
+
+/* iPhone swipe: offset the entire top section and add breathing room at Super Like edge. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .page-content{padding-top:calc(25px + env(safe-area-inset-top,0px))!important}
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell{margin-top:0!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{width:min(100%,390px)!important;max-width:calc(100% - 24px)!important;gap:clamp(10px,3.6vw,20px)!important;padding:8px 18px!important;justify-content:space-between!important;box-sizing:border-box!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.super{margin-right:5px!important;flex-shrink:0!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-bottom:24px!important}
+}
