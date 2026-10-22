@@ -1,0 +1,29 @@
+.nm-email-center{width:100%;min-width:0;overflow:hidden}
+.nm-email-center h2{letter-spacing:-.04em}
+.nm-email-center button{font-family:inherit}
+.nm-email-center button:disabled{opacity:.45;cursor:not-allowed!important}
+.nm-email-center button:focus-visible,.nm-email-center input:focus-visible,.nm-email-center select:focus-visible{outline:2px solid var(--theme-accent);outline-offset:3px}
+.nm-email-tabs{padding:5px;background:var(--theme-sidebar);border:1px solid var(--theme-border);border-radius:16px}
+.nm-email-tabs button{flex:1 1 175px!important;box-shadow:none!important;padding:12px!important}
+.nm-email-stats>div{background:linear-gradient(155deg,var(--theme-panel),var(--theme-sidebar))!important}
+.nm-email-filters{box-shadow:0 10px 30px #00000012}
+.nm-email-log-table table tbody tr:hover{background:var(--theme-sidebar)}
+.nm-email-log-table table td:nth-child(2){font-weight:650}
+@media(max-width:700px){
+.nm-email-center{padding:14px!important;border-radius:17px!important}
+.nm-email-center h2{font-size:26px!important}
+.nm-email-tabs{gap:5px!important}
+.nm-email-tabs button{flex:1 1 100%!important;text-align:left}
+.nm-email-stats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+.nm-email-stats>div{padding:13px!important;flex:initial!important}
+.nm-email-stats>div:first-child{grid-column:span 2}
+.nm-email-log-table{overflow:visible!important;background:transparent!important;border:0!important}
+.nm-email-log-table table{min-width:0!important;display:block}
+.nm-email-log-table thead{display:none}
+.nm-email-log-table tbody{display:grid;gap:12px}
+.nm-email-log-table tr{display:grid;padding:14px;border:1px solid var(--theme-border);border-radius:15px;background:var(--theme-sidebar)}
+.nm-email-log-table td{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0!important;border:0!important;white-space:normal!important;min-width:0}
+.nm-email-log-table td:before{content:attr(data-label);font-size:12px;color:var(--theme-muted);flex:0 0 70px}
+.nm-email-log-table td:nth-child(2){overflow-wrap:anywhere;text-align:right}
+.nm-email-log-table td:last-child{border-top:1px solid var(--theme-border)!important;margin-top:5px;padding-top:12px!important}
+}
