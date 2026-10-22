@@ -36,7 +36,7 @@ create or replace function public.swipe_hourly_status()
 returns table(used integer, remaining integer, next_available_at timestamptz)
 language sql security invoker set search_path = '' stable as $$
   select count(*)::integer,
-         pg_catalog.greatest(0, 30 - count(*)::integer),
+         greatest(0, 30 - count(*)::integer),
          case when count(*) >= 30 then min(created_at) + interval '60 minutes' else null::timestamptz end
   from public.likes
   where from_id = (select auth.uid())
