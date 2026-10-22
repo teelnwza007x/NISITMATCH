@@ -4017,3 +4017,29 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-campus-option .uni-option-copy b{overflow-wrap:anywhere}
 .nm-campus-option:focus-visible{outline:2px solid #d6b76e;outline-offset:3px}
 @media(max-width:520px){.nm-campus-option-grid{grid-template-columns:1fr}.nm-campus-option{min-height:62px}}
+
+
+/* NISIT MATCH · elevated inbox experience — 2026-10 */
+.chat-layout.chat-inbox-open{border:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,#171427 0%,#0e1423 70%);box-shadow:0 18px 55px rgba(4,5,18,.24);overflow:hidden}
+.chat-inbox-open .chat-list{background:radial-gradient(ellipse at 90% 0%,rgba(239,91,159,.13),transparent 55%),linear-gradient(170deg,#19182a,#111726 72%)!important;border-right:0!important}
+.chat-inbox-open .nm-inbox-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:23px 21px!important;background:transparent!important;border-bottom:1px solid rgba(255,255,255,.07)!important}
+.nm-inbox-headline{display:flex;align-items:center;gap:12px;min-width:0}
+.nm-inbox-headline b{font-size:19px;font-weight:750;letter-spacing:-.045em;line-height:1.3;color:#fff}
+.nm-inbox-headline small{font-size:11px!important;letter-spacing:0;color:#bcb4cb!important;font-weight:450;line-height:1.6}
+.nm-inbox-icon{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,#fc73b2,#a77bf4);color:#fff;box-shadow:0 7px 24px rgba(235,88,158,.27)}
+.chat-inbox-open .nm-inbox-count{white-space:nowrap;border-radius:99px;padding:7px 11px!important;background:rgba(251,117,181,.13)!important;color:#ffb8d9!important;font-size:11px;font-weight:700}
+.chat-inbox-open .chat-person{position:relative;margin:6px 10px;padding:14px 12px!important;min-height:76px;border:1px solid transparent!important;border-radius:17px;gap:13px!important;transition:background .18s,border-color .18s,transform .18s}
+.chat-inbox-open .chat-person:hover{background:rgba(255,255,255,.065)!important;border-color:rgba(255,255,255,.08)!important;transform:translateY(-1px)}
+.chat-inbox-open .chat-person:focus-visible{outline:2px solid #fa8cc2;outline-offset:2px}
+.chat-inbox-open .chat-person-unread{background:linear-gradient(100deg,rgba(236,89,159,.12),rgba(167,123,244,.06))!important;border-color:rgba(250,139,194,.15)!important}
+.chat-inbox-open .chat-person-info{min-width:0;flex:1}
+.chat-inbox-open .chat-person-info b{font-size:14px!important;font-weight:700!important;letter-spacing:-.015em;color:#fff!important}
+.chat-inbox-open .chat-person-info .chat-last-preview{font-size:12px!important;color:#aaa9be!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.chat-inbox-open .chat-person-unread .chat-person-info b{color:#ffcfeb!important}
+.chat-inbox-open .chat-room-unread-count{background:linear-gradient(135deg,#ff6aa9,#dc5099);box-shadow:0 4px 14px rgba(238,83,153,.3);font-weight:800}
+.chat-inbox-open .chat-person .avatar{border:2px solid rgba(251,139,194,.72);box-shadow:0 3px 13px rgba(0,0,0,.2)}
+.nm-inbox-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;min-height:220px;padding:35px 22px;color:#e9e2f1}
+.nm-inbox-empty-icon{display:grid;place-items:center;width:68px;height:68px;border-radius:23px;background:linear-gradient(140deg,rgba(248,99,166,.22),rgba(163,111,240,.2));color:#ff9bcc;border:1px solid rgba(255,255,255,.1)}
+.nm-inbox-empty b{font-size:17px}.nm-inbox-empty small{font-size:12px;line-height:1.7;color:#a9a5bd;max-width:230px}
+@media(max-width:700px){.chat-inbox-open .nm-inbox-head{padding:18px 16px!important}.nm-inbox-headline b{font-size:18px}.chat-inbox-open .chat-person{margin:5px 8px;padding:12px!important;flex-direction:row!important;align-items:center!important}.chat-inbox-open .chat-person-info{width:auto!important}.chat-inbox-open .chat-person-info b{font-size:14px!important}.chat-inbox-open .chat-person-info .chat-last-preview{font-size:11px!important}.nm-inbox-icon{width:39px;height:39px;flex-basis:39px}}
+@media(prefers-reduced-motion:reduce){.chat-inbox-open .chat-person{transition:none!important}.chat-inbox-open .chat-person:hover{transform:none}}
