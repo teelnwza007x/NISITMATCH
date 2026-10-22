@@ -37,12 +37,12 @@ const pub = (p) => {
 }
 const ph = (n) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f45ca5"/><stop offset="1" stop-color="#8e72ff"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><text x="50" y="66" font-size="48" text-anchor="middle" fill="#fff" font-family="sans-serif">${((n || '?').trim()[0]) || '?'}</text></svg>`)
 const photoCandidates = (u) => [...new Set([u?.avatar_path, ...(Array.isArray(u?.photo_paths) ? u.photo_paths : [])].filter(Boolean).map(pub).filter(Boolean))]
-const Av = ({ u, cls = 'avatar' }) => {
+const Av = ({ u, cls = 'avatar', loading = 'lazy', fetchPriority = 'auto' }) => {
   const candidates = photoCandidates(u)
   const [attempt, setAttempt] = useState(0)
   const signature = candidates.join('|')
   useEffect(() => setAttempt(0), [signature])
-  return <img className={cls} src={candidates[attempt] || ph(u?.display_name)} alt={u?.display_name || 'โปรไฟล์'} loading="lazy" decoding="async" onError={() => setAttempt(n => n < candidates.length ? n + 1 : n)} />
+  return <img className={cls} src={candidates[attempt] || ph(u?.display_name)} alt={u?.display_name || 'โปรไฟล์'} loading={loading} fetchPriority={fetchPriority} decoding="async" onError={() => setAttempt(n => n < candidates.length ? n + 1 : n)} />
 }
 // v58: scroll lock shared by full-screen overlays; restore the exact previous scroll position.
 function useViewportScrollLock(active) {
@@ -430,33 +430,36 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
-  // Preload a small number of upcoming covers only while the swipe screen is active.
-  // Schedule after paint so preloading cannot compete with the visible card.
+  // Warm the next image in the current gallery and the next profile cover.
+  // Run right after paint (rather than waiting for idle time) so quick taps/swipes
+  // are more likely to hit the browser cache, while keeping only two images in flight.
   useEffect(() => {
     if (typeof window === 'undefined' || document.visibilityState !== 'visible') return
     let cancelled = false
-    let idleId = null
-    let timerId = null
+    let frameId = null
     const images = []
     const warm = () => {
       if (cancelled) return
-      const paths = [people[1]?.avatar_path || people[1]?.photo_paths?.[0], photos[1]].filter(Boolean)
+      const nextPhoto = photoItems[photo + 1]?.type === 'image' ? photoItems[photo + 1].path : null
+      const nextPerson = people[1]
+      const paths = [nextPhoto, nextPerson?.avatar_path || nextPerson?.photo_paths?.[0]].filter(Boolean)
       for (const path of new Set(paths)) {
+        const url = pub(path)
+        if (!url) continue
         const img = new Image()
         img.decoding = 'async'
-        img.src = pub(path)
+        img.fetchPriority = 'low'
+        img.src = url
         images.push(img)
       }
     }
-    if (typeof window.requestIdleCallback === 'function') idleId = window.requestIdleCallback(warm, { timeout: 1500 })
-    else timerId = window.setTimeout(warm, 250)
+    frameId = window.requestAnimationFrame(warm)
     return () => {
       cancelled = true
-      if (idleId !== null) window.cancelIdleCallback(idleId)
-      if (timerId !== null) window.clearTimeout(timerId)
+      if (frameId !== null) window.cancelAnimationFrame(frameId)
       images.forEach(img => { img.onload = null; img.onerror = null })
     }
-  }, [people[0]?.id, people[1]?.id, photos[1]])
+  }, [person?.id, photo, people[1]?.id, photos, cardVideos, person?.media_order])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
@@ -538,7 +541,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
-    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" /></div>}
+    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" loading="eager" fetchPriority="low" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
       {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={pub(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} loading="eager" fetchPriority="high" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
