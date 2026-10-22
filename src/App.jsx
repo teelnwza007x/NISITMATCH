@@ -1088,10 +1088,18 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     }))
     if (request === inboxRequest.current) setInbox(previous => { const next = Object.fromEntries(results); return JSON.stringify(previous) === JSON.stringify(next) ? previous : next })
   }, [me, matches])
+  const inboxRefreshTimer = useRef(null)
+  const scheduleInboxRefresh = useCallback(() => {
+    if (document.visibilityState === 'hidden' || inboxRefreshTimer.current !== null) return
+    inboxRefreshTimer.current = window.setTimeout(() => {
+      inboxRefreshTimer.current = null
+      refreshInbox()
+    }, 450)
+  }, [refreshInbox])
   useEffect(() => {
     refreshInbox()
     const channel = supabase.channel(`inbox-preview-${me}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refreshInbox)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleInboxRefresh)
       .subscribe()
     // Fallback for projects without Realtime publication enabled for messages.
     // Realtime is primary; use a less frequent visible-only fallback to limit
@@ -1099,8 +1107,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 90000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
-    return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
-  }, [me, refreshInbox])
+    return () => { inboxRequest.current++; clearTimeout(inboxRefreshTimer.current); inboxRefreshTimer.current = null; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
+  }, [me, refreshInbox, scheduleInboxRefresh])
   const [onlineMatchIds, setOnlineMatchIds] = useState({})
   const presenceIds = matches.slice(0, 20).map(m => m.p?.id).filter(Boolean).join(',')
   useEffect(() => {
