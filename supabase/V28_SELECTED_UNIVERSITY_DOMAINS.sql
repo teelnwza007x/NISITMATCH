@@ -35,11 +35,12 @@ INSERT INTO public.universities (id,name) VALUES
  ('dpu','มหาวิทยาลัยธุรกิจบัณฑิตย์'),
  ('mti','มหาวิทยาลัยเทคโนโลยีมหานคร'),
  ('huachiew','มหาวิทยาลัยหัวเฉียวเฉลิมพระเกียรติ'),
+ ('ru','มหาวิทยาลัยรามคำแหง'),
  ('payap','มหาวิทยาลัยพายัพ'),
  ('krirk','มหาวิทยาลัยเกริก')
 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name;
 -- Disable previously enabled domains for these selected institutions; do not delete historical verification records.
-UPDATE public.student_email_domains SET enabled=false WHERE university_id IN ('chula','tu','mu','ku','cmu','kku','psu','swu','kmitl','kmutt','kmutnb','buu','su','nu','mahasarakham','mfu','sut','rmutt','rmutp','rmutk','nmu','ssru','dusit','cmru','chandra','utcc','bu','abac','rangsit','spu','dpu','mti','huachiew','payap','krirk');
+UPDATE public.student_email_domains SET enabled=false WHERE university_id IN ('chula','tu','mu','ku','cmu','kku','psu','swu','kmitl','kmutt','kmutnb','buu','su','nu','mahasarakham','mfu','sut','rmutt','rmutp','rmutk','nmu','ssru','dusit','cmru','chandra','utcc','bu','abac','rangsit','spu','dpu','mti','huachiew','payap','krirk','ru');
 INSERT INTO public.student_email_domains (domain, university_id, enabled) VALUES
  ('student.chula.ac.th','chula',true),
  ('dome.tu.ac.th','tu',true),
@@ -75,6 +76,7 @@ INSERT INTO public.student_email_domains (domain, university_id, enabled) VALUES
  ('dpu.ac.th','dpu',true),
  ('mut.ac.th','mti',true),
  ('student.hcu.ac.th','huachiew',true),
+ ('rumail.ru.ac.th','ru',true),
  ('payap.ac.th','payap',true),
  ('krirk.ac.th','krirk',true)
 ON CONFLICT (domain) DO UPDATE SET university_id=EXCLUDED.university_id, enabled=EXCLUDED.enabled;
