@@ -7,6 +7,34 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMe
 import { createPortal } from 'react-dom'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, MailCheck, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from './supabase'
+
+// Cache public premium badges briefly and deduplicate concurrent requests.
+// The swipe deck changes frequently, so querying every visible profile on every
+// deck update can create thousands of redundant RPC calls per day.
+const PREMIUM_STATUS_TTL_MS = 2 * 60 * 1000
+const premiumStatusCache = new Map()
+const premiumStatusRequests = new Map()
+const getPublicPremiumStatus = async (profileId) => {
+  const cached = premiumStatusCache.get(profileId)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+  const pending = premiumStatusRequests.get(profileId)
+  if (pending) return pending
+  const request = (async () => {
+    try {
+      const { data, error } = await supabase.rpc('is_profile_premium', { p_profile_id: profileId })
+      if (error) return null
+      const value = data === true
+      premiumStatusCache.set(profileId, { value, expiresAt: Date.now() + PREMIUM_STATUS_TTL_MS })
+      return value
+    } catch {
+      return null
+    } finally {
+      premiumStatusRequests.delete(profileId)
+    }
+  })()
+  premiumStatusRequests.set(profileId, request)
+  return request
+}
 import EmailCenter from './components/EmailCenter'
 import { authRedirectUrl, isAuthCallbackPath, clearAuthCallbackUrl } from './authRedirect'
 import './authLink.css'
@@ -4148,17 +4176,16 @@ const loadMatches = useCallback(async () => {
     setPeople(null)
     loadPeople()
   }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
-  // Public Premium status for swipe cards: only a boolean is returned by the RPC.
+  // Public Premium status for swipe cards: use a short cache so advancing the deck
+  // does not re-query the same profile IDs over and over.
   const premiumCandidateKey = (people || []).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
     if (!premiumCandidateKey) return
     let active = true
     const ids = premiumCandidateKey.split('|').slice(0, 40)
     Promise.all(ids.map(async id => {
-      try {
-        const { data, error } = await supabase.rpc('is_profile_premium', { p_profile_id: id })
-        return error ? null : [id, data === true]
-      } catch { return null }
+      const value = await getPublicPremiumStatus(id)
+      return value === null ? null : [id, value]
     })).then(results => {
       if (!active) return
       const status = new Map(results.filter(Boolean))
