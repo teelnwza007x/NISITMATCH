@@ -3527,12 +3527,12 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 
 /* Settings 8.0: clear navigation and lightweight grouped sections. */
 .nm-settings-quick-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:16px 0 24px}
-.nm-settings-quick-nav a{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:9px 12px;border:1px solid var(--theme-border);border-radius:14px;background:var(--theme-panel);color:var(--theme-text);font-size:12px;font-weight:700;transition:border-color .15s,background-color .15s}
-.nm-settings-quick-nav a:hover,.nm-settings-quick-nav a:focus-visible{border-color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 9%,var(--theme-panel))}
+.nm-settings-quick-nav button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:9px 12px;border:1px solid var(--theme-border);border-radius:14px;background:var(--theme-panel);color:var(--theme-text);font-size:12px;font-weight:700;transition:border-color .15s,background-color .15s}
+.nm-settings-quick-nav button:hover,.nm-settings-quick-nav button:focus-visible{border-color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 9%,var(--theme-panel))}
 .nm-settings-group-title{display:flex;align-items:center;gap:9px;margin:25px 0 12px;padding:0 2px;color:var(--theme-text);font-size:16px;font-weight:800;scroll-margin-top:85px}
 .nm-settings-group-title svg{color:var(--theme-accent)}
-@media(max-width:650px){.nm-settings-quick-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nm-settings-quick-nav a{justify-content:flex-start;font-size:12px;padding:10px}}
-@media(prefers-reduced-motion:reduce){.nm-settings-quick-nav a{transition:none}}
+@media(max-width:650px){.nm-settings-quick-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nm-settings-quick-nav button{justify-content:flex-start;font-size:12px;padding:10px}}
+@media(prefers-reduced-motion:reduce){.nm-settings-quick-nav button{transition:none}}
 
 /* Adjustable, accessible effects volume. */
 .nm-sound-volume{display:flex;flex-direction:column;gap:8px;min-width:min(100%,200px);flex:1 1 190px;color:var(--theme-text);font-size:12px;font-weight:650}
@@ -4387,3 +4387,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   html{background:linear-gradient(to bottom,#000 0,#000 env(safe-area-inset-top),#12101d env(safe-area-inset-top),#12101d 100%)!important;}
  }
 }
+
+/* Settings quick navigation: reset native button styles while preserving the original card UI. */
+.nm-settings-quick-nav button{appearance:none;-webkit-appearance:none;font-family:inherit;line-height:1.35;text-align:center;cursor:pointer;width:100%;box-sizing:border-box}
+.nm-settings-quick-nav button svg{flex:none}
+@media(max-width:650px){.nm-settings-quick-nav button{text-align:left}}
