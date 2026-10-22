@@ -430,36 +430,35 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
-  // Warm the next image in the current gallery and the next profile cover.
-  // Run right after paint (rather than waiting for idle time) so quick taps/swipes
-  // are more likely to hit the browser cache, while keeping only two images in flight.
+  // Warm only the next image in this card's gallery.
+  // Avoid fetching the next profile cover on every gallery tap; on mobile this
+  // competes with the image the user is actively trying to view.
   useEffect(() => {
     if (typeof window === 'undefined' || document.visibilityState !== 'visible') return
     let cancelled = false
     let frameId = null
-    const images = []
+    let image = null
     const warm = () => {
       if (cancelled) return
-      const nextPhoto = photoItems[photo + 1]?.type === 'image' ? photoItems[photo + 1].path : null
-      const nextPerson = people[1]
-      const paths = [nextPhoto, nextPerson?.avatar_path || nextPerson?.photo_paths?.[0]].filter(Boolean)
-      for (const path of new Set(paths)) {
-        const url = pub(path)
-        if (!url) continue
-        const img = new Image()
-        img.decoding = 'async'
-        img.fetchPriority = 'low'
-        img.src = url
-        images.push(img)
-      }
+      const nextItem = photoItems[photo + 1]
+      if (!nextItem || nextItem.type !== 'image') return
+      const url = pub(nextItem.path)
+      if (!url) return
+      image = new Image()
+      image.decoding = 'async'
+      image.fetchPriority = 'auto'
+      image.src = url
     }
     frameId = window.requestAnimationFrame(warm)
     return () => {
       cancelled = true
       if (frameId !== null) window.cancelAnimationFrame(frameId)
-      images.forEach(img => { img.onload = null; img.onerror = null })
+      if (image) {
+        image.onload = null
+        image.onerror = null
+      }
     }
-  }, [person?.id, photo, people[1]?.id, photos, cardVideos, person?.media_order])
+  }, [person?.id, photo, photos, cardVideos, person?.media_order])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
