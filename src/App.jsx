@@ -3862,6 +3862,29 @@ function SiteVisitorPresence() {
 function AppContent() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
   const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => window.location.pathname === '/notifications' ? 'notifications' : window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
+  // Reset page position after the new view is committed, including direct route changes.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+    document.querySelectorAll('main, .app-main, .page-content').forEach(el => {
+      if (el.scrollTop > 0) el.scrollTop = 0
+    })
+  }, [view])
+
+  // Stop in-app media when the PWA is backgrounded or closed. iOS controls
+  // the Dynamic Island itself; pausing media only releases active playback.
+  useEffect(() => {
+    const pauseMedia = () => document.querySelectorAll('audio, video').forEach(el => {
+      if (!el.paused) el.pause()
+    })
+    const onVisibility = () => { if (document.visibilityState === 'hidden') pauseMedia() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', pauseMedia)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', pauseMedia)
+    }
+  }, [])
+
   const [people, setPeople] = useState(null), [matches, setMatches] = useState([]), [unread, setUnread] = useState(0), [unreadMessages, setUnreadMessages] = useState(0), [detail, setDetail] = useState(null)
   const [profileEntryTab, setProfileEntryTab] = useState('photos')
   const [installPrompt, setInstallPrompt] = useState(null)
