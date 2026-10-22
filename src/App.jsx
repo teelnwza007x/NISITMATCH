@@ -4487,6 +4487,7 @@ const loadMatches = useCallback(async () => {
   const swipeInFlight = useRef(new Set())
   const swipe = async (p, is_like) => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
+    if (swipeQuota?.remaining === 0 && quotaWaitMinutes > 0) return notify(`ครบโควตา 30 คนแล้ว ปัดเพิ่มได้อีกประมาณ ${quotaWaitMinutes} นาที`)
     if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
     swipeInFlight.current.add(p.id)
     let error
@@ -4523,16 +4524,21 @@ const loadMatches = useCallback(async () => {
     if (error || !data) return notify(error?.message || 'ไม่สามารถย้อนกลับได้ หากเกิด Match แล้วจะย้อนกลับไม่ได้')
     seenSwipes.current.delete(lastSwipe.person.id)
     setPeople(old => [lastSwipe.person, ...(old || []).filter(p=>p.id!==lastSwipe.person.id)])
-    setLastSwipe(null); notify('ย้อนกลับการปัดล่าสุดแล้ว')
+    setLastSwipe(null); refreshSwipeQuota(); notify('ย้อนกลับการปัดล่าสุดแล้ว')
   }
   const superLike = async (p) => {
     if (!p?.id || superBusy || swipeInFlight.current.has(p.id)) return false
+    if (swipeQuota?.remaining === 0 && quotaWaitMinutes > 0) { notify(`ครบโควตา 30 คนแล้ว ปัดเพิ่มได้อีกประมาณ ${quotaWaitMinutes} นาที`); return false }
     swipeInFlight.current.add(p.id)
     setSuperBusy(true)
     const { error } = await supabase.rpc('v60_super_like', { p_target: p.id })
     setSuperBusy(false)
     swipeInFlight.current.delete(p.id)
-    if (error) return notify(error.message.includes('limit') ? 'ใช้ Super Like ครบ 3 ครั้งของวันนี้แล้ว' : 'Super Like ไม่สำเร็จ: '+error.message)
+    if (error) {
+      if (error.message?.includes('SWIPE_HOURLY_LIMIT')) { refreshSwipeQuota(); return notify('ครบ 30 ครั้งใน 60 นาทีแล้ว กรุณารอให้โควตากลับมา') }
+      return notify(error.message?.includes('limit') ? 'ใช้ Super Like ครบ 3 ครั้งของวันนี้แล้ว' : 'Super Like ไม่สำเร็จ: '+error.message)
+    }
+    refreshSwipeQuota()
     setLastSwipe(null)
     notify(`ส่ง Super Like ให้ ${p.display_name} แล้ว`)
     // Delay card removal until the Super Like burst has played.
