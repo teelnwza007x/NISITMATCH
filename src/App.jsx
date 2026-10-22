@@ -2693,7 +2693,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   rmuti: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน', domains: ['rmuti.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
   up: { name: 'มหาวิทยาลัยพะเยา', domains: ['up.ac.th'] },
-  mu: { name: 'มหาวิทยาลัยมหิดล', domains: ['mu.ac.th'] },
+  mu: { name: 'มหาวิทยาลัยมหิดล', domains: ['mu.ac.th', 'student.mahidol.edu'] },
   mfu: { name: 'มหาวิทยาลัยแม่ฟ้าหลวง', domains: ['mfu.ac.th', 'lamduan.mfu.ac.th'] },
   nmu: { name: 'มหาวิทยาลัยนวมินทราธิราช', domains: ['nmu.ac.th'] },
   ssru: { name: 'มหาวิทยาลัยราชภัฏสวนสุนันทา', domains: ['ssru.ac.th'] },
