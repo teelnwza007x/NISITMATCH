@@ -4714,3 +4714,36 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   flex:0 0 auto!important;
  }
 }
+
+/* Video slides: keep the same metadata overlay above the media wrapper. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-front>.nm-tap-sound-wrap{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ z-index:0!important;overflow:hidden!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front>.nm-tap-sound-wrap>video{
+ width:100%!important;height:100%!important;object-fit:cover!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front>.swipe-info{
+ z-index:5!important;isolation:isolate!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front>.swipe-photo-bars{
+ z-index:6!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front>.swipe-more-trigger{
+ z-index:12!important;
+}
+/* Exact shared center for all three action icons, independent of their badge. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control{
+ position:relative!important;display:grid!important;place-items:center!important;
+ padding:0!important;line-height:0!important;box-sizing:border-box!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control>svg{
+ position:absolute!important;top:50%!important;left:50%!important;
+ right:auto!important;bottom:auto!important;margin:0!important;
+ width:21px!important;height:21px!important;
+ transform:translate(-50%,-50%)!important;
+ transform-origin:center!important;vertical-align:middle!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control.accept>svg{
+ width:24px!important;height:24px!important;
+}
