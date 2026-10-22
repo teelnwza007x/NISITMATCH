@@ -4458,7 +4458,7 @@ const loadMatches = useCallback(async () => {
           body = `${sender ? sender + ': ' : ''}${text}`
         }
         notify(`${title}: ${body}`)
-        if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') { try { new Notification(title, { body, tag: `hangout-${p.new.ref_id}`, icon: '/icons/icon-192.png' }).onclick = () => { window.focus(); try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, p.new.ref_id); sessionStorage.setItem(`nisit-last-view:${user.id}`, 'messages') } catch {}; window.location.reload() } } catch {} }
+        if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') { try { new Notification(title, { body, tag: `hangout-${p.new.ref_id}`, icon: '/icons/icon-192.png' }).onclick = () => { window.focus(); try { sessionStorage.setItem(`nisit-pending-hangout-chat:${user.id}`, p.new.ref_id); sessionStorage.setItem(`nisit-last-view:${user.id}`, 'messages') } catch {}; setView('messages') } } catch {} }
         return
       }
       if (!['interest', 'match'].includes(p.new.type)) return
