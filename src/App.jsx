@@ -3636,6 +3636,7 @@ function PremiumPage({ user, onGoVisitors }) {
   const selectedAmount = plan === 'weekly' ? 39 : 119
   const selectedDuration = plan === 'weekly' ? '7 วัน' : '30 วัน'
   return <div className="v76-page nm-coming-soon-page nm-premium-clean">
+    <style>{`@keyframes nmPremiumShimmer{0%{background-position:0% 50%;filter:brightness(1)}50%{background-position:100% 50%;filter:brightness(1.12)}100%{background-position:0% 50%;filter:brightness(1)}}@keyframes nmPremiumFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}.nm-premium-clean .nm-coming-soon-pill{background:linear-gradient(100deg,rgba(236,72,153,.16),rgba(168,85,247,.24),rgba(236,72,153,.16));background-size:200% 200%;animation:nmPremiumShimmer 4s ease-in-out infinite;border:1px solid rgba(244,114,182,.35)}.nm-premium-clean .nm-premium-benefit-icon{animation:nmPremiumFloat 3.5s ease-in-out infinite}.nm-premium-clean button[aria-pressed="true"]{box-shadow:0 0 0 1px rgba(244,114,182,.2),0 0 20px rgba(236,72,153,.12)}.nm-premium-clean .nm-premium-page-kicker{letter-spacing:.16em}`}</style>
     <header className="nm-premium-page-heading">
       <span className="nm-premium-page-kicker">NISIT MATCH <i /> PREMIUM</span>
       <h1>อัปเกรดเป็น Premium</h1>
