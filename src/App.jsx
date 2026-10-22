@@ -14,7 +14,7 @@ import { supabase } from './supabase'
 const PREMIUM_STATUS_TTL_MS = 2 * 60 * 1000
 const premiumStatusCache = new Map()
 const premiumStatusRequests = new Map()
-const PREMIUM_MAX_CONCURRENT = 6
+const PREMIUM_MAX_CONCURRENT = 3
 let premiumActiveRequests = 0
 const premiumRequestQueue = []
 const withPremiumRequestSlot = async task => {
@@ -502,37 +502,22 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
-  // Warm the next two gallery images as soon as a profile is shown, not
-  // after the user taps. Decode in advance to avoid a blank frame on mobile.
+  // Mobile: keep at most one upcoming image in memory. Never decode the
+  // whole gallery eagerly; large images can heat up iOS devices.
   const galleryPreloads = useRef(new Map())
   useEffect(() => {
     galleryPreloads.current.clear()
-    if (typeof Image === 'undefined' || !person?.id) return
-    const urls = photoItems.filter(item => item.type === 'image').map(item => pub(item.path)).filter(Boolean)
-    const warm = (url) => {
-      if (!url || galleryPreloads.current.has(url)) return
-      const image = new Image()
-      image.decoding = 'async'
-      image.src = url
-      galleryPreloads.current.set(url, image)
-      image.decode?.().catch(() => {})
-    }
-    urls.slice(0, 3).forEach(warm)
+    if (typeof Image === 'undefined' || !person?.id || document.visibilityState === 'hidden') return
+    const next = photoItems[photo + 1]
+    if (next?.type !== 'image') return
+    const url = pub(next.path)
+    if (!url) return
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = url
+    galleryPreloads.current.set(url, image)
     return () => { galleryPreloads.current.clear() }
-  }, [person?.id, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
-  useEffect(() => {
-    if (typeof Image === 'undefined') return
-    for (const item of photoItems.slice(photo + 1, photo + 3)) {
-      if (item?.type !== 'image') continue
-      const url = pub(item.path)
-      if (!url || galleryPreloads.current.has(url)) continue
-      const image = new Image()
-      image.decoding = 'async'
-      image.src = url
-      galleryPreloads.current.set(url, image)
-      image.decode?.().catch(() => {})
-    }
-  }, [photo, person?.id, cardVideos, person?.media_order])
+  }, [person?.id, photo, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
@@ -4330,11 +4315,11 @@ const loadMatches = useCallback(async () => {
   }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
   // Public Premium status for swipe cards: use a short cache so advancing the deck
   // does not re-query the same profile IDs over and over.
-  const premiumCandidateKey = (people || []).slice(0, 40).map(p => p.id).filter(Boolean).join('|')
+  const premiumCandidateKey = (people || []).slice(0, 12).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
     if (!premiumCandidateKey) return
     let active = true
-    const ids = premiumCandidateKey.split('|').slice(0, 40)
+    const ids = premiumCandidateKey.split('|').slice(0, 12)
     Promise.all(ids.map(async id => {
       const value = await getPublicPremiumStatus(id)
       return value === null ? null : [id, value]
@@ -4356,7 +4341,7 @@ const loadMatches = useCallback(async () => {
   }, [premiumCandidateKey])
   // Verification badges only need the upcoming cards. A stable ID signature
   // prevents repeated RPCs when unrelated card fields (e.g. premium) update.
-  const verificationCandidateKey = (people || []).slice(0, 40).map(p => p.id).filter(Boolean).join('|')
+  const verificationCandidateKey = (people || []).slice(0, 12).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
     if (!userId || !verificationCandidateKey) { setVerifiedCampusIds([]); return }
     let active = true
