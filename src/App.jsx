@@ -4034,10 +4034,18 @@ function AppContent() {
   useEffect(() => {
     let active = true
     if (!userId) { setOwnerPremium(false); return () => { active = false } }
-    supabase.from('premium_subscriptions').select('status,ends_at').eq('user_id', userId).maybeSingle()
-      .then(({ data, error }) => {
-        if (!active || error) return
-        setOwnerPremium(data?.status === 'active' && (!data.ends_at || new Date(data.ends_at).getTime() > Date.now()))
+    // Use the same server-side Premium check as profile badges, with a subscription fallback.
+    supabase.rpc('is_profile_premium', { p_profile_id: userId })
+      .then(async ({ data, error }) => {
+        if (!active) return
+        if (!error && typeof data === 'boolean') {
+          setOwnerPremium(data)
+          return
+        }
+        const { data: subscription, error: subscriptionError } = await supabase.from('premium_subscriptions')
+          .select('status,ends_at').eq('user_id', userId).maybeSingle()
+        if (!active || subscriptionError) return
+        setOwnerPremium(subscription?.status === 'active' && (!subscription.ends_at || new Date(subscription.ends_at).getTime() > Date.now()))
       }).catch(() => {})
     return () => { active = false }
   }, [userId])
