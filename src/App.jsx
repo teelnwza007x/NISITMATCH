@@ -2901,7 +2901,30 @@ function AdminDirectory({ kind }) {
 
 function AdminDashboard({ onBack }) {
   const [metrics, setMetrics] = useState(null)
+  const [onlineCount, setOnlineCount] = useState(null)
+  const [onlineError, setOnlineError] = useState(false)
   const [adminTab, setAdminTab] = useState('overview')
+  useEffect(() => {
+    let active = true
+    let pending = false
+    const refreshOnline = async () => {
+      if (!active || pending || document.visibilityState !== 'visible') return
+      pending = true
+      try {
+        const { data, error } = await supabase.rpc('nm_admin_online_count')
+        if (active) {
+          if (error) { setOnlineError(true); setOnlineCount(null) }
+          else { setOnlineError(false); setOnlineCount(Number(data) || 0) }
+        }
+      } catch {
+        if (active) { setOnlineError(true); setOnlineCount(null) }
+      } finally { pending = false }
+    }
+    refreshOnline()
+    const timer = setInterval(refreshOnline, 60000)
+    document.addEventListener('visibilitychange', refreshOnline)
+    return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', refreshOnline) }
+  }, [])
   const [reports, setReports] = useState([])
   const [growth, setGrowth] = useState(null)
   const [growthError, setGrowthError] = useState('')
@@ -2981,6 +3004,7 @@ function AdminDashboard({ onBack }) {
     <div className="nm-admin-navigation">
       <div className="nm-admin-welcome">
         <div><span className="nm-admin-eyebrow"><ShieldCheck size={14}/> NISIT MATCH CONTROL CENTER</span><h2>จัดการทุกอย่างในที่เดียว</h2><p>เลือกเมนูที่ต้องการ ระบบจะแสดงข้อมูลและเครื่องมือเฉพาะส่วนนั้น</p></div>
+        <div className="nm-admin-online-card" role="status" aria-live="polite"><span className="nm-admin-online-dot"/><span className="nm-admin-online-label">ออนไลน์ตอนนี้ <small>ใช้งานใน 2 นาทีล่าสุด</small></span><strong>${onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong>{onlineError && <small title="ไม่สามารถโหลดจำนวนออนไลน์ได้">โหลดไม่ได้</small>}</div>
         <div className="nm-admin-live-status"><span className={health==='ok'?'nm-admin-status-dot is-ok':health==='error'?'nm-admin-status-dot is-error':'nm-admin-status-dot'}/>{health==='ok'?'ฐานข้อมูลตอบสนอง':health==='error'?'ตรวจสอบการเชื่อมต่อ':'สถานะรอตรวจสอบ'}</div>
       </div>
       {adminTab === 'overview' && <div className="nm-admin-shortcuts" aria-label="งานที่ใช้บ่อย">
