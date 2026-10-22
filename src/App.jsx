@@ -4577,6 +4577,7 @@ class AppErrorBoundary extends React.Component {
       <ShieldCheck size={42} style={{margin:'auto',color:'#f9a8d4'}}/>
       <h1 style={{fontSize:22,margin:0}}>เกิดข้อผิดพลาดในการแสดงผล</h1>
       <p style={{opacity:.8,margin:0}}>ลองโหลดแอปใหม่อีกครั้ง หากยังพบปัญหากรุณาติดต่อผู้ดูแล</p>
+      <details style={{maxWidth:480,textAlign:'left',fontSize:12,color:'#e9cce2',overflowWrap:'anywhere'}}><summary style={{cursor:'pointer'}}>รายละเอียดข้อผิดพลาดสำหรับแจ้งผู้ดูแล</summary><code>{String(this.state.error?.message || 'Unknown render error')}</code></details>
       <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>โหลดแอปใหม่</button>
     </main>
   }
