@@ -4409,3 +4409,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .swipe-stage .swipe-controls{max-width:calc(100% - 16px)!important;box-sizing:border-box!important;margin-inline:auto!important}
 }
 @media(max-width:700px) and (max-height:760px){.app-shell.home-swipe-locked .swipe-stage .swipe-stack{height:clamp(300px,47dvh,470px)!important}}
+
+/* Mobile swipe: lower content slightly and give the four actions more room. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .page-content{padding-top:calc(15px + env(safe-area-inset-top,0px))!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{margin-top:13px!important;margin-bottom:22px!important;padding-bottom:6px!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{display:flex!important;align-items:center!important;justify-content:space-evenly!important;gap:clamp(12px,4vw,22px)!important;width:min(100%,390px)!important;max-width:calc(100% - 12px)!important;box-sizing:border-box!important;padding:7px 12px!important;margin:0 auto!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{flex-shrink:0!important}
+}
