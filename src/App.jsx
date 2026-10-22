@@ -3580,7 +3580,7 @@ function PremiumPage({ user, onGoVisitors }) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('info')
-  const [showPayment, setShowPayment] = useState(false)
+  const [showPayment, setShowPayment] = useState(true)
   const fileInputRef = useRef(null)
 
   const loadStatus = useCallback(async () => {
@@ -3655,7 +3655,7 @@ function PremiumPage({ user, onGoVisitors }) {
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><EyeIcon size={19}/></span><span><b>ผู้เข้าชมโปรไฟล์</b><small>ดูคนที่แวะมาเยี่ยมชม</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>สิทธิพิเศษอื่น ๆ</b><small>ทยอยเปิดให้ใช้ในอนาคต</small></span></div>
     </section>
-    {!activePlan && <section style={{marginTop:18,padding:16,border:'1px solid rgba(244,114,182,.24)',borderRadius:20,background:'linear-gradient(145deg,rgba(42,23,47,.92),rgba(19,16,31,.96))'}}>
+    <section style={{marginTop:18,padding:16,border:'1px solid rgba(244,114,182,.24)',borderRadius:20,background:'linear-gradient(145deg,rgba(42,23,47,.92),rgba(19,16,31,.96))'}}>
       <h2 style={{margin:'0 0 6px',fontSize:19}}>เลือกแพ็กเกจ Premium</h2>
       <p style={{margin:'0 0 14px',fontSize:13,opacity:.76}}>ชำระด้วย QR PromptPay แล้วแนบสลิปเพื่อตรวจสอบ</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
@@ -3676,7 +3676,7 @@ function PremiumPage({ user, onGoVisitors }) {
         <button type="button" disabled={busy||!slipFile} onClick={submitSlip} style={{width:'100%',padding:'13px 16px',border:0,borderRadius:14,background:busy||!slipFile?'#51465b':'#db2777',color:'#fff',fontWeight:750,fontSize:15,cursor:busy||!slipFile?'not-allowed':'pointer'}}>{busy?'กำลังตรวจสอบสลิป…':'ส่งสลิปตรวจสอบอัตโนมัติ'}</button>
       </div>}
       {message&&<p role="status" aria-live="polite" style={{margin:'12px 0 0',padding:11,borderRadius:12,fontSize:13,background:messageType==='error'?'rgba(239,68,68,.12)':messageType==='success'?'rgba(34,197,94,.12)':'rgba(168,85,247,.12)',color:messageType==='error'?'#fca5a5':messageType==='success'?'#86efac':'#e9d5ff'}}>{message}</p>}
-    </section>}
+    </section>
     <button type="button" className="v76-secondary-link nm-premium-visitors-link" onClick={onGoVisitors}><EyeIcon size={16}/> ดูผู้เข้าชมโปรไฟล์</button>
     <ReferralPanel user={user} />
     <p className="v76-disclaimer">* สิทธิ์และระยะเวลา Premium จะเปิดใช้งานเมื่อระบบตรวจสอบสลิปสำเร็จเท่านั้น โปรดตรวจชื่อบัญชีผู้รับก่อนชำระเงิน</p>
