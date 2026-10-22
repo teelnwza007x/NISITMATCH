@@ -2558,6 +2558,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   nmu: { name: 'มหาวิทยาลัยนวมินทราธิราช', domains: ['nmu.ac.th'] },
   ssru: { name: 'มหาวิทยาลัยราชภัฏสวนสุนันทา', domains: ['ssru.ac.th'] },
   huachiew: { name: 'มหาวิทยาลัยหัวเฉียวเฉลิมพระเกียรติ', domains: ['hcu.ac.th', 'live.hcu.ac.th', 'student.hcu.ac.th'] },
+  ru: { name: 'มหาวิทยาลัยรามคำแหง', domains: ['rumail.ru.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
@@ -2568,7 +2569,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc']],
+    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew']]
   ]
