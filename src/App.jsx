@@ -4208,6 +4208,7 @@ const loadMatches = useCallback(async () => {
   const [discoveryLimited, setDiscoveryLimited] = useState(false)
   const discoverySession = useRef('')
   const discoveryOffset = useRef(0)
+  const discoveryPageSize = 100
   const discoveryHasMore = useRef(true)
   const [discoveryLoadingMore, setDiscoveryLoadingMore] = useState(false)
   const loadPeople = useCallback(async ({ silent = false, nextPage = false } = {}) => {
@@ -4222,7 +4223,7 @@ const loadMatches = useCallback(async () => {
     let data, error
     try {
       const result = await Promise.race([
-        supabase.rpc('discover_with_campus', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }).range(offset, offset + 29),
+        supabase.rpc('discover_with_campus', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }).range(offset, offset + discoveryPageSize - 1),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
       ])
       data = result.data
@@ -4235,6 +4236,7 @@ const loadMatches = useCallback(async () => {
       // A silent refresh must not leave the deck stuck on its initial spinner.
       // Keep existing cards when refreshing in the background.
       setPeople(current => ((silent || nextPage) && current !== null) ? current : [])
+      if (nextPage) discoveryHasMore.current = false // Avoid an automatic retry loop on RPC failure.
       if (!silent) notify('ค้นหาสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง')
       return
     }
@@ -4242,7 +4244,7 @@ const loadMatches = useCallback(async () => {
     if (!silent) {
       // Advance by the number of raw RPC rows, not the number surviving UI filters.
       discoveryOffset.current = offset + (data?.length || 0)
-      discoveryHasMore.current = (data?.length || 0) === 30
+      discoveryHasMore.current = (data?.length || 0) === discoveryPageSize
     }
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
     const sessionKey = userId || ''
@@ -4272,9 +4274,10 @@ const loadMatches = useCallback(async () => {
       return unique
     })
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
-  // Fetch the next batch before the deck runs out; retain the visible swipe card.
+  // Prefetch until the filtered deck has at least 100 cards or the RPC is exhausted.
+  // This also handles the all-universities filter without waiting for swipes.
   useEffect(() => {
-    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length < 25 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
+    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length < 100 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
   }, [view, people, discovery?.gender, campusFiltered, discoveryLoadingMore, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
