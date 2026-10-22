@@ -2960,6 +2960,20 @@ function AdminDashboard({ onBack }) {
     return ()=>{active=false}
   },[adminTab,analyticsDays])
   const analyticsDaily = analyticsV2?.daily || []
+  const exportAnalyticsCsv = () => {
+    if (!analyticsDaily.length) return
+    const numeric = value => String(Number(value) || 0)
+    const rows = [['date','messages','senders'], ...analyticsDaily.map(d => [
+      String(d.day || '').replace(/[^0-9-]/g, ''), numeric(d.messages), numeric(d.senders)
+    ])]
+    const csv = '\uFEFF' + rows.map(row => row.join(',')).join('\r\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'nisit-match-analytics-' + analyticsDays + 'd.csv'
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
   const analyticsPeak = Math.max(1,...analyticsDaily.map(d=>Number(d.messages)||0))
   const growthMax = Math.max(1,...(growth || []).flatMap(d=>[Number(d.new_profiles)||0,Number(d.new_matches)||0]))
   return <section className="nm-admin-dashboard">
@@ -2996,7 +3010,7 @@ function AdminDashboard({ onBack }) {
       <section className="nm-admin-queue" style={{display:'grid',gap:14}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
           <div><h3 style={{margin:0}}>Analytics 2.0</h3><small style={{opacity:.7}}>ข้อมูลกิจกรรมแชตและมหาวิทยาลัย · เวลาไทย</small></div>
-          <div style={{display:'flex',gap:6}}>{[7,14,30].map(n=><button key={n} type="button" className={analyticsDays===n?'btn btn-pink':'btn btn-ghost'} onClick={()=>setAnalyticsDays(n)}>{n} วัน</button>)}</div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{[7,14,30].map(n=><button key={n} type="button" className={analyticsDays===n?'btn btn-pink':'btn btn-ghost'} onClick={()=>setAnalyticsDays(n)}>{n} วัน</button>)}<button type="button" className="btn btn-ghost" disabled={!analyticsDaily.length} onClick={exportAnalyticsCsv} title="ส่งออกเฉพาะสถิติรวม ไม่รวมข้อมูลส่วนตัว">ส่งออก CSV</button></div>
         </div>
         {analyticsV2Error && <p role="status">{analyticsV2Error}</p>}
         {analyticsV2 && <>
