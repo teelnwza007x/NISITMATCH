@@ -4291,11 +4291,11 @@ const loadMatches = useCallback(async () => {
       return unique
     })
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
-  // Exhaust all discovery pages in 100-row batches, without a client-side result cap.
-  // Stop automatically on network errors to avoid request storms.
+  // Fetch the next 100 only when the visible deck is running low.
+  // Avoid exhausting the entire discovery RPC and overloading mobile devices.
   useEffect(() => {
-    if (view === 'home' && people !== null && discoveryHasMore.current && !discoveryPageError && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
-  }, [view, people, discoveryPageError, discoveryLoadingMore, loadPeople])
+    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length < 24 && discoveryHasMore.current && !discoveryPageError && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
+  }, [view, people, discovery?.gender, campusFiltered, discoveryPageError, discoveryLoadingMore, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
@@ -4354,16 +4354,22 @@ const loadMatches = useCallback(async () => {
     })
     return () => { active = false }
   }, [premiumCandidateKey])
-  // Only expose verified account IDs, never private university email addresses.
+  // Verification badges only need the upcoming cards. A stable ID signature
+  // prevents repeated RPCs when unrelated card fields (e.g. premium) update.
+  const verificationCandidateKey = (people || []).slice(0, 40).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
-    if (!userId || !people?.length) { setVerifiedCampusIds([]); return }
+    if (!userId || !verificationCandidateKey) { setVerifiedCampusIds([]); return }
     let active = true
-    const ids = [...new Set(people.map(p => p.id).filter(Boolean))]
+    const ids = [...new Set(verificationCandidateKey.split('|'))]
     supabase.rpc('verified_student_profile_ids', { candidate_ids: ids })
-      .then(({ data, error }) => { if (active) setVerifiedCampusIds(error ? [] : (data || []).map(x => x.user_id)) })
-      .catch(() => { if (active) setVerifiedCampusIds([]) })
+      .then(({ data, error }) => {
+        if (!active) return
+        const next = error ? [] : (data || []).map(x => x.user_id)
+        setVerifiedCampusIds(current => current.length === next.length && current.every(id => next.includes(id)) ? current : next)
+      })
+      .catch(() => { if (active) setVerifiedCampusIds(current => current.length ? [] : current) })
     return () => { active = false }
-  }, [userId, people])
+  }, [userId, verificationCandidateKey])
 
   useEffect(() => { const refresh = () => { if (document.visibilityState === 'visible' && user?.id) loadMatches() }; document.addEventListener('visibilitychange', refresh); return () => document.removeEventListener('visibilitychange', refresh) }, [user?.id, loadMatches])
   useEffect(() => {
