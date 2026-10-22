@@ -4684,3 +4684,33 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   box-sizing:border-box!important;margin:0!important;
  }
 }
+
+/* Stable swipe-photo viewport: every profile uses the same card dimensions.
+   Media changes never resize the card or push the song/action dock down. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .swipe-stage{
+  display:flex!important;flex-direction:column!important;
+  flex:1 1 0!important;min-height:0!important;max-height:100%!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack{
+  position:relative!important;display:block!important;
+  flex:1 1 0!important;height:0!important;min-height:0!important;
+  width:100%!important;max-width:100%!important;overflow:hidden!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-stack>.swipe-card{
+  position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;
+  min-height:0!important;max-height:100%!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-card>img,
+ .app-shell.home-swipe-locked .swipe-stage .swipe-card>.swipe-media-video{
+  display:block!important;width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;
+  object-fit:cover!important;object-position:center 35%!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area,
+ .app-shell.home-swipe-locked .swipe-stage .swipe-hint{
+  flex:0 0 auto!important;
+ }
+}
