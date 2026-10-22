@@ -2978,15 +2978,18 @@ function AdminDashboard({ onBack }) {
       .nm-admin-dashboard .nm-admin-queue { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .nm-admin-dashboard button { touch-action: manipulation; }
     }`}</style>
-    <div className="nm-admin-navigation" style={{display:'grid',gap:12,marginBottom:20}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><strong style={{fontSize:17}}>ศูนย์จัดการระบบ</strong><p style={{margin:'4px 0 0',fontSize:13,opacity:.7}}>เลือกงานที่ต้องการจัดการได้จากหมวดด้านล่าง</p></div><span style={{fontSize:12,opacity:.65}}>สำหรับผู้ดูแลระบบ</span></div>
-      <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ" style={{display:'flex',flexWrap:'wrap',gap:8}}>
-        {[['overview','ภาพรวม'],['analytics','สถิติผู้ใช้งาน'],['announcements','ประกาศถึงสมาชิก'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','ห้อง Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
-      </nav>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('alerts')}>ตรวจคำขอมหาวิทยาลัย <ArrowRight size={15}/></button>
-        <button type="button" className="btn btn-ghost" onClick={()=>setAdminTab('profiles')}>ค้นหาสมาชิก <ArrowRight size={15}/></button>
+    <div className="nm-admin-navigation">
+      <div className="nm-admin-welcome">
+        <div><span className="nm-admin-eyebrow"><ShieldCheck size={14}/> NISIT MATCH CONTROL CENTER</span><h2>จัดการทุกอย่างในที่เดียว</h2><p>เลือกเมนูที่ต้องการ ระบบจะแสดงข้อมูลและเครื่องมือเฉพาะส่วนนั้น</p></div>
+        <div className="nm-admin-live-status"><span className={health==='ok'?'nm-admin-status-dot is-ok':health==='error'?'nm-admin-status-dot is-error':'nm-admin-status-dot'}/>{health==='ok'?'ฐานข้อมูลตอบสนอง':health==='error'?'ตรวจสอบการเชื่อมต่อ':'สถานะรอตรวจสอบ'}</div>
       </div>
+      {adminTab === 'overview' && <div className="nm-admin-shortcuts" aria-label="งานที่ใช้บ่อย">
+        {[['alerts','ตรวจคำขอ',Bell,'คำขอและการแจ้งเตือน'],['profiles','จัดการสมาชิก',Users,'ค้นหาและตรวจสอบบัญชี'],['announcements','ส่งประกาศ',Send,'ข่าวสารถึงสมาชิก'],['analytics','ดูสถิติ',Eye,'ข้อมูลการใช้งาน']].map(([id,label,Icon,description])=><button type="button" key={id} className="nm-admin-shortcut" onClick={()=>setAdminTab(id)}><span className="nm-admin-shortcut-icon"><Icon size={19}/></span><span><strong>{label}</strong><small>{description}</small></span><ArrowRight size={16} className="nm-admin-shortcut-arrow"/></button>)}
+      </div>}
+      <div className="nm-admin-section-label">เมนูจัดการ <span>เลือกหมวดงาน</span></div>
+      <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ">
+        {[['overview','ภาพรวม'],['analytics','สถิติ'],['announcements','ประกาศ'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
+      </nav>
     </div>
     {adminTab === 'analytics' && <section className="nm-admin-overview" aria-label="สถิติผู้ใช้งาน" style={{display:'grid',gap:14}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><h3 style={{margin:0}}>สถิติการเติบโต</h3><p style={{opacity:.7,fontSize:13,margin:'5px 0 0'}}>ข้อมูลสรุปจาก Supabase ไม่แสดงข้อความส่วนตัวของสมาชิก</p></div><button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{busy?'กำลังโหลด…':'รีเฟรช'}</button></div>
