@@ -3988,3 +3988,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(prefers-reduced-motion:reduce) {
  .nm-premium-hero-clean,.nm-premium-hero-clean:before,.nm-premium-hero-clean:after,.nm-premium-hero-clean .v76-premium-orb { animation:none!important; }
 }
+
+/* Premium badge beside the swipe profile name */
+.swipe-info h2.swipe-name-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.swipe-info .swipe-premium-badge{position:relative;top:auto;left:auto;z-index:1;flex:0 0 auto;gap:4px;padding:4px 7px;border-radius:999px;font-size:8px;line-height:1;letter-spacing:.8px;animation:none;box-shadow:0 2px 10px rgba(224,166,78,.16),inset 0 1px rgba(255,255,255,.25)}
+.swipe-info .swipe-premium-badge svg:last-child{display:none}
+.swipe-info .swipe-premium-badge:before{animation:none;opacity:.35}
+.swipe-info .swipe-premium-badge:after{animation:none}
+
