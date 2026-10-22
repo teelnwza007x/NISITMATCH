@@ -502,30 +502,21 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
-  // Keep only the adjacent gallery images warm. Retain decoded images across
-  // photo changes instead of recreating them on every tap (especially on iOS).
+  // Mobile: keep at most one upcoming image in memory. Never decode the
+  // whole gallery eagerly; large images can heat up iOS devices.
   const galleryPreloads = useRef(new Map())
-  useEffect(() => () => { galleryPreloads.current.clear() }, [])
-  useEffect(() => { galleryPreloads.current.clear() }, [person?.id])
   useEffect(() => {
+    galleryPreloads.current.clear()
     if (typeof Image === 'undefined' || !person?.id || document.visibilityState === 'hidden') return
-    const wanted = new Set()
-    for (const offset of [-1, 1]) {
-      const item = photoItems[photo + offset]
-      if (item?.type !== 'image') continue
-      const url = pub(item.path)
-      if (!url) continue
-      wanted.add(url)
-      if (galleryPreloads.current.has(url)) continue
-      const image = new Image()
-      image.decoding = 'async'
-      image.src = url
-      image.decode?.().catch(() => {})
-      galleryPreloads.current.set(url, image)
-    }
-    for (const url of galleryPreloads.current.keys()) {
-      if (!wanted.has(url)) galleryPreloads.current.delete(url)
-    }
+    const next = photoItems[photo + 1] || photoItems[photo - 1]
+    if (next?.type !== 'image') return
+    const url = pub(next.path)
+    if (!url) return
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = url
+    galleryPreloads.current.set(url, image)
+    return () => { galleryPreloads.current.clear() }
   }, [person?.id, photo, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
   const act = async (like) => {
     if (!person || busyRef.current) return
