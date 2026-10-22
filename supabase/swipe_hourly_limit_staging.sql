@@ -22,6 +22,8 @@ begin
       using errcode = 'P0001',
             detail = pg_catalog.to_char(next_available at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
   end if;
+  -- Never trust client-supplied timestamps for rolling windows.
+  new.created_at := pg_catalog.clock_timestamp();
   return new;
 end;
 $$;
@@ -42,3 +44,25 @@ language sql security invoker set search_path = '' stable as $$
 $$;
 revoke all on function public.swipe_hourly_status() from public, anon;
 grant execute on function public.swipe_hourly_status() to authenticated;
+
+-- Keep the rolling-window timestamp and swipe ownership immutable.
+-- Existing application workflows may update is_like, which remains allowed.
+create or replace function public.protect_swipe_quota_fields()
+returns trigger language plpgsql security invoker
+set search_path = '' as $$
+begin
+  if new.from_id is distinct from old.from_id
+     or new.to_id is distinct from old.to_id
+     or new.created_at is distinct from old.created_at then
+    raise exception 'SWIPE_IMMUTABLE_FIELDS' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists protect_swipe_quota_fields_update on public.likes;
+create trigger protect_swipe_quota_fields_update
+before update on public.likes
+for each row execute function public.protect_swipe_quota_fields();
+
+-- Rolling count is based on retained likes rows. A successful Undo refunds one
+-- swipe, matching existing v60_undo_swipe behavior. Re-swiping consumes it again.
