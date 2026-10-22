@@ -2962,8 +2962,10 @@ function AdminDashboard({ onBack }) {
       }
     }
     update()
-    const timer = setInterval(update, 3000)
-    return () => { alive = false; clearInterval(timer) }
+    const tick = () => { if (document.visibilityState === 'visible') update() }
+    const timer = setInterval(tick, 10000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { alive = false; clearInterval(timer); document.removeEventListener('visibilitychange', tick) }
   }, [])
   const [reports, setReports] = useState([])
   const [growth, setGrowth] = useState(null)
@@ -3506,9 +3508,9 @@ function ReferralPanel({ user }) {
       } catch {}
     }
     refresh()
-    const onFocus = () => refresh()
+    const onFocus = () => { if (document.visibilityState === 'visible') refresh() }
     window.addEventListener('focus', onFocus)
-    const interval = window.setInterval(refresh, 30000)
+    const interval = window.setInterval(onFocus, 60000)
     return () => { active = false; window.removeEventListener('focus', onFocus); window.clearInterval(interval) }
   }, [user.id])
   const notify = (type, value) => { setNoticeType(type); setMessage(value) }
@@ -3747,7 +3749,7 @@ function HangoutPage({ user, profile, notify, onJoinedHangout, onGoVerify }) {
     if (!mineError) setJoined((mine||[]).map(x=>x.event_id))
     if(list.length){ const {data:rsvps,error:rsvpError}=await supabase.from('hangout_rsvps').select('event_id'); if(!rsvpError){const c={}; (rsvps||[]).forEach(x=>c[x.event_id]=(c[x.event_id]||0)+1); setCounts(c)} }
   },[user.id,notify,isCampusVerified])
-  useEffect(()=>{if (!campusVerificationLoading && isCampusVerified) { refresh(); const timer=setInterval(refresh,20000); return ()=>clearInterval(timer) } else if (!campusVerificationLoading) { setLoading(false); setEvents([]) }},[refresh,campusVerificationLoading,isCampusVerified])
+  useEffect(()=>{if (!campusVerificationLoading && isCampusVerified) { refresh(); const tick=()=>{if(document.visibilityState==='visible')refresh()}; const timer=setInterval(tick,60000); document.addEventListener('visibilitychange',tick); return ()=>{clearInterval(timer);document.removeEventListener('visibilitychange',tick)} } else if (!campusVerificationLoading) { setLoading(false); setEvents([]) }},[refresh,campusVerificationLoading,isCampusVerified])
   useEffect(() => {
     try {
       const pendingId = sessionStorage.getItem(`nisit-pending-hangout-chat:${user.id}`)
