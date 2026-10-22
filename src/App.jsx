@@ -4574,7 +4574,7 @@ const loadMatches = useCallback(async () => {
       }
     }
     const { data, error } = await supabase.from('profiles')
-      .select('avatar_path, photo_paths, university_id, faculty, major, bio, interests, relationship_intent, itunes_track_id, itunes_track_name, itunes_track_artist, itunes_track_image, itunes_track_preview, itunes_track_url')
+      .select('avatar_path, photo_paths, university_id, campus, faculty, major, bio, interests, relationship_intent, itunes_track_id, itunes_track_name, itunes_track_artist, itunes_track_image, itunes_track_preview, itunes_track_url')
       .eq('id', person.id).maybeSingle()
     if (!error && data) setDetail(current => current?.id === person.id ? { ...current, ...data } : current)
     // Premium likes/visitor RPCs intentionally return a compact list. Fetch song/profile
