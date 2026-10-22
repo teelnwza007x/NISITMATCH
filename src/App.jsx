@@ -2555,7 +2555,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   mfu: { name: 'มหาวิทยาลัยแม่ฟ้าหลวง', domains: ['mfu.ac.th'] },
   nmu: { name: 'มหาวิทยาลัยนวมินทราธิราช', domains: ['nmu.ac.th'] },
   ssru: { name: 'มหาวิทยาลัยราชภัฏสวนสุนันทา', domains: ['ssru.ac.th'] },
-  huachiew: { name: 'มหาวิทยาลัยหัวเฉียวเฉลิมพระเกียรติ', domains: ['live.hcu.ac.th', 'student.hcu.ac.th'] },
+  huachiew: { name: 'มหาวิทยาลัยหัวเฉียวเฉลิมพระเกียรติ', domains: ['hcu.ac.th', 'live.hcu.ac.th', 'student.hcu.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
