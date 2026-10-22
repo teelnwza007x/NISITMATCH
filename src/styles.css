@@ -4621,3 +4621,22 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   html{background:linear-gradient(to bottom,#000 0,#000 env(safe-area-inset-top),#12101d env(safe-area-inset-top),#12101d 100%)!important;}
  }
 }
+
+/* Keep the swipe remaining number clearly visible beside the heart on iPhone. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed,
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .nm-swipe-primary-actions,
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .swipe-control.accept{
+ overflow:visible!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .swipe-control.accept{
+ position:relative!important;isolation:isolate!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .nm-heart-remaining{
+ position:absolute!important;z-index:5!important;top:-8px!important;right:-15px!important;
+ display:flex!important;visibility:visible!important;opacity:1!important;
+ min-width:26px!important;height:25px!important;padding:0 6px!important;
+ border:2px solid #211b2d!important;border-radius:99px!important;
+ background:#fff2fa!important;color:#a51e61!important;
+ font:800 12px/1 system-ui,-apple-system,sans-serif!important;
+ pointer-events:none!important;
+}
