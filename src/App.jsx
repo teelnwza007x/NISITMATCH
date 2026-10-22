@@ -2686,10 +2686,15 @@ const VERIFIED_CAMPUS_DOMAINS = {
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
   rmutt: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลธัญบุรี', domains: ['mail.rmutt.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
+  dusit: { name: 'มหาวิทยาลัยสวนดุสิต', domains: ['mail.dusit.ac.th', 'suandusit.ac.th'] },
+  abac: { name: 'มหาวิทยาลัยอัสสัมชัญ', domains: ['au.edu'] },
+  cmu: { name: 'มหาวิทยาลัยเชียงใหม่', domains: ['cmu.ac.th'] },
+  cmru: { name: 'มหาวิทยาลัยราชภัฏเชียงใหม่', domains: ['cmru.ac.th'] },
+  rmuti: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน', domains: ['rmuti.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
   up: { name: 'มหาวิทยาลัยพะเยา', domains: ['up.ac.th'] },
   mu: { name: 'มหาวิทยาลัยมหิดล', domains: ['mu.ac.th'] },
-  mfu: { name: 'มหาวิทยาลัยแม่ฟ้าหลวง', domains: ['mfu.ac.th'] },
+  mfu: { name: 'มหาวิทยาลัยแม่ฟ้าหลวง', domains: ['mfu.ac.th', 'lamduan.mfu.ac.th'] },
   nmu: { name: 'มหาวิทยาลัยนวมินทราธิราช', domains: ['nmu.ac.th'] },
   ssru: { name: 'มหาวิทยาลัยราชภัฏสวนสุนันทา', domains: ['ssru.ac.th'] },
   huachiew: { name: 'มหาวิทยาลัยหัวเฉียวเฉลิมพระเกียรติ', domains: ['hcu.ac.th', 'live.hcu.ac.th', 'student.hcu.ac.th'] },
@@ -2708,9 +2713,9 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru','mju','npru']],
-    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt','rmutto']],
-    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu']]
+    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru','mju','npru','cmu','cmru','dusit']],
+    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt','rmutto','rmuti']],
+    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu','abac']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
   const campusResults = campusGroups.map(([title, ids]) => [title, ids.filter(id => {
