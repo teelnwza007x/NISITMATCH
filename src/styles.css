@@ -4570,3 +4570,21 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .swipe-control.reject,
  .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .swipe-control.super{width:43px!important;height:43px!important}
 }
+
+/* Remaining swipe count: small legible numeric badge beside the heart. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .swipe-control.accept{
+ overflow:visible!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .nm-heart-remaining{
+ position:absolute!important;top:-7px!important;right:-13px!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:auto!important;min-width:24px!important;height:24px!important;
+ padding:0 5px!important;box-sizing:border-box!important;
+ border:2px solid #211b2d!important;border-radius:999px!important;
+ background:#fff2fa!important;color:#a51e61!important;
+ font:800 11px/1 system-ui,-apple-system,sans-serif!important;
+ font-variant-numeric:tabular-nums!important;
+ letter-spacing:0!important;white-space:nowrap!important;
+ box-shadow:0 2px 7px rgba(0,0,0,.16)!important;
+ transform:none!important;animation:none!important;pointer-events:none!important;
+}
