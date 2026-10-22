@@ -73,8 +73,14 @@ const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - 
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
 const uniName = (id) => UNIVERSITIES.find((u) => u.id === id)?.name || id
-const KU_CAMPUSES = [{ id: 'bangkhen', name: 'บางเขน' }, { id: 'kamphaengsaen', name: 'กำแพงแสน' }, { id: 'sriracha', name: 'ศรีราชา' }, { id: 'chalermphrakiat', name: 'เฉลิมพระเกียรติ จังหวัดสกลนคร' }]
-const universityWithCampus = (p) => `${uniName(p.university_id)}${p.university_id === 'ku' && p.campus ? ` · ${KU_CAMPUSES.find(c => c.id === p.campus)?.name || ''}` : ''}`
+const UNIVERSITY_CAMPUSES = {
+  ku: [{id:'bangkhen',name:'บางเขน'},{id:'kamphaengsaen',name:'กำแพงแสน'},{id:'sriracha',name:'ศรีราชา'},{id:'chalermphrakiat',name:'เฉลิมพระเกียรติ จังหวัดสกลนคร'}],
+  tu: [{id:'tha_prachan',name:'ท่าพระจันทร์'},{id:'rangsit',name:'รังสิต'},{id:'lampang',name:'ลำปาง'},{id:'pattaya',name:'พัทยา'}],
+  swu: [{id:'prasarnmit',name:'ประสานมิตร'},{id:'ongkharak',name:'องครักษ์'}],
+  buu: [{id:'bangsaen',name:'บางแสน'},{id:'chanthaburi',name:'จันทบุรี'},{id:'sakaeo',name:'สระแก้ว'}]
+}
+const campusName = p => UNIVERSITY_CAMPUSES[p?.university_id]?.find(c => c.id === p?.campus)?.name || ''
+const universityWithCampus = (p) => `${uniName(p.university_id)}${campusName(p) ? ` · ${campusName(p)}` : ''}`
 // คำเรียกผู้เรียนอิงตามธรรมเนียมของมหาวิทยาลัย ไม่ใช้คำว่า ‘นิสิต’ กับทุกสถาบัน
 const NISIT_CAMPUS_IDS = new Set(['chula', 'ku', 'swu', 'buu', 'nu', 'mahasarakham'])
 const studentTerm = (universityId) => NISIT_CAMPUS_IDS.has(universityId) ? 'นิสิต' : 'นักศึกษา'
@@ -2383,7 +2389,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     if (!u) { setEditTab('campus'); return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ') }
     if (!f.birth_date || ageOf(f.birth_date) < 18) { setEditTab('basic'); return notify('ต้องมีอายุอย่างน้อย 18 ปี') }
     if (!f.faculty?.trim()) { setEditTab('campus'); return notify('กรุณาเลือกคณะ') }
-    if ((lockedUniversityId || u.id) === 'ku' && !KU_CAMPUSES.some(c => c.id === f.campus)) { setEditTab('campus'); return notify('กรุณาเลือกวิทยาเขตเกษตรศาสตร์') }
+    if (UNIVERSITY_CAMPUSES[lockedUniversityId || u.id] && !UNIVERSITY_CAMPUSES[lockedUniversityId || u.id].some(c => c.id === f.campus)) { setEditTab('campus'); return notify('กรุณาเลือกวิทยาเขต') }
     if (busy) return
     setBusy(true)
     const previousPhotos = [...new Set([profile?.avatar_path, ...(profile?.photo_paths || [])].filter(Boolean))]
@@ -2407,7 +2413,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     }
     const photo_paths = [...new Set(orderedKeys.map(key => keyMap[key] || key).filter(key => uploaded.includes(key)))].slice(0, 6)
     const avatar_path = photo_paths[0] || null
-    const payload = { media_order: orderedKeys.map(key => keyMap[key] || key), display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), campus: (lockedUniversityId || u.id) === 'ku' ? f.campus : null, faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
+    const payload = { media_order: orderedKeys.map(key => keyMap[key] || key), display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), campus: UNIVERSITY_CAMPUSES[lockedUniversityId || u.id] ? f.campus : null, faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
@@ -2497,12 +2503,12 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
           <button type="button" className={'nm-campus-unspecified' + (f.uni === 'unspecified' ? ' selected' : '')} aria-pressed={f.uni === 'unspecified'} onClick={() => setF(old => ({...old,uni:'unspecified',campus:'',faculty:'ไม่ระบุ',major:''}))}><span className="nm-campus-unspecified-icon"><GraduationCap size={19}/></span><span><b>ไม่ระบุสถานศึกษา</b><small>ยังไม่ต้องการแสดงข้อมูลการศึกษาในโปรไฟล์</small></span>{f.uni === 'unspecified' ? <Check size={18}/> : <ArrowRight size={17}/>}</button>
           <div className="uni-search"><Search size={17}/><input aria-label="ค้นหามหาวิทยาลัย" placeholder="พิมพ์ชื่อมหาวิทยาลัย..." value={uniQuery} onChange={(e) => setUniQuery(e.target.value)} /><span>{filteredUniversities.length} รายการ</span></div>
           <div className="choice-tabs">{['ทั้งหมด','รัฐ','เอกชน','ทหารและตำรวจ'].map((t) => <button type="button" key={t} className={uniType === t ? 'active' : ''} onClick={() => setUniType(t)}>{t === 'ทั้งหมด' ? 'ทุกสถาบัน' : t === 'รัฐ' ? 'มหาวิทยาลัยรัฐ' : t === 'เอกชน' ? 'มหาวิทยาลัยเอกชน' : 'ทหารและตำรวจ'}</button>)}</div>
-          <div className="university-grid">{filteredUniversities.map((u) => <button type="button" key={u.id} className={'university-option ' + (f.uni === u.id ? 'selected' : '')} onClick={() => setF(old => ({ ...old, uni: u.id, campus: u.id === 'ku' ? old.campus : '' }))}><span className="uni-symbol"><GraduationCap size={19}/></span><span className="uni-option-copy"><b>{u.name}</b><small>{u.type || 'สถาบันอุดมศึกษา'}</small></span><span className="uni-check">{f.uni === u.id ? <Check size={16}/> : <ArrowRight size={14}/>}</span></button>)}</div>
+          <div className="university-grid">{filteredUniversities.map((u) => <button type="button" key={u.id} className={'university-option ' + (f.uni === u.id ? 'selected' : '')} onClick={() => setF(old => ({ ...old, uni: u.id, campus: u.id === old.uni ? old.campus : '' }))}><span className="uni-symbol"><GraduationCap size={19}/></span><span className="uni-option-copy"><b>{u.name}</b><small>{u.type || 'สถาบันอุดมศึกษา'}</small></span><span className="uni-check">{f.uni === u.id ? <Check size={16}/> : <ArrowRight size={14}/>}</span></button>)}</div>
           {!filteredUniversities.length && <div className="choice-empty">ไม่พบชื่อมหาวิทยาลัย ลองค้นหาด้วยคำสั้น ๆ อีกครั้ง</div>}
           {!f.uni && <small className="choice-hint">เลือกมหาวิทยาลัย 1 แห่งเพื่อไปต่อ</small>}
           {f.uni && <div className="selected-campus"><Check size={15}/> เลือกแล้ว: <b>{uniName(f.uni)}</b></div>}
           </>}
-          {(profileEmailVerified ? (verifiedUniversityId || f.uni) : f.uni) === 'ku' && <div className="nm-ku-campus-picker"><label htmlFor="nm-ku-campus-select">วิทยาเขตมหาวิทยาลัยเกษตรศาสตร์</label><select id="nm-ku-campus-select" value={f.campus} onChange={e => setF(old => ({ ...old, campus: e.target.value }))}><option value="">เลือกวิทยาเขต</option>{KU_CAMPUSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><small>เลือกวิทยาเขตที่กำลังศึกษาอยู่</small></div>}
+          {!!UNIVERSITY_CAMPUSES[profileEmailVerified ? (verifiedUniversityId || f.uni) : f.uni] && <div className="nm-ku-campus-picker"><label htmlFor="nm-ku-campus-select">เลือกวิทยาเขต</label><select id="nm-ku-campus-select" value={f.campus} onChange={e => setF(old => ({ ...old, campus: e.target.value }))}><option value="">เลือกวิทยาเขต</option>{(UNIVERSITY_CAMPUSES[profileEmailVerified ? (verifiedUniversityId || f.uni) : f.uni] || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><small>เลือกวิทยาเขตที่กำลังศึกษาอยู่</small></div>}
         </section>
         <section className="choice-section faculty-section" aria-label="เลือกคณะ">
           <div className="choice-heading"><div><span className="choice-step">STEP 02 · YOUR FIELD</span><h3>สนใจสายไหน? <span>✦</span></h3><p>เลือกคณะที่ใกล้กับตัวคุณที่สุด</p></div></div>
@@ -3301,7 +3307,7 @@ function ProfileGallery({ person }) {
   </div>
 }
 
-const defaultDiscovery = { mode: 'nearby', radius: 25, gender: '', min: 18, max: 30, universities: [] }
+const defaultDiscovery = { mode: 'nearby', radius: 25, gender: '', min: 18, max: 30, universities: [], campusOnly: false }
 const discoveryKey = id => `nisit-discovery-v11-${id}`
 const readDiscovery = id => { try { const x = JSON.parse(localStorage.getItem(discoveryKey(id)) || 'null'); return x && typeof x === 'object' ? { ...defaultDiscovery, ...x } : null } catch { return null } }
 
@@ -3319,7 +3325,7 @@ function DiscoverySetup({ initial, profile, onSave, onClose, isEditing = false }
     <div className="discovery-progress"><span style={{ width: `${(step + 1) * 33.333}%` }}/></div>
     <div className="discovery-step-label">DISCOVERY PREFERENCES <span>0{step + 1} / 03</span></div>
     {step === 0 && <div className="discovery-body"><div className="discovery-symbol"><Heart size={27} strokeWidth={1.6}/></div><h1>หัวใจคุณกำลัง<br/><em>มองหาใครอยู่?</em></h1><p>เลือกคนที่คุณสนใจ แล้วเราจะช่วยพาไปเจอคนที่ใช่</p><div className="discovery-choice-grid">{[['',Users,'ทุกเพศ'],['male',UserRound,'ผู้ชาย'],['female',Heart,'ผู้หญิง'],['other',Sparkles,'เพศอื่น ๆ']].map(([id,Icon,label]) => <button key={id} className={'discovery-choice ' + (pref.gender === id ? 'chosen' : '')} onClick={() => setPref(p => ({...p, gender:id}))}><span className="choice-icon"><Icon size={19} strokeWidth={1.8}/></span><b>{label}</b>{pref.gender === id && <Check size={17}/>}</button>)}</div><div className="discovery-age"><div className="discovery-age-title"><b>ช่วงอายุที่สนใจ</b><span>{pref.min} – {pref.max} ปี</span></div><label>อายุต่ำสุด <input type="range" min="18" max="40" value={pref.min} onChange={e => setPref(p => ({...p,min: Math.min(+e.target.value,p.max)}))}/></label><label>อายุสูงสุด <input type="range" min="18" max="60" value={pref.max} onChange={e => setPref(p => ({...p,max: Math.max(+e.target.value,p.min)}))}/></label></div></div>}
-    {step === 1 && <div className="discovery-body"><div className="discovery-symbol"><MapPin size={27} strokeWidth={1.6}/></div><h1>คนที่ใช่<br/><em>อาจอยู่ใกล้กว่าที่คิด</em></h1><p>เลือกว่าจะค้นหาจากมหาวิทยาลัยไหน โดยไม่ต้องเปิด GPS</p><div className="discovery-mode-list">{[['nearby',LocateFixed,'มหาวิทยาลัยใกล้ฉัน','ค้นหาจากระยะห่างระหว่างวิทยาเขต'],['same',GraduationCap,'มหาวิทยาลัยเดียวกัน','คนที่เรียนมหาวิทยาลัยเดียวกับคุณ'],['selected',Compass,'เลือกมหาวิทยาลัยเอง','เลือกได้มากกว่าหนึ่งแห่ง'],['all',Globe2,'ทุกมหาวิทยาลัย','เปิดโอกาสเจอทุกคน']].map(([id,Icon,label,sub]) => <button key={id} className={'discovery-mode ' + (pref.mode === id ? 'chosen' : '')} onClick={() => setPref(p => ({...p,mode:id}))}><span className="mode-icon"><Icon size={19} strokeWidth={1.8}/></span><span><b>{label}</b><small>{sub}</small></span><span className="mode-radio">{pref.mode === id && <Check size={14}/>}</span></button>)}</div>{pref.mode === 'nearby' && <div className="discovery-distance"><div><b>รัศมีค้นหา</b><strong>{pref.radius} กม.</strong></div><input type="range" min="5" max="100" step="5" value={pref.radius} onChange={e => setPref(p => ({...p,radius:+e.target.value}))}/>{!homeHasCoords && <small>ยังไม่มีพิกัดมหาวิทยาลัยของคุณในระบบ กรุณาเลือกโหมดอื่นหรือเพิ่มพิกัดใน campusCoordinates.js</small>}</div>}</div>}
+    {step === 1 && <div className="discovery-body"><div className="discovery-symbol"><MapPin size={27} strokeWidth={1.6}/></div><h1>คนที่ใช่<br/><em>อาจอยู่ใกล้กว่าที่คิด</em></h1><p>เลือกว่าจะค้นหาจากมหาวิทยาลัยไหน โดยไม่ต้องเปิด GPS</p><div className="discovery-mode-list">{[['nearby',LocateFixed,'มหาวิทยาลัยใกล้ฉัน','ค้นหาจากระยะห่างระหว่างวิทยาเขต'],['same',GraduationCap,'มหาวิทยาลัยเดียวกัน','คนที่เรียนมหาวิทยาลัยเดียวกับคุณ'],['selected',Compass,'เลือกมหาวิทยาลัยเอง','เลือกได้มากกว่าหนึ่งแห่ง'],['all',Globe2,'ทุกมหาวิทยาลัย','เปิดโอกาสเจอทุกคน']].map(([id,Icon,label,sub]) => <button key={id} className={'discovery-mode ' + (pref.mode === id ? 'chosen' : '')} onClick={() => setPref(p => ({...p,mode:id}))}><span className="mode-icon"><Icon size={19} strokeWidth={1.8}/></span><span><b>{label}</b><small>{sub}</small></span><span className="mode-radio">{pref.mode === id && <Check size={14}/>}</span></button>)}</div>{profile?.campus && UNIVERSITY_CAMPUSES[profile.university_id] && <div className="nm-campus-filter"><label><input type="checkbox" checked={!!pref.campusOnly} onChange={e => setPref(p => ({...p,campusOnly:e.target.checked}))}/><span>เฉพาะวิทยาเขตเดียวกับฉัน</span></label><small>กรองเฉพาะคนที่เลือกวิทยาเขตเดียวกัน · ไม่ใช้ GPS</small></div>}{pref.mode === 'nearby' && <div className="discovery-distance"><div><b>รัศมีค้นหา</b><strong>{pref.radius} กม.</strong></div><input type="range" min="5" max="100" step="5" value={pref.radius} onChange={e => setPref(p => ({...p,radius:+e.target.value}))}/>{!homeHasCoords && <small>ยังไม่มีพิกัดมหาวิทยาลัยของคุณในระบบ กรุณาเลือกโหมดอื่นหรือเพิ่มพิกัดใน campusCoordinates.js</small>}</div>}</div>}
     {step === 2 && <div className="discovery-body"><div className="discovery-symbol"><Check size={27} strokeWidth={1.6}/></div><h1>เกือบแล้ว!<br/><em>พร้อมเจอคนใหม่หรือยัง?</em></h1><p>คุณสามารถกลับมาแก้ไขสเปกได้ทุกเมื่อจากหน้าหลัก</p>{pref.mode === 'selected' ? <div className="discovery-uni-picker"><div className="discovery-uni-list">{UNIVERSITIES.map(u => <button key={u.id} className={pref.universities.includes(u.id) ? 'chosen' : ''} onClick={() => toggleUni(u.id)}><span>{u.name}</span>{pref.universities.includes(u.id) ? <Check size={16}/> : <span>+</span>}</button>)}</div><small>เลือกแล้ว {pref.universities.length} มหาวิทยาลัย</small></div> : <div className="discovery-summary"><div><Heart size={17}/> <span>เพศที่สนใจ</span><b>{GENDERS[pref.gender] || 'ทุกเพศ'}</b></div><div><Cake size={17}/> <span>ช่วงอายุ</span><b>{pref.min}–{pref.max} ปี</b></div><div><GraduationCap size={17}/> <span>มหาวิทยาลัย</span><b>{({nearby:`ใกล้เคียง ${pref.radius} กม.`,same:'มหาวิทยาลัยเดียวกัน',all:'ทุกมหาวิทยาลัย'})[pref.mode]}</b></div></div>}</div>}
     <div className="discovery-actions">{step > 0 && <button className="discovery-back" onClick={() => setStep(x => x - 1)}>ย้อนกลับ</button>}<button className="discovery-next" disabled={saving || (step === 2 && pref.mode === 'selected' && !pref.universities.length) || (step === 2 && pref.mode === 'nearby' && !homeHasCoords)} onClick={() => step < 2 ? setStep(x => x + 1) : finish()}>{saving ? 'กำลังบันทึก...' : step === 2 ? 'เริ่มปัดเลย' : 'ไปต่อ'} <ArrowRight size={19}/></button></div>
     <div className="discovery-privacy"><ShieldCheck size={14}/> ใช้พิกัดมหาวิทยาลัย ไม่ติดตามตำแหน่งของคุณ</div>
@@ -3350,7 +3356,7 @@ function PreferencesEditor({ initial, profile, onSave, onClose }) {
         <section className="pref-section"><div className="pref-section-heading"><span className="pref-index">01</span><div><h2>เพศที่สนใจ</h2><p>เลือกคนที่อยากให้ปรากฏบนหน้าปัด</p></div></div><div className="pref-gender-grid">{[['','ทุกเพศ'],['male','ผู้ชาย'],['female','ผู้หญิง'],['other','เพศอื่น ๆ']].map(([id,label]) => <button type="button" key={id} className={'pref-pill' + (pref.gender === id ? ' is-active' : '')} onClick={() => update({gender:id})} aria-pressed={pref.gender === id}><span>{label}</span>{pref.gender === id && <Check size={15}/>}</button>)}</div></section>
         <section className="pref-section"><div className="pref-section-heading"><span className="pref-index">02</span><div><h2>ช่วงอายุ</h2><p>ช่วงอายุของคนที่คุณอยากทำความรู้จัก</p></div><span className="pref-value">{pref.min}–{pref.max} ปี</span></div><div className="pref-range-row"><label htmlFor="pref-age-min">ตั้งแต่ <b>{pref.min}</b> ปี</label><input id="pref-age-min" className="pref-range" type="range" min="18" max="40" value={pref.min} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.min-18)/22})`}} onChange={e => update({min:Math.min(+e.target.value,pref.max)})}/></div><div className="pref-range-row"><label htmlFor="pref-age-max">ถึง <b>{pref.max}</b> ปี</label><input id="pref-age-max" className="pref-range" type="range" min="18" max="60" value={pref.max} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.max-18)/42})`}} onChange={e => update({max:Math.max(+e.target.value,pref.min)})}/></div></section>
         <section className="pref-section"><div className="pref-section-heading"><span className="pref-index">03</span><div><h2>มหาวิทยาลัย</h2><p>เลือกพื้นที่ที่อยากค้นหาคนใหม่ ๆ</p></div></div><div className="pref-mode-list">{[['nearby','มหาวิทยาลัยใกล้เคียง','คำนวณจากระยะห่างระหว่างวิทยาเขต'],['same','มหาวิทยาลัยเดียวกัน','คนจากมหาวิทยาลัยของคุณ'],['selected','เลือกมหาวิทยาลัยเอง','เลือกได้หลายแห่ง'],['all','ทุกมหาวิทยาลัย','ไม่จำกัดมหาวิทยาลัย']].map(([id,label,sub]) => <button type="button" key={id} className={'pref-mode' + (pref.mode === id ? ' is-active' : '')} onClick={() => update({mode:id})} aria-pressed={pref.mode === id}><span className="pref-radio"><span/></span><span className="pref-mode-text"><strong>{label}</strong><small>{sub}</small></span></button>)}</div>
-        {pref.mode === 'nearby' && <div className="pref-extra"><div className="pref-extra-head"><span>ระยะทางที่สนใจ</span><b>{pref.radius} กม.</b></div><input className="pref-range" aria-label="ระยะทางค้นหา" type="range" min="5" max="100" step="5" value={pref.radius} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.radius-5)/95})`}} onChange={e => update({radius:+e.target.value})}/>{!hasCoords && <p className="pref-hint">ยังไม่มีพิกัดวิทยาเขตนี้ กรุณาเลือกวิธีค้นหาอื่น</p>}</div>}
+        {profile?.campus && UNIVERSITY_CAMPUSES[profile.university_id] && <div className="nm-campus-filter"><label><input type="checkbox" checked={!!pref.campusOnly} onChange={e => update({campusOnly:e.target.checked})}/><span>เฉพาะวิทยาเขตเดียวกับฉัน</span></label><small>ค้นหาเฉพาะคนในวิทยาเขตของคุณ</small></div>}{pref.mode === 'nearby' && <div className="pref-extra"><div className="pref-extra-head"><span>ระยะทางที่สนใจ</span><b>{pref.radius} กม.</b></div><input className="pref-range" aria-label="ระยะทางค้นหา" type="range" min="5" max="100" step="5" value={pref.radius} style={{'--fill':`calc(10px + (100% - 20px) * ${(pref.radius-5)/95})`}} onChange={e => update({radius:+e.target.value})}/>{!hasCoords && <p className="pref-hint">ยังไม่มีพิกัดวิทยาเขตนี้ กรุณาเลือกวิธีค้นหาอื่น</p>}</div>}
         {pref.mode === 'selected' && <div className="pref-uni-picker">
           <div className="pref-uni-toolbar"><label className="pref-uni-search"><Search size={18}/><input type="search" value={uniSearch} onChange={e => setUniSearch(e.target.value)} placeholder="ค้นหาชื่อมหาวิทยาลัย..." aria-label="ค้นหามหาวิทยาลัย"/></label><span className="pref-uni-count">เลือกแล้ว {pref.universities.length} แห่ง</span></div>
           {pref.universities.length > 0 && <div className="pref-uni-selected"><div className="pref-uni-selected-head"><b>มหาวิทยาลัยที่เลือก</b><button type="button" onClick={() => update({universities:[]})}>ล้างทั้งหมด</button></div><div className="pref-uni-chips">{pref.universities.map(id => {const u=UNIVERSITIES.find(x=>x.id===id);return u?<button key={id} type="button" onClick={()=>toggleUni(id)} title="นำออก"><span>{u.name}</span><X size={13}/></button>:null})}</div></div>}
@@ -4106,11 +4112,12 @@ const loadMatches = useCallback(async () => {
   }
   const campusFiltered = useCallback(p => {
     if (!discovery) return true
+    if (discovery.campusOnly && (!profile?.campus || p.university_id !== profile.university_id || p.campus !== profile.campus)) return false
     if (discovery.mode === 'same') return p.university_id === profile?.university_id
     if (discovery.mode === 'selected') return (discovery.universities || []).includes(p.university_id)
     if (discovery.mode === 'nearby') { const km = campusDistance(profile?.university_id, p.university_id); return km !== null && km <= discovery.radius }
     return true
-  }, [discovery, profile?.university_id])
+  }, [discovery, profile?.university_id, profile?.campus])
   const discoveryRequest = useRef(0)
   const seenSwipes = useRef(new Set())
   const discoveryRanks = useRef(new Map())
@@ -4120,7 +4127,7 @@ const loadMatches = useCallback(async () => {
   const discoverySession = useRef('')
   const loadPeople = useCallback(async ({ silent = false } = {}) => {
     if (!discoveryReady || !discovery || !userId) return
-    const queryKey = JSON.stringify([userId, discovery.gender, discovery.min, discovery.max, discovery.mode, discovery.radius, discovery.universities])
+    const queryKey = JSON.stringify([userId, discovery.gender, discovery.min, discovery.max, discovery.mode, discovery.radius, discovery.universities, discovery.campusOnly])
     if (discoveryInFlight.current && discoveryQueryKey.current === queryKey) return
     discoveryInFlight.current = true
     discoveryQueryKey.current = queryKey
@@ -4128,7 +4135,7 @@ const loadMatches = useCallback(async () => {
     let data, error
     try {
       const result = await Promise.race([
-        supabase.rpc('discover', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }),
+        supabase.rpc('discover_with_campus', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
       ])
       data = result.data
@@ -4171,7 +4178,7 @@ const loadMatches = useCallback(async () => {
       }
       return unique
     })
-  }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, fl.min, fl.max, notify, userId])
+  }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
