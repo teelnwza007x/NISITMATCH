@@ -4277,7 +4277,7 @@ const loadMatches = useCallback(async () => {
   // Prefetch until the filtered deck has at least 100 cards or the RPC is exhausted.
   // This also handles the all-universities filter without waiting for swipes.
   useEffect(() => {
-    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length < 100 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
+    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length <= 100 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
   }, [view, people, discovery?.gender, campusFiltered, discoveryLoadingMore, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
