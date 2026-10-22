@@ -73,6 +73,8 @@ const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - 
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
 const uniName = (id) => UNIVERSITIES.find((u) => u.id === id)?.name || id
+const KU_CAMPUSES = [{ id: 'bangkhen', name: 'บางเขน' }, { id: 'kamphaengsaen', name: 'กำแพงแสน' }, { id: 'sriracha', name: 'ศรีราชา' }, { id: 'chalermphrakiat', name: 'เฉลิมพระเกียรติ จังหวัดสกลนคร' }]
+const universityWithCampus = (p) => `${uniName(p.university_id)}${p.university_id === 'ku' && p.campus ? ` · ${KU_CAMPUSES.find(c => c.id === p.campus)?.name || ''}` : ''}`
 // คำเรียกผู้เรียนอิงตามธรรมเนียมของมหาวิทยาลัย ไม่ใช้คำว่า ‘นิสิต’ กับทุกสถาบัน
 const NISIT_CAMPUS_IDS = new Set(['chula', 'ku', 'swu', 'buu', 'nu', 'mahasarakham'])
 const studentTerm = (universityId) => NISIT_CAMPUS_IDS.has(universityId) ? 'นิสิต' : 'นักศึกษา'
@@ -604,7 +606,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
         <span className="swipe-feedback-icon"><X size={26} strokeWidth={2.7}/></span><span className="swipe-feedback-label">NOPE</span><span className="swipe-feedback-caption">ไว้เจอกันใหม่</span>
       </div>
       {person.is_premium && <div className="swipe-premium-badge"><Crown size={13} fill="currentColor"/><span>PREMIUM</span><Sparkles size={12}/></div>}
-      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2>{(person.interests || []).some(x => myInterests.includes(x)) && <div className="nm-mutual-interests"><Sparkles size={14}/> สนใจตรงกัน {(person.interests || []).filter(x => myInterests.includes(x)).length} อย่าง</div>}<p><GraduationCap size={17}/>{uniName(person.university_id)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge universityId={person.university_id} />}{person.relationship_intent && <RelationshipVibe intent={person.relationship_intent} />}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
+      <div className="swipe-info"><h2>{person.display_name}, {person.age}</h2>{(person.interests || []).some(x => myInterests.includes(x)) && <div className="nm-mutual-interests"><Sparkles size={14}/> สนใจตรงกัน {(person.interests || []).filter(x => myInterests.includes(x)).length} อย่าง</div>}<p><GraduationCap size={17}/>{universityWithCampus(person)}</p>{verifiedIds.includes(person.id) && <CampusVerifiedBadge universityId={person.university_id} />}{person.relationship_intent && <RelationshipVibe intent={person.relationship_intent} />}<p>{person.bio || 'มาทำความรู้จักกัน'}</p><div className="tags">{(person.interests || []).slice(0, 3).map(x => <span className="tag" key={x}>{x}</span>)}</div>{itunesTrack(person) && <div className="swipe-song" onPointerDown={e => e.stopPropagation()} onPointerMove={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()}><ITunesSongCard track={itunesTrack(person)} compact /></div>}</div>
       {superBurst && <div className="nm-superburst" aria-live="polite" aria-label="ส่ง Super Like แล้ว">
         <div className="nm-superburst-halo" />
         <div className="nm-superburst-ring ring-one" /><div className="nm-superburst-ring ring-two" />
@@ -625,7 +627,7 @@ function PersonCard({ p, onLike, onSkip, onOpen, onReport, verifiedIds = [] }) {
     <article className="person-card"><div className="person-image"><Av u={p} cls="person-photo" /><div className="image-gradient" />
       {verifiedIds.includes(p.id) && <CampusVerifiedBadge universityId={p.university_id} />}
       <button className="card-more" onClick={() => onReport(p)} title="รายงาน"><Flag size={15} /></button>
-      <div className="person-title"><h3>{p.display_name}, {p.age}</h3><p><GraduationCap size={13} />{uniName(p.university_id)}</p></div></div>
+      <div className="person-title"><h3>{p.display_name}, {p.age}</h3><p><GraduationCap size={13} />{universityWithCampus(p)}</p></div></div>
       <div className="person-body"><div className="tags">{(p.interests || []).slice(0, 3).map((i) => <span className="tag" key={i}>{i}</span>)}</div>
         {p.relationship_intent && <RelationshipVibe intent={p.relationship_intent} />}<p className="person-bio">{p.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
         <div className="person-actions"><button className="round-action nope" onClick={() => onSkip(p)} title="ข้าม"><X size={20} /></button><button className="btn btn-pink like-btn" onClick={() => onLike(p)}><Heart size={17} fill="currentColor" /> ถูกใจ</button><button className="round-action more" onClick={() => onOpen(p)} title="ดูโปรไฟล์"><UserRound size={18} /></button></div></div></article>
@@ -2096,7 +2098,7 @@ function RelationshipVibe({ intent }) {
   const Icon = { serious: Heart, getting_to_know: MessageCircle, friends: Users, unsure: Sparkles }[intent] || Heart
   return <div className={'nm-vibe-card nm-vibe-' + intent}><span className="nm-vibe-icon"><Icon size={21} strokeWidth={1.9}/></span><span className="nm-vibe-copy"><small>กำลังมองหา</small><strong>{item.label}</strong><span>{INTENT_DESCRIPTIONS[intent]}</span></span><span className="nm-vibe-accent" aria-hidden="true" /></div>
 }
-const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [], relationship_intent: p?.relationship_intent || '' })
+const initialProfileForm = p => ({ display_name: p?.display_name || '', birth_date: p?.birth_date || '', gender: p?.gender || 'other', uni: p?.university_id || '', campus: p?.campus || '', faculty: p?.faculty || FACULTIES[0], major: p?.major || '', bio: p?.bio || '', interests: p?.interests || [], relationship_intent: p?.relationship_intent || '' })
 
 function AccountEmailVerification({ user, notify }) {
   const [verified, setVerified] = useState(false)
@@ -2381,6 +2383,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     if (!u) { setEditTab('campus'); return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ') }
     if (!f.birth_date || ageOf(f.birth_date) < 18) { setEditTab('basic'); return notify('ต้องมีอายุอย่างน้อย 18 ปี') }
     if (!f.faculty?.trim()) { setEditTab('campus'); return notify('กรุณาเลือกคณะ') }
+    if ((lockedUniversityId || u.id) === 'ku' && !KU_CAMPUSES.some(c => c.id === f.campus)) { setEditTab('campus'); return notify('กรุณาเลือกวิทยาเขตเกษตรศาสตร์') }
     if (busy) return
     setBusy(true)
     const previousPhotos = [...new Set([profile?.avatar_path, ...(profile?.photo_paths || [])].filter(Boolean))]
@@ -2404,7 +2407,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     }
     const photo_paths = [...new Set(orderedKeys.map(key => keyMap[key] || key).filter(key => uploaded.includes(key)))].slice(0, 6)
     const avatar_path = photo_paths[0] || null
-    const payload = { media_order: orderedKeys.map(key => keyMap[key] || key), display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
+    const payload = { media_order: orderedKeys.map(key => keyMap[key] || key), display_name: f.display_name.trim(), birth_date: f.birth_date, gender: f.gender, university_id: (lockedUniversityId || u.id), campus: (lockedUniversityId || u.id) === 'ku' ? f.campus : null, faculty: f.faculty.trim(), major: f.major, bio: f.bio, interests: f.interests, relationship_intent: f.relationship_intent || null, avatar_path, photo_paths, itunes_track_id: song?.id || null, itunes_track_name: song?.name || null, itunes_track_artist: song?.artist || null, itunes_track_image: song?.image || null, itunes_track_preview: song?.preview || null, itunes_track_url: song?.url || null }
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
@@ -2491,14 +2494,15 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         <section className="choice-section" aria-label="เลือกมหาวิทยาลัย">
           <div className="choice-heading"><div><span className="choice-step">STEP 01 · CAMPUS</span><h3>เรียนอยู่ที่ไหน? <span>✦</span></h3><p>เลือกมหาวิทยาลัยเพื่อเจอคนในคอมมูนิตี้เดียวกัน</p></div><span className="choice-count">{UNIVERSITIES.length}+ สถาบัน</span></div>
           {profileEmailVerified ? <div className="nm-campus-lock-card"><span className="nm-campus-lock-icon"><ShieldCheck size={18}/></span><span><b>{uniName(verifiedUniversityId || f.uni)}</b><small>{studentTerm(verifiedUniversityId || f.uni)}ยืนยันแล้ว · ล็อกมหาวิทยาลัยกับบัญชีนี้</small></span><span className="nm-campus-lock-status">LOCKED</span><p>เพื่อป้องกันการสวมสิทธิ์ มหาวิทยาลัยจะเปลี่ยนไม่ได้หลังยืนยันอีเมล หากข้อมูลไม่ถูกต้องให้ติดต่อผู้ดูแล</p></div> : <>
-          <button type="button" className={'nm-campus-unspecified' + (f.uni === 'unspecified' ? ' selected' : '')} aria-pressed={f.uni === 'unspecified'} onClick={() => setF(old => ({...old,uni:'unspecified',faculty:'ไม่ระบุ',major:''}))}><span className="nm-campus-unspecified-icon"><GraduationCap size={19}/></span><span><b>ไม่ระบุสถานศึกษา</b><small>ยังไม่ต้องการแสดงข้อมูลการศึกษาในโปรไฟล์</small></span>{f.uni === 'unspecified' ? <Check size={18}/> : <ArrowRight size={17}/>}</button>
+          <button type="button" className={'nm-campus-unspecified' + (f.uni === 'unspecified' ? ' selected' : '')} aria-pressed={f.uni === 'unspecified'} onClick={() => setF(old => ({...old,uni:'unspecified',campus:'',faculty:'ไม่ระบุ',major:''}))}><span className="nm-campus-unspecified-icon"><GraduationCap size={19}/></span><span><b>ไม่ระบุสถานศึกษา</b><small>ยังไม่ต้องการแสดงข้อมูลการศึกษาในโปรไฟล์</small></span>{f.uni === 'unspecified' ? <Check size={18}/> : <ArrowRight size={17}/>}</button>
           <div className="uni-search"><Search size={17}/><input aria-label="ค้นหามหาวิทยาลัย" placeholder="พิมพ์ชื่อมหาวิทยาลัย..." value={uniQuery} onChange={(e) => setUniQuery(e.target.value)} /><span>{filteredUniversities.length} รายการ</span></div>
           <div className="choice-tabs">{['ทั้งหมด','รัฐ','เอกชน','ทหารและตำรวจ'].map((t) => <button type="button" key={t} className={uniType === t ? 'active' : ''} onClick={() => setUniType(t)}>{t === 'ทั้งหมด' ? 'ทุกสถาบัน' : t === 'รัฐ' ? 'มหาวิทยาลัยรัฐ' : t === 'เอกชน' ? 'มหาวิทยาลัยเอกชน' : 'ทหารและตำรวจ'}</button>)}</div>
-          <div className="university-grid">{filteredUniversities.map((u) => <button type="button" key={u.id} className={'university-option ' + (f.uni === u.id ? 'selected' : '')} onClick={() => setF(old => ({ ...old, uni: u.id }))}><span className="uni-symbol"><GraduationCap size={19}/></span><span className="uni-option-copy"><b>{u.name}</b><small>{u.type || 'สถาบันอุดมศึกษา'}</small></span><span className="uni-check">{f.uni === u.id ? <Check size={16}/> : <ArrowRight size={14}/>}</span></button>)}</div>
+          <div className="university-grid">{filteredUniversities.map((u) => <button type="button" key={u.id} className={'university-option ' + (f.uni === u.id ? 'selected' : '')} onClick={() => setF(old => ({ ...old, uni: u.id, campus: u.id === 'ku' ? old.campus : '' }))}><span className="uni-symbol"><GraduationCap size={19}/></span><span className="uni-option-copy"><b>{u.name}</b><small>{u.type || 'สถาบันอุดมศึกษา'}</small></span><span className="uni-check">{f.uni === u.id ? <Check size={16}/> : <ArrowRight size={14}/>}</span></button>)}</div>
           {!filteredUniversities.length && <div className="choice-empty">ไม่พบชื่อมหาวิทยาลัย ลองค้นหาด้วยคำสั้น ๆ อีกครั้ง</div>}
           {!f.uni && <small className="choice-hint">เลือกมหาวิทยาลัย 1 แห่งเพื่อไปต่อ</small>}
           {f.uni && <div className="selected-campus"><Check size={15}/> เลือกแล้ว: <b>{uniName(f.uni)}</b></div>}
           </>}
+          {(profileEmailVerified ? (verifiedUniversityId || f.uni) : f.uni) === 'ku' && <div className="nm-ku-campus-picker"><label htmlFor="nm-ku-campus-select">วิทยาเขตมหาวิทยาลัยเกษตรศาสตร์</label><select id="nm-ku-campus-select" value={f.campus} onChange={e => setF(old => ({ ...old, campus: e.target.value }))}><option value="">เลือกวิทยาเขต</option>{KU_CAMPUSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><small>เลือกวิทยาเขตที่กำลังศึกษาอยู่</small></div>}
         </section>
         <section className="choice-section faculty-section" aria-label="เลือกคณะ">
           <div className="choice-heading"><div><span className="choice-step">STEP 02 · YOUR FIELD</span><h3>สนใจสายไหน? <span>✦</span></h3><p>เลือกคณะที่ใกล้กับตัวคุณที่สุด</p></div></div>
