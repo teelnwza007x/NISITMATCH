@@ -4289,3 +4289,85 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .nm-swipe-quota{max-width:100%!important;width:100%!important;margin:0 0 6px!important}
 }
 @media(max-width:370px){.app-shell.home-swipe-locked .page-content>.welcome-row .v76-home-actions>.btn{font-size:9px!important;padding:5px!important}.app-shell.home-swipe-locked .page-content>.welcome-row h1{font-size:16px!important}}
+
+/* Discover 2026: independent responsive header, no overlapping controls or glass blur. */
+.app-shell.home-swipe-locked .nm-discover-header{
+ display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(8px,1.5vw,14px);
+ width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+ margin:0 0 10px;padding:0;position:relative;isolation:isolate;
+ filter:none;backdrop-filter:none;-webkit-backdrop-filter:none;transform:none;
+}
+.app-shell.home-swipe-locked .nm-discover-title-row{
+ display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:12px;
+ align-items:center;min-width:0;width:100%;
+}
+.app-shell.home-swipe-locked .nm-discover-title{min-width:0;max-width:100%;overflow-wrap:break-word;filter:none;transform:none;opacity:1}
+.app-shell.home-swipe-locked .nm-discover-eyebrow{display:block;font-size:10px;font-weight:800;letter-spacing:.18em;color:#d7a9ed;margin-bottom:3px}
+.app-shell.home-swipe-locked .nm-discover-title h1{
+ margin:0;font-size:clamp(18px,2.1vw,27px);font-weight:800;line-height:1.3;
+ letter-spacing:0;color:#fff;text-shadow:none;filter:none;backdrop-filter:none;
+ -webkit-backdrop-filter:none;transform:none;-webkit-text-stroke:0;
+ animation:none;opacity:1;overflow-wrap:anywhere;
+}
+.app-shell.home-swipe-locked .nm-discover-title p{margin:4px 0 0;font-size:clamp(11px,1.2vw,13px);line-height:1.4;color:#c9c0d3;overflow-wrap:anywhere;text-shadow:none;filter:none}
+.app-shell.home-swipe-locked .nm-discover-notifications{
+ position:relative!important;top:auto!important;right:auto!important;left:auto!important;
+ width:44px!important;height:44px!important;min-width:44px!important;
+ display:grid!important;place-items:center!important;align-self:start;
+ margin:0!important;padding:0!important;flex:none!important;transform:none!important;
+ border:1px solid rgba(255,255,255,.18)!important;border-radius:14px!important;
+ background:#30233e!important;box-shadow:none!important;backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;animation:none!important;
+}
+.app-shell.home-swipe-locked .nm-discover-unread{
+ position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 4px;
+ border-radius:99px;display:grid;place-items:center;box-sizing:border-box;
+ font-size:10px;font-weight:800;color:#fff;background:#e74993;border:2px solid #21172e;
+}
+.app-shell.home-swipe-locked .nm-discover-actions{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+ width:100%;min-width:0;max-width:100%;align-items:stretch;
+}
+.app-shell.home-swipe-locked .nm-discover-actions>.btn{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ gap:6px!important;min-width:0!important;max-width:100%!important;width:100%!important;
+ box-sizing:border-box!important;min-height:40px!important;padding:8px 7px!important;
+ border-radius:12px!important;font-size:clamp(10px,1.1vw,13px)!important;
+ font-weight:750!important;line-height:1.2!important;white-space:normal!important;
+ text-align:center!important;overflow:hidden!important;box-shadow:none!important;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transform:none!important;
+}
+.app-shell.home-swipe-locked .nm-discover-actions>.btn span{min-width:0;overflow-wrap:anywhere}
+.app-shell.home-swipe-locked .nm-discover-actions>.btn svg{flex:0 0 auto;width:16px;height:16px}
+.app-shell.home-swipe-locked .nm-discover-daily{color:#fff!important;background:linear-gradient(125deg,#ad307d,#6f349d)!important;border:1px solid #d875bc!important}
+.app-shell.home-swipe-locked .nm-discover-premium{
+ color:#ffe7a6!important;border:1px solid #d6a84c!important;
+ background:linear-gradient(115deg,#4d321e,#866022 55%,#3c2b2d)!important;
+ box-shadow:inset 0 1px rgba(255,240,186,.14)!important;
+}
+.app-shell.home-swipe-locked .nm-discover-premium-sparkle{color:#ffe19a}
+.app-shell.home-swipe-locked .nm-discover-preferences{color:#f4ebfc!important;background:#32283e!important;border:1px solid #665275!important}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .page-content{box-sizing:border-box!important;min-width:0!important;max-width:100%!important;overflow-x:clip!important}
+ .app-shell.home-swipe-locked .nm-discover-header{gap:8px;margin-bottom:6px}
+ .app-shell.home-swipe-locked .nm-discover-title-row{grid-template-columns:minmax(0,1fr) 40px;gap:8px}
+ .app-shell.home-swipe-locked .nm-discover-notifications{width:40px!important;height:40px!important;min-width:40px!important}
+ .app-shell.home-swipe-locked .nm-discover-title h1{font-size:clamp(16px,4.3vw,21px)}
+ .app-shell.home-swipe-locked .nm-discover-title p{font-size:11px}
+ .app-shell.home-swipe-locked .nm-discover-eyebrow{display:none}
+ .app-shell.home-swipe-locked .nm-discover-actions{gap:5px}
+ .app-shell.home-swipe-locked .nm-discover-actions>.btn{min-height:36px!important;padding:6px 3px!important;gap:3px!important;font-size:clamp(9px,2.5vw,11px)!important}
+ .app-shell.home-swipe-locked .nm-discover-actions>.btn svg{width:13px;height:13px}
+ .app-shell.home-swipe-locked .nm-discover-premium-sparkle{display:none}
+ .app-shell.home-swipe-locked .swipe-stage{min-width:0!important;max-width:100%!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area{max-width:100%!important;box-sizing:border-box!important}
+}
+@media(max-width:340px){
+ .app-shell.home-swipe-locked .nm-discover-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-shell.home-swipe-locked .nm-discover-preferences{grid-column:1/-1}
+}
+@media(prefers-reduced-motion:reduce){
+ .app-shell.home-swipe-locked .nm-discover-header *,
+ .app-shell.home-swipe-locked .nm-discover-header *::before,
+ .app-shell.home-swipe-locked .nm-discover-header *::after{animation:none!important;transition:none!important}
+}
