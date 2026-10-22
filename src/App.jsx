@@ -2533,6 +2533,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   kku: { name: 'มหาวิทยาลัยขอนแก่น', domains: ['kkumail.com', 'i.kku.ac.th'] },
   mahasarakham: { name: 'มหาวิทยาลัยมหาสารคาม', domains: ['msu.ac.th'] },
   kmitl: { name: 'สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง', domains: ['kmitl.ac.th'] },
+  catc: { name: 'สถาบันการบินพลเรือน', domains: ['students.catc.or.th'] },
   ku: { name: 'มหาวิทยาลัยเกษตรศาสตร์', domains: ['ku.th', 'live.ku.th'] },
   chula: { name: 'จุฬาลงกรณ์มหาวิทยาลัย', domains: ['student.chula.ac.th'] },
   tu: { name: 'มหาวิทยาลัยธรรมศาสตร์', domains: ['dome.tu.ac.th'] },
@@ -2566,7 +2567,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru']],
+    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew']]
   ]
