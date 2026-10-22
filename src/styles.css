@@ -4053,3 +4053,15 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .chat-layout.chat-inbox-open .nm-inbox-icon{align-self:center;flex:0 0 39px;width:39px;height:39px;border-radius:14px}
 .chat-layout.chat-inbox-open .nm-inbox-count{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;min-width:57px;min-height:30px;padding:6px 11px!important;line-height:1.4!important;font-size:12px!important;font-weight:600!important;letter-spacing:0!important;font-variant-numeric:tabular-nums}
 @media(max-width:360px){.chat-layout.chat-inbox-open .chat-list .nm-inbox-head{padding:14px 11px!important;gap:7px!important}.chat-layout.chat-inbox-open .nm-inbox-headline{gap:8px}.chat-layout.chat-inbox-open .nm-inbox-headline>b{font-size:15px!important}.chat-layout.chat-inbox-open .nm-inbox-headline>b>small{font-size:10px!important}.chat-layout.chat-inbox-open .nm-inbox-count{min-width:50px;padding:5px 8px!important;font-size:11px!important}}
+
+
+/* Unread notification cue: quiet periodic bell ring, never a constant distraction. */
+.nm-notification-bell{isolation:isolate;transform-origin:50% 12%;transition:border-color .2s,background .2s}
+.nm-notification-bell-unread{border-color:rgba(255,130,199,.8)!important;background:rgba(205,74,151,.19)!important;animation:nm-bell-ring 5s ease-in-out infinite,nm-bell-glow 5s ease-in-out infinite}
+.nm-notification-bell-unread::before{content:"";position:absolute;inset:-4px;border-radius:17px;border:1px solid rgba(252,113,185,.48);pointer-events:none;animation:nm-bell-halo 5s ease-out infinite}
+.nm-notification-bell-unread>svg{transform-origin:50% 15%;animation:nm-bell-icon 5s ease-in-out infinite}
+@keyframes nm-bell-ring{0%,5%,14%,100%{transform:rotate(0)}7%{transform:rotate(-5deg)}9%{transform:rotate(5deg)}11%{transform:rotate(-3deg)}}
+@keyframes nm-bell-icon{0%,5%,14%,100%{transform:rotate(0)}7%{transform:rotate(12deg)}9%{transform:rotate(-12deg)}11%{transform:rotate(7deg)}}
+@keyframes nm-bell-glow{0%,16%,100%{box-shadow:0 4px 16px rgba(0,0,0,.14)}8%{box-shadow:0 0 20px rgba(250,103,182,.48)}}
+@keyframes nm-bell-halo{0%,4%,17%,100%{opacity:0;transform:scale(.95)}8%{opacity:1;transform:scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.nm-notification-bell-unread,.nm-notification-bell-unread::before,.nm-notification-bell-unread>svg{animation:none!important}}
