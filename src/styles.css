@@ -4811,3 +4811,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   width:24px!important;height:24px!important;
  }
 }
+
+/* Fine-tune only the three primary buttons: move their row upward inside dock.
+   Undo remains completely unchanged. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed>.swipe-controls.nm-swipe-primary-actions{
+  position:relative!important;top:-5px!important;
+ }
+}
