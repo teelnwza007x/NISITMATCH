@@ -538,6 +538,9 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
     const image = new Image()
     image.decoding = 'async'
     image.src = url
+    // Decode the next photo off-screen so the browser can reuse it on the next tap.
+    // Keep only one prefetched image to avoid iOS memory pressure.
+    image.decode?.().catch(() => {})
     galleryPreloads.current.set(url, image)
     return () => { galleryPreloads.current.clear() }
   }, [person?.id, photo, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
