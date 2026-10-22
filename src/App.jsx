@@ -2381,7 +2381,16 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     if (!u) { setEditTab('campus'); return notify('กรุณาเลือกมหาวิทยาลัยจากรายการ') }
     if (!f.birth_date || ageOf(f.birth_date) < 18) { setEditTab('basic'); return notify('ต้องมีอายุอย่างน้อย 18 ปี') }
     if (!f.faculty?.trim()) { setEditTab('campus'); return notify('กรุณาเลือกคณะ') }
+    if (busy) return
     setBusy(true)
+    const previousPhotos = [...new Set([profile?.avatar_path, ...(profile?.photo_paths || [])].filter(Boolean))]
+    const newlyUploadedPaths = []
+    const rollbackNewUploads = async () => {
+      if (newlyUploadedPaths.length) {
+        const { error: cleanupError } = await supabase.storage.from('avatars').remove(newlyUploadedPaths)
+        if (cleanupError) console.warn('Could not clean up unsuccessful photo uploads:', cleanupError)
+      }
+    }
     const uploaded = [...photos]
     const keyMap = {}
     for (const item of newPhotos) {
@@ -2389,7 +2398,8 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       const ext = uploadFile.type === 'image/jpeg' ? 'jpg' : uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : (uploadFile.name.split('.').pop()?.toLowerCase() || 'jpg')
       const path = `${user.id}/photo-${makeClientId()}.${ext}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadFile, { contentType: uploadFile.type || item.file.type, upsert: false })
-      if (uploadError) { setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
+      if (uploadError) { await rollbackNewUploads(); setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
+      newlyUploadedPaths.push(path)
       uploaded.push(path); keyMap[item.key] = path
     }
     const photo_paths = [...new Set(orderedKeys.map(key => keyMap[key] || key).filter(key => uploaded.includes(key)))].slice(0, 6)
@@ -2398,7 +2408,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     const { error } = profile?.id
       ? await supabase.from('profiles').update(payload).eq('id', user.id).select('id').single()
       : await supabase.from('profiles').insert({ id: user.id, ...payload }).select('id').single()
-    if (error) { setBusy(false); return notify(error.code === '23503' ? 'ไม่พบมหาวิทยาลัยในฐานข้อมูล กรุณารันไฟล์ supabase/sync_universities.sql ก่อน' : 'บันทึกไม่สำเร็จ: ' + error.message) }
+    if (error) { await rollbackNewUploads(); setBusy(false); return notify(error.code === '23503' ? 'ไม่พบมหาวิทยาลัยในฐานข้อมูล กรุณารันไฟล์ supabase/sync_universities.sql ก่อน' : 'บันทึกไม่สำเร็จ: ' + error.message) }
     for (const item of newVideos) {
       const ext = (item.file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '')
       const path = `${user.id}/clip-${makeClientId()}.${ext}`
@@ -2415,6 +2425,17 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     skipDraftSave.current = true
     draftRevision.current++
     await draftAction(user.id, 'delete').catch(err => console.warn('Draft cleanup unavailable:', err))
+    // Only remove paths that belonged to this user and are no longer referenced by
+    // the committed profile. Never remove paths still used by the saved profile.
+    const retiredPaths = previousPhotos.filter(path =>
+      typeof path === 'string' &&
+      path.startsWith(user.id + '/') &&
+      !photo_paths.includes(path)
+    )
+    if (retiredPaths.length) {
+      const { error: cleanupError } = await supabase.storage.from('avatars').remove(retiredPaths)
+      if (cleanupError) console.warn('Old profile photos could not be removed:', cleanupError)
+    }
     setPhotos(photo_paths); setPhotoOrder(orderedKeys.map(key => keyMap[key] || key)); setNewPhotos([]); newVideos.forEach(item => URL.revokeObjectURL(item.url)); setNewVideos([]); setMainPhoto(avatar_path || '')
     notify('บันทึกมหาวิทยาลัย คณะ และโปรไฟล์สำเร็จแล้ว'); await onSaved()
   }
