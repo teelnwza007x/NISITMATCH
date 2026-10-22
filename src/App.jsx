@@ -4536,7 +4536,7 @@ const loadMatches = useCallback(async () => {
                 <DailyRewardsAndSafety user={user} notify={notify} mode="daily"/>
               </section>
             </div>, document.body)}
-            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span></div>
+            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span>{discoveryPageError && <button type="button" onClick={() => { setDiscoveryPageError(false); loadPeople({ nextPage: true }) }} style={{marginLeft:8,padding:'6px 10px',borderRadius:10,border:'1px solid var(--theme-border)',background:'var(--theme-sidebar)',color:'var(--theme-text)',cursor:'pointer'}}>ลองโหลดเพิ่มอีกครั้ง</button>}</div>
             
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
