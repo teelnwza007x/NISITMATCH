@@ -3989,3 +3989,10 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .nm-premium-hero-clean,.nm-premium-hero-clean:before,.nm-premium-hero-clean:after,.nm-premium-hero-clean .v76-premium-orb { animation:none!important; }
 }
 
+
+/* Kasetsart campus selection */
+.nm-ku-campus-picker{display:flex;flex-direction:column;gap:10px;margin:16px 0;padding:16px;border:1px solid rgba(160,170,190,.22);border-radius:16px;background:rgba(255,255,255,.035)}
+.nm-ku-campus-picker label{font-size:14px;font-weight:700;color:inherit}
+.nm-ku-campus-picker select{width:100%;min-height:46px;padding:10px 14px;border-radius:12px;border:1px solid rgba(160,170,190,.3);background:#181b25;color:#fff;font:inherit}
+.nm-ku-campus-picker select:focus-visible{outline:2px solid #d6b76e;outline-offset:2px}
+.nm-ku-campus-picker small{opacity:.7}
