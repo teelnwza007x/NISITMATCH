@@ -4854,3 +4854,11 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nm-quota-glow{from{opacity:.6;transform:translateX(-50%) scale(.85)}to{opacity:1;transform:translateX(-50%) scale(1.2)}}
 @keyframes nm-quota-timer-shine{0%,100%{text-shadow:0 0 0 transparent}50%{text-shadow:0 0 22px rgba(255,124,183,.4)}}
 @media(prefers-reduced-motion:reduce){.nm-quota-dialog::before,.nm-quota-symbol,.nm-quota-symbol::after,.nm-quota-orbit,.nm-quota-timer>strong{animation:none!important}.nm-quota-confirm{transition:none!important}}
+
+/* Restore subtle Premium navigation sparkle without altering other controls. */
+.premium-nav-item{position:relative;isolation:isolate;overflow:hidden}
+.premium-nav-item::before{content:"";position:absolute;inset:0 auto 0 -55%;width:42%;height:100%;z-index:1;pointer-events:none;opacity:.8;background:linear-gradient(105deg,transparent 0%,rgba(255,235,180,.08) 20%,rgba(255,248,220,.48) 48%,rgba(255,216,135,.08) 75%,transparent 100%);transform:skewX(-20deg);animation:nm-premium-nav-glint 4.2s ease-in-out infinite!important}
+.premium-nav-item svg{filter:drop-shadow(0 0 5px rgba(255,205,112,.65))}
+@keyframes nm-premium-nav-glint{0%,16%{left:-55%;opacity:0}24%{opacity:.85}54%{left:120%;opacity:.8}64%,100%{left:120%;opacity:0}}
+.nm-premium-unlimited{border-color:rgba(246,201,112,.3);background:linear-gradient(120deg,rgba(255,210,110,.09),rgba(210,125,255,.06))}
+@media(prefers-reduced-motion:reduce){.premium-nav-item::before{animation:none!important;opacity:0!important}}
