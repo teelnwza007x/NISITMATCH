@@ -2900,6 +2900,7 @@ function AdminDirectory({ kind }) {
 }
 
 function AdminDashboard({ onBack }) {
+  useEffect(() => { window.scrollTo(0, 0); document.querySelector('main')?.scrollTo?.(0, 0) }, [])
   const [metrics, setMetrics] = useState(null)
   const [onlineCount, setOnlineCount] = useState(null)
   const [onlineError, setOnlineError] = useState(false)
@@ -4483,7 +4484,7 @@ const loadMatches = useCallback(async () => {
   }
   const detailIsMatch = !!(detail?.id && matches.some(m => m.p?.id === detail.id))
   const notificationReturnView = useRef('home')
-  const go = (v) => { if ((v === 'notifications' || v === 'announcements') && view !== 'notifications' && view !== 'announcements') notificationReturnView.current = view; if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (v === 'announcements') window.history.pushState({}, '', '/announcements'); else if (v === 'notifications') window.history.pushState({}, '', '/notifications'); else if (window.location.pathname === '/admin' || window.location.pathname === '/announcements' || window.location.pathname === '/notifications') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
+  const go = (v) => { if (v === 'admin') { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.querySelector('main')?.scrollTo?.({ top: 0, left: 0, behavior: 'instant' }) } if ((v === 'notifications' || v === 'announcements') && view !== 'notifications' && view !== 'announcements') notificationReturnView.current = view; if (v === 'admin' && !profile?.is_admin) return; if (v === 'admin') window.history.pushState({}, '', '/admin'); else if (v === 'announcements') window.history.pushState({}, '', '/announcements'); else if (v === 'notifications') window.history.pushState({}, '', '/notifications'); else if (window.location.pathname === '/admin' || window.location.pathname === '/announcements' || window.location.pathname === '/notifications') window.history.pushState({}, '', '/'); if (v !== view) playNisitSound('menu'); if (v === 'search') v = 'home'; if (v === 'profile' && !profileVisited) setProfileVisited(true); if (v === 'profile' && view !== 'profile' && profileEntryTab !== 'verification') setProfileEntryTab('photos'); setView(v); setNav(false); if (v === 'messages') loadMatches() }
   const matchesSelectedGender = p => !discovery?.gender || p.gender === discovery.gender
   const filteredPeople = useMemo(() => (people || []).filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)), [people, discovery?.gender, campusFiltered])
   // Never bypass the chosen campus radius when no nearby profile exists.
