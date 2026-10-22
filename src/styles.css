@@ -4454,3 +4454,16 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .topbar{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;-webkit-filter:none!important;background:#10101d!important;box-shadow:none!important;isolation:isolate!important}
  .app-shell.home-swipe-locked .topbar::before,.app-shell.home-swipe-locked .topbar::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;-webkit-filter:none!important}
 }
+
+/* Screenshot 21:52: only Discover title glyphs are fuzzy; subtitle and status bar are sharp. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell>.welcome-row h1{
+  animation:none!important;transition:none!important;filter:none!important;-webkit-filter:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;text-shadow:none!important;
+  transform:none!important;opacity:1!important;mix-blend-mode:normal!important;
+  -webkit-text-stroke:0!important;text-rendering:optimizeLegibility!important;
+  -webkit-font-smoothing:antialiased!important;font-size:16px!important;font-weight:750!important;
+  line-height:1.4!important;letter-spacing:0!important;overflow:visible!important;
+  position:relative!important;z-index:1!important;will-change:auto!important
+ }
+}
