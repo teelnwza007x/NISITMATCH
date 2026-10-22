@@ -3663,7 +3663,7 @@ function PremiumPage({ user, onGoVisitors }) {
           <span style={{display:'block',fontSize:12,opacity:.75}}>{item.label}</span><strong style={{display:'block',fontSize:25,margin:'4px 0'}}>{item.amount} บาท</strong><span style={{fontSize:12,opacity:.75}}>{item.duration}</span>{plan===item.id&&<span style={{display:'block',fontSize:11,color:'#f9a8d4',marginTop:7}}>✓ เลือกแล้ว</span>}
         </button>)}
       </div>
-      <button type="button" onClick={()=>{setShowPayment(v=>!v);setMessage('')}} style={{width:'100%',marginTop:14,padding:'13px 16px',border:0,borderRadius:14,background:'linear-gradient(100deg,#ec4899,#a855f7)',color:'#fff',fontWeight:750,fontSize:15,cursor:'pointer'}}>{showPayment?'ซ่อน QR และแบบฟอร์ม':'แสดง QR เพื่อชำระเงิน · '+selectedAmount+' บาท}</button>
+      <button type="button" onClick={()=>{setShowPayment(v=>!v);setMessage('')}} style={{width:'100%',marginTop:14,padding:'13px 16px',border:0,borderRadius:14,background:'linear-gradient(100deg,#ec4899,#a855f7)',color:'#fff',fontWeight:750,fontSize:15,cursor:'pointer'}}>{showPayment?'ซ่อน QR และแบบฟอร์ม':'แสดง QR เพื่อชำระเงิน · '+selectedAmount+' บาท'}</button>
       {showPayment&&<div style={{marginTop:16,paddingTop:16,borderTop:'1px solid rgba(255,255,255,.1)'}}>
         <div style={{display:'grid',placeItems:'center',gap:8}}>
           <img src={plan==='weekly'?'/premium-39.jpg':'/premium-119.jpg'} alt={'QR PromptPay '+selectedAmount+' บาท'} style={{display:'block',width:'min(100%,300px)',aspectRatio:'1/1',objectFit:'contain',background:'#fff',borderRadius:14,padding:8}}/>
