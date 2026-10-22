@@ -4904,3 +4904,32 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     animation: none !important;
   }
 }
+
+/* Premium availability: compact rounded jewel badge with restrained sparkle. */
+.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill {
+  position:relative; isolation:isolate; display:inline-flex; align-items:center; justify-content:center;
+  align-self:center; width:max-content; max-width:100%; min-height:29px;
+  margin:12px auto 0; padding:6px 13px; gap:6px;
+  border-radius:999px; border:1px solid rgba(255,218,159,.55);
+  background:linear-gradient(115deg,rgba(102,56,98,.7),rgba(104,59,145,.72),rgba(98,52,92,.7));
+  color:#fff0cf; font-size:11px; line-height:1.2; font-weight:750; letter-spacing:.015em;
+  box-shadow:inset 0 1px rgba(255,255,255,.2),0 3px 13px rgba(190,106,222,.22),0 0 13px rgba(255,206,128,.12);
+  overflow:hidden; animation:nmAvailableBreath 3.6s ease-in-out infinite;
+}
+.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill::before {
+  content:""; position:absolute; inset:-50% auto -50% -55%; width:32%;
+  background:linear-gradient(95deg,transparent,rgba(255,255,255,.05),rgba(255,242,200,.65),transparent);
+  transform:skewX(-22deg); pointer-events:none; animation:nmAvailableSweep 4.8s ease-in-out infinite;
+}
+.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill::after {
+  content:"✦"; position:absolute; right:5px; top:1px; color:#ffe7a0; font-size:8px;
+  text-shadow:0 0 7px #ffd67b; pointer-events:none; animation:nmAvailableTwinkle 2.8s ease-in-out infinite;
+}
+.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill svg {
+  width:13px; height:13px; flex-shrink:0; color:#ffe3a1;
+  filter:drop-shadow(0 0 4px rgba(255,211,131,.7));
+}
+@keyframes nmAvailableSweep {0%,62%{left:-55%;opacity:0}70%{opacity:.9}90%,100%{left:135%;opacity:0}}
+@keyframes nmAvailableBreath {0%,100%{box-shadow:inset 0 1px rgba(255,255,255,.2),0 3px 13px rgba(190,106,222,.22),0 0 13px rgba(255,206,128,.12)}50%{box-shadow:inset 0 1px rgba(255,255,255,.26),0 3px 16px rgba(190,106,222,.3),0 0 19px rgba(255,206,128,.23)}}
+@keyframes nmAvailableTwinkle {0%,100%{opacity:.3;transform:scale(.65) rotate(-20deg)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
+@media(prefers-reduced-motion:reduce){.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill,.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill::before,.nm-premium-clean .nm-premium-hero-clean .nm-coming-soon-pill::after{animation:none!important}}
