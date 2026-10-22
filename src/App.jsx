@@ -1735,11 +1735,22 @@ function Notifs({ me, refresh, go }) {
   const [loadError, setLoadError] = useState('')
   const [filter, setFilter] = useState('all')
   const [markError, setMarkError] = useState('')
+  const notificationLoadVersion = useRef(0)
   const load = useCallback(async () => {
+    const requestVersion = ++notificationLoadVersion.current
     setLoadError('')
-    const { data, error } = await supabase.from('notifications').select('*').eq('user_id', me).in('type', ['interest', 'match', 'hangout_message']).order('created_at', { ascending: false }).limit(50)
-    if (!error) setRows(data || [])
-    else { setRows([]); setLoadError('โหลดการแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่') }
+    try {
+      const { data, error } = await supabase.from('notifications').select('*').eq('user_id', me).in('type', ['interest', 'match', 'hangout_message']).order('created_at', { ascending: false }).limit(50)
+      if (requestVersion !== notificationLoadVersion.current) return
+      if (!error) setRows(data || [])
+      else { setRows([]); setLoadError('โหลดการแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่') }
+    } catch (error) {
+      if (requestVersion === notificationLoadVersion.current) {
+        console.warn('Notification center load failed:', error)
+        setRows([])
+        setLoadError('โหลดการแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่')
+      }
+    }
   }, [me])
   useEffect(() => {
     let active = true
@@ -1749,7 +1760,7 @@ function Notifs({ me, refresh, go }) {
       .subscribe()
     const onVisible = () => { if (document.visibilityState === 'visible') load() }
     document.addEventListener('visibilitychange', onVisible)
-    return () => { active = false; document.removeEventListener('visibilitychange', onVisible); supabase.removeChannel(channel) }
+    return () => { active = false; notificationLoadVersion.current++; document.removeEventListener('visibilitychange', onVisible); supabase.removeChannel(channel) }
   }, [load, me])
   const visibleRows = (rows || []).filter(n => filter === 'all' || (filter === 'unread' ? !n.read : n.type === filter))
   const allRead = rows !== null && rows.every(n => n.read)
