@@ -4209,6 +4209,7 @@ const loadMatches = useCallback(async () => {
   const discoverySession = useRef('')
   const discoveryOffset = useRef(0)
   const discoveryPageSize = 100
+  const [discoveryPageError, setDiscoveryPageError] = useState(false)
   const discoveryHasMore = useRef(true)
   const [discoveryLoadingMore, setDiscoveryLoadingMore] = useState(false)
   const loadPeople = useCallback(async ({ silent = false, nextPage = false } = {}) => {
@@ -4236,11 +4237,12 @@ const loadMatches = useCallback(async () => {
       // A silent refresh must not leave the deck stuck on its initial spinner.
       // Keep existing cards when refreshing in the background.
       setPeople(current => ((silent || nextPage) && current !== null) ? current : [])
-      if (nextPage) discoveryHasMore.current = false // Avoid an automatic retry loop on RPC failure.
+      if (nextPage) setDiscoveryPageError(true) // Pause automatic paging; allow a manual retry.
       if (!silent) notify('ค้นหาสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง')
       return
     }
     setDiscoveryLimited(false)
+    if (!silent) setDiscoveryPageError(false)
     if (!silent) {
       // Advance by the number of raw RPC rows, not the number surviving UI filters.
       discoveryOffset.current = offset + (data?.length || 0)
@@ -4274,11 +4276,11 @@ const loadMatches = useCallback(async () => {
       return unique
     })
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
-  // Prefetch until the filtered deck has at least 100 cards or the RPC is exhausted.
-  // This also handles the all-universities filter without waiting for swipes.
+  // Exhaust all discovery pages in 100-row batches, without a client-side result cap.
+  // Stop automatically on network errors to avoid request storms.
   useEffect(() => {
-    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length <= 100 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
-  }, [view, people, discovery?.gender, campusFiltered, discoveryLoadingMore, loadPeople])
+    if (view === 'home' && people !== null && discoveryHasMore.current && !discoveryPageError && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
+  }, [view, people, discoveryPageError, discoveryLoadingMore, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
@@ -4307,6 +4309,7 @@ const loadMatches = useCallback(async () => {
     // Discard a deck loaded for older preferences before requesting new matches.
     discoveryOffset.current = 0
     discoveryHasMore.current = true
+    setDiscoveryPageError(false)
     setPeople(null)
     loadPeople()
   }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
@@ -4498,6 +4501,7 @@ const loadMatches = useCallback(async () => {
   const filteredPeople = useMemo(() => (people || []).filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)), [people, discovery?.gender, campusFiltered])
   // Never bypass the chosen campus radius when no nearby profile exists.
   const swipePeople = filteredPeople
+  // A failed background page can be retried without clearing existing swipe cards.
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
   if (session === undefined || (user && profile === undefined)) return <div className="page-center"><span className="spin" /></div>
@@ -4532,7 +4536,7 @@ const loadMatches = useCallback(async () => {
                 <DailyRewardsAndSafety user={user} notify={notify} mode="daily"/>
               </section>
             </div>, document.body)}
-            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}</span></div>
+            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span></div>
             
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
