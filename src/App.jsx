@@ -1768,7 +1768,7 @@ function Notifs({ me, refresh, go }) {
     {markError && <p role="alert">{markError}</p>}
     {loadError && <div role="alert" style={{padding:14,marginBottom:12}}>{loadError} <button type="button" className="btn btn-ghost" onClick={load}>ลองใหม่</button></div>}
     {rows === null ? <div className="page-center"><span className="spin" /></div> : !visibleRows.length ? <div className="empty-state"><div className="empty-icon"><Bell /></div><h3>ยังไม่มีการแจ้งเตือน</h3><p>เมื่อมีคนสนใจคุณ แมตช์ใหม่ หรือข้อความในห้อง Hangout จะขึ้นที่นี่</p></div> :
-      <div className="notif-list">{visibleRows.map((n) => <div key={n.id} className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => {
+      <div className="notif-list">{visibleRows.map((n, index) => <React.Fragment key={n.id}>{(index === 0 || new Date(visibleRows[index - 1].created_at).toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok" }) !== new Date(n.created_at).toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok" })) && <div className="nm-notif-date-heading">{new Date(n.created_at).toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "long", year: "numeric" })}</div>}<div className={'notif-row ' + (n.read ? '' : 'unread')} onClick={async () => {
         if (!n.read) {
           const { error } = await supabase.from('notifications').update({ read: true }).eq('id', n.id).eq('user_id', me)
           if (!error) { setRows(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x)); refresh() }
@@ -1776,7 +1776,7 @@ function Notifs({ me, refresh, go }) {
         if (n.type === 'hangout_message' && n.ref_id) { try { sessionStorage.setItem(`nisit-pending-hangout-chat:${me}`, n.ref_id) } catch {} }
         go(['match', 'hangout_message'].includes(n.type) ? 'messages' : 'home')
       }}>
-        <span className="settings-icon">{n.type === 'hangout_message' ? <Users /> : <Heart />}</span><div><b>{n.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : n.type === 'hangout_message' ? 'มีข้อความใหม่ในห้อง Hangout' : 'มีคนกำลังสนใจคุณอยู่'}</b><small>{new Date(n.created_at).toLocaleString('th-TH')}</small></div></div>)}</div>}
+        <span className="settings-icon">{n.type === 'hangout_message' ? <Users /> : <Heart />}</span><div><b>{n.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : n.type === 'hangout_message' ? 'มีข้อความใหม่ในห้อง Hangout' : 'มีคนกำลังสนใจคุณอยู่'}</b><small>{new Date(n.created_at).toLocaleString('th-TH')}</small></div></div></React.Fragment>)}</div>}
   </>)
 }
 
