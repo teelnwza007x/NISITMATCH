@@ -4133,17 +4133,22 @@ const loadMatches = useCallback(async () => {
   const discoveryQueryKey = useRef('')
   const [discoveryLimited, setDiscoveryLimited] = useState(false)
   const discoverySession = useRef('')
-  const loadPeople = useCallback(async ({ silent = false } = {}) => {
-    if (!discoveryReady || !discovery || !userId) return
+  const discoveryOffset = useRef(0)
+  const discoveryHasMore = useRef(true)
+  const [discoveryLoadingMore, setDiscoveryLoadingMore] = useState(false)
+  const loadPeople = useCallback(async ({ silent = false, nextPage = false } = {}) => {
+    if (!discoveryReady || !discovery || !userId || (nextPage && !discoveryHasMore.current)) return
     const queryKey = JSON.stringify([userId, discovery.gender, discovery.min, discovery.max, discovery.mode, discovery.radius, discovery.universities, discovery.campusOnly])
     if (discoveryInFlight.current && discoveryQueryKey.current === queryKey) return
     discoveryInFlight.current = true
     discoveryQueryKey.current = queryKey
     const request = ++discoveryRequest.current
+    const offset = nextPage ? discoveryOffset.current : 0
+    if (nextPage) setDiscoveryLoadingMore(true)
     let data, error
     try {
       const result = await Promise.race([
-        supabase.rpc('discover_with_campus', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }),
+        supabase.rpc('discover_with_campus', { p_university: null, p_min_age: +(discovery?.min ?? fl.min), p_max_age: +(discovery?.max ?? fl.max), p_gender: discovery?.gender || null }).range(offset, offset + 29),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
       ])
       data = result.data
@@ -4151,6 +4156,7 @@ const loadMatches = useCallback(async () => {
     } catch (e) { error = e }
     if (request !== discoveryRequest.current) return
     discoveryInFlight.current = false
+    if (nextPage) setDiscoveryLoadingMore(false)
     if (error) {
       // A silent refresh must not leave the deck stuck on its initial spinner.
       // Keep existing cards when refreshing in the background.
@@ -4159,6 +4165,8 @@ const loadMatches = useCallback(async () => {
       return
     }
     setDiscoveryLimited(false)
+    discoveryOffset.current = offset + (data?.length || 0)
+    discoveryHasMore.current = (data?.length || 0) === 30
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
     const sessionKey = userId || ''
     if (discoverySession.current !== sessionKey) {
@@ -4180,13 +4188,17 @@ const loadMatches = useCallback(async () => {
     setPeople(current => {
       // Preserve the exact visible deck on background refresh; only append newcomers.
       // Never replace/reorder the first card unless the user swipes or changes filters.
-      if (silent && current !== null) {
+      if ((silent || nextPage) && current !== null) {
         const existingIds = new Set((current || []).map(p => p.id))
         return [...(current || []).filter(matchesGender), ...unique.filter(p => !existingIds.has(p.id))]
       }
       return unique
     })
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
+  // Fetch the next batch before the deck runs out; retain the visible swipe card.
+  useEffect(() => {
+    if (view === 'home' && people !== null && people.length <= 8 && discoveryHasMore.current && !discoveryInFlight.current) loadPeople({ nextPage: true })
+  }, [view, people?.length, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
@@ -4213,6 +4225,8 @@ const loadMatches = useCallback(async () => {
   useEffect(() => {
     if (!profile || !discoveryReady || !discovery) return
     // Discard a deck loaded for older preferences before requesting new matches.
+    discoveryOffset.current = 0
+    discoveryHasMore.current = true
     setPeople(null)
     loadPeople()
   }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
@@ -4438,7 +4452,7 @@ const loadMatches = useCallback(async () => {
                 <DailyRewardsAndSafety user={user} notify={notify} mode="daily"/>
               </section>
             </div>, document.body)}
-            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์</span></div>
+            <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}</span></div>
             
             {people === null ? <div className="page-center"><span className="spin" /></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
