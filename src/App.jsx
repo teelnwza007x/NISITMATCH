@@ -502,33 +502,37 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
-  // Prioritize the next image in the open gallery. Avoid downloading the next
-  // profile cover at the same time: on mobile this can compete with swipe animation
-  // and delay the image the user is actively trying to view.
+  // Warm the next two gallery images as soon as a profile is shown, not
+  // after the user taps. Decode in advance to avoid a blank frame on mobile.
+  const galleryPreloads = useRef(new Map())
   useEffect(() => {
-    if (typeof window === 'undefined' || document.visibilityState !== 'visible') return
-    let cancelled = false
-    let frameId = null
-    const images = []
-    const warm = () => {
-      if (cancelled) return
-      const nextPhoto = photoItems[photo + 1]?.type === 'image' ? photoItems[photo + 1].path : null
-      if (!nextPhoto) return
-      const url = pub(nextPhoto)
-      if (!url) return
-      const img = new Image()
-      img.decoding = 'async'
-      img.fetchPriority = 'low'
-      img.src = url
-      images.push(img)
+    galleryPreloads.current.clear()
+    if (typeof Image === 'undefined' || !person?.id) return
+    const urls = photoItems.filter(item => item.type === 'image').map(item => pub(item.path)).filter(Boolean)
+    const warm = (url) => {
+      if (!url || galleryPreloads.current.has(url)) return
+      const image = new Image()
+      image.decoding = 'async'
+      image.src = url
+      galleryPreloads.current.set(url, image)
+      image.decode?.().catch(() => {})
     }
-    frameId = window.requestAnimationFrame(warm)
-    return () => {
-      cancelled = true
-      if (frameId !== null) window.cancelAnimationFrame(frameId)
-      images.forEach(img => { img.onload = null; img.onerror = null })
+    urls.slice(0, 3).forEach(warm)
+    return () => { galleryPreloads.current.clear() }
+  }, [person?.id, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
+  useEffect(() => {
+    if (typeof Image === 'undefined') return
+    for (const item of photoItems.slice(photo + 1, photo + 3)) {
+      if (item?.type !== 'image') continue
+      const url = pub(item.path)
+      if (!url || galleryPreloads.current.has(url)) continue
+      const image = new Image()
+      image.decoding = 'async'
+      image.src = url
+      galleryPreloads.current.set(url, image)
+      image.decode?.().catch(() => {})
     }
-  }, [person?.id, photo, photos, cardVideos, person?.media_order])
+  }, [photo, person?.id, cardVideos, person?.media_order])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
