@@ -2722,7 +2722,7 @@ function CampusEmailVerification({ user }) {
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
     ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru','mju','npru']],
-    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt']],
+    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutto','rmutt']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
