@@ -35,7 +35,7 @@ const optimizeProfilePhoto = async (file) => {
     bitmap.close?.()
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82))
     if (!blob || blob.size >= file.size) return file
-    return new File([blob], file.name.split('.').slice(0, -1).join('.') || 'profile-photo' + '.jpg', { type: 'image/jpeg', lastModified: Date.now() })
+    return new File([blob], (file.name.split('.').slice(0, -1).join('.') || 'profile-photo') + '.jpg', { type: 'image/jpeg', lastModified: Date.now() })
   } catch {
     return file
   }
