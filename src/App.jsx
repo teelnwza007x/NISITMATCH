@@ -450,8 +450,6 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
         img.decoding = 'async'
         img.fetchPriority = 'low'
         img.src = url
-        // Decode before the next gallery tap to avoid a synchronous image decode on iOS.
-        if (typeof img.decode === 'function') img.decode().catch(() => {})
         images.push(img)
       }
     }
