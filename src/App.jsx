@@ -4436,13 +4436,16 @@ const loadMatches = useCallback(async () => {
   const swipeInFlight = useRef(new Set())
   const swipe = async (p, is_like) => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
-    if (swipeQuota?.remaining === 0 && quotaWaitMinutes > 0) { setQuotaDialog(true); return }\n    if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
+    if (swipeQuota?.remaining === 0 && quotaWaitMinutes > 0) { setQuotaDialog(true); return }
+    if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
     swipeInFlight.current.add(p.id)
     let error
     try { ({ error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })) }
     catch (e) { error = e }
     finally { swipeInFlight.current.delete(p.id) }
-    if (error) { if (String(error.message).includes('SWIPE_QUOTA_EXCEEDED')) { await refreshSwipeQuota(); setQuotaNow(Date.now()); setQuotaDialog(true); return } return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`) }\n    setSwipeQuota(old => old ? {...old, used: Number(old.used || 0) + 1, remaining: Math.max(0, Number(old.remaining || 0) - 1)} : old)\n    refreshSwipeQuota()
+    if (error) { if (String(error.message).includes('SWIPE_QUOTA_EXCEEDED')) { await refreshSwipeQuota(); setQuotaNow(Date.now()); setQuotaDialog(true); return } return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`) }
+    setSwipeQuota(old => old ? {...old, used: Number(old.used || 0) + 1, remaining: Math.max(0, Number(old.remaining || 0) - 1)} : old)
+    refreshSwipeQuota()
     seenSwipes.current.add(p.id)
     setLastSwipe({ person: p, at: Date.now(), matched: false })
     // Keep the current profile mounted while the swipe-out transition completes.
