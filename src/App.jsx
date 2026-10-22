@@ -508,7 +508,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
   useEffect(() => {
     galleryPreloads.current.clear()
     if (typeof Image === 'undefined' || !person?.id || document.visibilityState === 'hidden') return
-    const next = photoItems[photo + 1]
+    const next = photoItems[photo + 1] || photoItems[photo - 1]
     if (next?.type !== 'image') return
     const url = pub(next.path)
     if (!url) return
@@ -3907,8 +3907,6 @@ function AppContent() {
   const [discovery, setDiscovery] = useState(null), [discoveryReady, setDiscoveryReady] = useState(false), [discoveryEditing, setDiscoveryEditing] = useState(false)
   const [visibleDetail, setVisibleDetail] = useState(null)
   const [detailLeaving, setDetailLeaving] = useState(false)
-  // Keep the swipe viewport fixed while the profile detail portal is open.
-  useViewportScrollLock(!!visibleDetail)
   useEffect(() => {
     if (detail) { setVisibleDetail(detail); setDetailLeaving(false); return }
     if (!visibleDetail) return
