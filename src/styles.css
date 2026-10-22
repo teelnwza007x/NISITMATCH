@@ -4215,3 +4215,23 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(max-width:850px){.nm-admin-dashboard .nm-admin-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nm-admin-dashboard .nm-admin-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:520px){.nm-admin-dashboard .nm-admin-hero{padding:20px 17px;border-radius:19px}.nm-admin-hero-actions{width:100%}.nm-admin-dashboard .nm-admin-summary-grid{gap:9px}.nm-admin-dashboard .nm-admin-summary-card{padding:13px 12px;min-height:145px;border-radius:15px}.nm-admin-dashboard .nm-admin-shortcuts{grid-template-columns:minmax(0,1fr)!important}.nm-admin-dashboard .nm-admin-shortcut{min-height:70px!important}.nm-admin-dashboard .nm-admin-tabs button{font-size:11px!important;padding:11px 10px!important}}
 @media(prefers-reduced-motion:reduce){.nm-admin-dashboard .nm-admin-shortcut,.nm-admin-dashboard .nm-admin-tabs button{transition:none!important;transform:none!important}}
+
+
+/* Swipe controls: reserve a dedicated lane for the more button, never cover photo progress. */
+.swipe-stage .swipe-photo-bars{right:clamp(62px,15%,78px);pointer-events:none;z-index:3}
+.swipe-stage .swipe-more-trigger{z-index:16}
+.swipe-stage .swipe-more-menu-card{z-index:26}
+@media(max-width:700px){
+  .app-shell.home-swipe-locked .swipe-stage .swipe-photo-bars{left:10px;right:60px;top:12px}
+  .app-shell.home-swipe-locked .swipe-more-trigger{top:22px;right:9px}
+  .app-shell.home-swipe-locked .swipe-more-menu-card{top:64px}
+}
+/* Mobile: avoid expensive backdrop filters and perpetual animation while swiping. */
+@media(hover:none) and (pointer:coarse){
+  .swipe-stage .swipe-more-trigger,.swipe-stage .swipe-more-menu-card{
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .swipe-stage .swipe-more-trigger{background:rgba(24,20,37,.83);box-shadow:0 3px 10px rgba(10,7,20,.2)}
+  .swipe-stage .swipe-more-menu-card{background:#211c2f;box-shadow:0 12px 28px rgba(5,3,13,.28)}
+  .swipe-action-area .swipe-control.super:not(:disabled){animation:none}
+}
