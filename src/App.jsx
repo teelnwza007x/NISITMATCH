@@ -3586,7 +3586,7 @@ function PremiumPage({ user, onGoVisitors }) {
       <div className="nm-coming-soon-pill"><Sparkles size={15}/> เร็ว ๆ นี้</div>
     </div>
     <section className="nm-premium-benefits" aria-label="สิทธิพิเศษ Premium">
-      <div className="nm-premium-benefit nm-premium-unlimited"><span className="nm-premium-benefit-icon"><Infinity size={19}/></span><span><b>ปัดได้ไม่จำกัดโควต้า</b><small>สิทธิพิเศษที่วางแผนไว้สำหรับ Premium เมื่อเปิดให้บริการ</small></span></div>
+      <div className="nm-premium-benefit nm-premium-unlimited"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>ปัดได้ไม่จำกัดโควต้า</b><small>สิทธิพิเศษที่วางแผนไว้สำหรับ Premium เมื่อเปิดให้บริการ</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><HeartHandshake size={19}/></span><span><b>คนที่กดใจคุณ</b><small>รู้ว่าใครสนใจคุณ</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><EyeIcon size={19}/></span><span><b>ผู้เข้าชมโปรไฟล์</b><small>ดูคนที่แวะมาเยี่ยมชม</small></span></div>
       <div className="nm-premium-benefit"><span className="nm-premium-benefit-icon"><Sparkles size={19}/></span><span><b>สิทธิพิเศษอื่น ๆ</b><small>ทยอยเปิดให้ใช้ในอนาคต</small></span></div>
