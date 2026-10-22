@@ -2900,6 +2900,19 @@ function AdminDirectory({ kind }) {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [total, setTotal] = useState(0)
+  const [campusVerified, setCampusVerified] = useState({})
+  useEffect(() => {
+    if (kind !== 'profiles' || !rows.length) { setCampusVerified({}); return }
+    let active = true
+    const ids = rows.map(row => row.id)
+    setCampusVerified({})
+    supabase.rpc('nm_admin_campus_verification_status', { p_user_ids: ids }).then(({data,error}) => {
+      if (!active) return
+      if (error) { console.warn('Admin campus status unavailable:',error.message); return }
+      setCampusVerified(Object.fromEntries((data || []).map(item => [item.user_id,item])))
+    }).catch(error => { if (active) console.warn('Admin campus status failed:',error) })
+    return () => { active = false }
+  }, [kind,rows])
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -2930,7 +2943,7 @@ function AdminDirectory({ kind }) {
     {!loading && !error && rows.length === 0 && <p>ไม่มีข้อมูล</p>}
     {!loading && rows.map(r => <article key={r.id} style={{padding:14,borderBottom:'1px solid #555'}}>
       {kind === 'profiles' ? <>
-        <div style={{display:'flex',gap:12,alignItems:'center'}}><Av u={r}/><div style={{flex:1}}><strong>{r.display_name || 'ไม่ระบุชื่อ'}</strong><p>{uniName(r.university_id)} • {r.faculty || '-'}</p></div><button type="button" className="btn btn-ghost" onClick={() => setSelected(selected === r.id ? null : r.id)}>ดูโปรไฟล์</button></div>
+        <div style={{display:'flex',gap:12,alignItems:'center'}}><Av u={r}/><div style={{flex:1}}><strong>{r.display_name || 'ไม่ระบุชื่อ'}</strong><p>{uniName(r.university_id)} • {r.faculty || '-'}</p>{campusVerified[r.id] && <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#86efac',fontSize:12,fontWeight:600}} title={campusVerified[r.id].verified_at ? 'ยืนยันเมื่อ '+new Date(campusVerified[r.id].verified_at).toLocaleString('th-TH') : 'ยืนยันอีเมลมหาวิทยาลัยแล้ว'}><ShieldCheck size={14}/> ยืนยันเมลมหาวิทยาลัยแล้ว</span>}</div><button type="button" className="btn btn-ghost" onClick={() => setSelected(selected === r.id ? null : r.id)}>ดูโปรไฟล์</button></div>
         {selected === r.id && createPortal(<div className="modal-backdrop detail-backdrop hangout-member-profile-portal" onMouseDown={e => {if(e.target===e.currentTarget)setSelected(null)}}><div className="detail-modal" role="dialog" aria-modal="true" aria-label="โปรไฟล์สมาชิก"><button type="button" className="modal-close detail-close-btn" onClick={() => setSelected(null)} aria-label="ปิด"><X size={21}/></button><ProfileGallery person={r}/><div className="detail-body nm-member-profile-body"><div className="section-kicker">GET TO KNOW THEM · ADMIN VIEW</div><h2>{r.display_name || 'ไม่ระบุชื่อ'}{r.age != null ? ', ' + r.age : ''}</h2><p className="detail-campus-line"><GraduationCap size={15}/>{uniName(r.university_id) || 'ไม่ระบุมหาวิทยาลัย'}{r.faculty ? ' · ' + r.faculty : ''}{r.major ? ' · ' + r.major : ''}</p>{r.relationship_intent && <RelationshipVibe intent={r.relationship_intent}/>}<p>{r.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p><div className="tags nm-member-interest-tags">{(r.interests || []).map((interest,index) => <span className="tag" style={{'--tag-index':index}} key={interest}>{interest}</span>)}</div><div className="match-profile-song">{itunesTrack(r) ? <ITunesSongCard track={itunesTrack(r)} compact/> : <div className="detail-no-song"><Music2 size={17}/><span><b>ยังไม่ได้เพิ่มเพลงโปรด</b></span></div>}</div><button type="button" className="btn btn-ghost btn-full" onClick={() => setSelected(null)}>ปิดโปรไฟล์</button></div></div></div>,document.body)}
       </> : <><strong>{r.title || 'ไม่มีชื่อห้อง'}</strong><p>{[r.venue,r.city].filter(Boolean).join(' • ')}</p><p>ผู้สร้าง: {r.creator_name || '-'} • สมาชิก: {r.member_count ?? 0}/{r.capacity ?? '-'} • สถานะ: {r.status || '-'}</p><p>{r.starts_at ? new Date(r.starts_at).toLocaleString('th-TH') : 'ไม่ระบุเวลา'}</p><p>{r.description || ''}</p></>}
     </article>)}
