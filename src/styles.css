@@ -4156,3 +4156,13 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .chat-person,.notif-row{transition:none!important}
  .chat-person:hover,.notif-row:hover{transform:none!important}
 }
+
+
+/* Admin: online activity summary. Count is a privacy-respecting 2-minute presence estimate. */
+.nm-admin-online-card{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 15px;border:1px solid rgba(56,211,145,.24);border-radius:16px;background:linear-gradient(115deg,rgba(23,104,72,.19),rgba(18,26,35,.65))}
+.nm-admin-online-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.12)}
+.nm-admin-online-label{font-size:13px;font-weight:650;color:#e9f9f1;line-height:1.3}
+.nm-admin-online-label small{display:block;font-size:10px;font-weight:400;color:#9eb8ad;margin-top:3px}
+.nm-admin-online-card strong{margin-left:auto;color:#d8ffed;font-size:26px;font-weight:750;font-variant-numeric:tabular-nums;line-height:1}
+.nm-admin-online-card>small{font-size:10px;color:#e9b2b2}
+@media(max-width:520px){.nm-admin-online-card{width:100%;padding:12px}.nm-admin-online-card strong{font-size:23px}}
