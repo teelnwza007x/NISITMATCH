@@ -4274,8 +4274,8 @@ const loadMatches = useCallback(async () => {
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
   // Fetch the next batch before the deck runs out; retain the visible swipe card.
   useEffect(() => {
-    if (view === 'home' && people !== null && filteredPeople.length < 25 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
-  }, [view, people?.length, filteredPeople.length, discoveryLoadingMore, loadPeople])
+    if (view === 'home' && people !== null && people.filter(p => (!discovery?.gender || p.gender === discovery.gender) && campusFiltered(p)).length < 25 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
+  }, [view, people, discovery?.gender, campusFiltered, discoveryLoadingMore, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
