@@ -3001,18 +3001,31 @@ function AdminDashboard({ onBack }) {
       .nm-admin-dashboard .nm-admin-queue { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .nm-admin-dashboard button { touch-action: manipulation; }
     }`}</style>
-    <div className="nm-admin-navigation">
-      <div className="nm-admin-welcome">
-        <div><span className="nm-admin-eyebrow"><ShieldCheck size={14}/> NISIT MATCH CONTROL CENTER</span><h2>จัดการทุกอย่างในที่เดียว</h2><p>เลือกเมนูที่ต้องการ ระบบจะแสดงข้อมูลและเครื่องมือเฉพาะส่วนนั้น</p></div>
-        <div className="nm-admin-online-card" role="status" aria-live="polite"><span className="nm-admin-online-dot"/><span className="nm-admin-online-label">ออนไลน์ตอนนี้ <small>ใช้งานใน 2 นาทีล่าสุด</small></span><strong>{onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong>{onlineError && <small title="ไม่สามารถโหลดจำนวนออนไลน์ได้">โหลดไม่ได้</small>}</div>
-        <div className="nm-admin-live-status"><span className={health==='ok'?'nm-admin-status-dot is-ok':health==='error'?'nm-admin-status-dot is-error':'nm-admin-status-dot'}/>{health==='ok'?'ฐานข้อมูลตอบสนอง':health==='error'?'ตรวจสอบการเชื่อมต่อ':'สถานะรอตรวจสอบ'}</div>
-      </div>
-      {adminTab === 'overview' && <div className="nm-admin-shortcuts" aria-label="งานที่ใช้บ่อย">
-        {[['alerts','ตรวจคำขอ',Bell,'คำขอและการแจ้งเตือน'],['profiles','จัดการสมาชิก',Users,'ค้นหาและตรวจสอบบัญชี'],['announcements','ส่งประกาศ',Send,'ข่าวสารถึงสมาชิก'],['analytics','ดูสถิติ',Eye,'ข้อมูลการใช้งาน']].map(([id,label,Icon,description])=><button type="button" key={id} className="nm-admin-shortcut" onClick={()=>setAdminTab(id)}><span className="nm-admin-shortcut-icon"><Icon size={19}/></span><span><strong>{label}</strong><small>{description}</small></span><ArrowRight size={16} className="nm-admin-shortcut-arrow"/></button>)}
-      </div>}
-      <div className="nm-admin-section-label">เมนูจัดการ <span>เลือกหมวดงาน</span></div>
+    <div className="nm-admin-navigation nm-admin-redesign">
+      <header className="nm-admin-hero">
+        <div className="nm-admin-hero-copy">
+          <span className="nm-admin-eyebrow"><ShieldCheck size={14}/> NISIT MATCH · ADMIN</span>
+          <h2>ศูนย์ควบคุม</h2>
+          <p>ภาพรวมระบบและเครื่องมือจัดการสมาชิกในที่เดียว</p>
+        </div>
+        <div className="nm-admin-hero-actions">
+          <span className={'nm-admin-health-chip '+(health === 'ok' ? 'is-healthy' : health === 'error' ? 'is-unhealthy' : '')}><span className="nm-admin-status-dot"/>{health === 'ok' ? 'ระบบเชื่อมต่อปกติ' : health === 'error' ? 'เชื่อมต่อไม่สำเร็จ' : 'กำลังตรวจสอบระบบ'}</span>
+          <button type="button" className="nm-admin-refresh" onClick={reload} disabled={busy}><Clock size={16}/>{busy ? 'กำลังโหลด...' : 'รีเฟรชข้อมูล'}</button>
+        </div>
+      </header>
+      {adminTab === 'overview' && <>
+        <div className="nm-admin-summary-grid" aria-label="ภาพรวมตัวเลขสำคัญ">
+          <article className="nm-admin-summary-card is-online"><div className="nm-admin-summary-top"><span className="nm-admin-summary-icon"><Globe2 size={19}/></span><span className="nm-admin-summary-tag">2 นาทีล่าสุด</span></div><small>สมาชิกออนไลน์</small><strong>{onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong><span className="nm-admin-summary-note">{onlineError ? 'ไม่สามารถโหลดข้อมูลได้' : 'ผู้ใช้ที่เปิดเผยสถานะออนไลน์'}</span></article>
+          {[['สมาชิกทั้งหมด',metrics?.profiles,Users,'จำนวนบัญชี'],['แมตช์ทั้งหมด',metrics?.matches,Heart,'การจับคู่'],['คำขอรอตรวจสอบ',metrics?.pending_verifications,ShieldCheck,'ยืนยันมหาวิทยาลัย']].map(([label,value,Icon,note])=><article className="nm-admin-summary-card" key={label}><div className="nm-admin-summary-top"><span className="nm-admin-summary-icon"><Icon size={19}/></span></div><small>{label}</small><strong>{metrics === null ? '—' : Number(value || 0).toLocaleString('th-TH')}</strong><span className="nm-admin-summary-note">{note}</span></article>)}
+        </div>
+        <div className="nm-admin-block-title"><div><h3>จัดการด่วน</h3><p>งานที่ผู้ดูแลใช้งานบ่อย</p></div></div>
+        <div className="nm-admin-shortcuts" aria-label="งานที่ใช้บ่อย">
+          {[['alerts','ตรวจคำขอ',Bell,'รายงานและการแจ้งเตือน'],['profiles','จัดการสมาชิก',Users,'ค้นหาและตรวจสอบบัญชี'],['announcements','ส่งประกาศ',Send,'ข่าวสารถึงสมาชิก'],['analytics','ดูสถิติ',Eye,'การเติบโตและกิจกรรม']].map(([id,label,Icon,description])=><button type="button" key={id} className="nm-admin-shortcut" onClick={()=>setAdminTab(id)}><span className="nm-admin-shortcut-icon"><Icon size={21}/></span><span className="nm-admin-shortcut-text"><strong>{label}</strong><small>{description}</small></span><ArrowRight size={17} className="nm-admin-shortcut-arrow"/></button>)}
+        </div>
+      </>}
+      <div className="nm-admin-block-title nm-admin-menu-title"><div><h3>เมนูจัดการ</h3><p>เลือกส่วนที่ต้องการดูหรือแก้ไข</p></div></div>
       <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ">
-        {[['overview','ภาพรวม'],['analytics','สถิติ'],['announcements','ประกาศ'],['alerts','แจ้งเตือนและคำขอ'],['profiles','สมาชิก'],['premium','Premium'],['hangouts','Hangout'],['email','อีเมล']].map(([id,label])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}>{label}</button>)}
+        {[['overview','ภาพรวม',Eye],['analytics','สถิติ',Clock],['announcements','ประกาศ',Send],['alerts','แจ้งเตือนและคำขอ',Bell],['profiles','สมาชิก',Users],['premium','Premium',Crown],['hangouts','Hangout',HeartHandshake],['email','อีเมล',MailCheck]].map(([id,label,Icon])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}><Icon size={17}/><span>{label}</span></button>)}
       </nav>
     </div>
     {adminTab === 'analytics' && <section className="nm-admin-overview" aria-label="สถิติผู้ใช้งาน" style={{display:'grid',gap:14}}>
