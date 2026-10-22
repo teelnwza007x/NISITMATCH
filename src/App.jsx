@@ -4454,6 +4454,22 @@ const loadMatches = useCallback(async () => {
     if (!error && data) setSwipeQuota(data)
   }, [user?.id])
   useEffect(() => { refreshSwipeQuota() }, [refreshSwipeQuota])
+  // A rolling 24-hour allowance can recover while the app remains open.
+  // Refresh on return to the PWA and periodically while the quota is exhausted.
+  useEffect(() => {
+    const onResume = () => { if (document.visibilityState === 'visible') refreshSwipeQuota() }
+    document.addEventListener('visibilitychange', onResume)
+    window.addEventListener('focus', onResume)
+    return () => {
+      document.removeEventListener('visibilitychange', onResume)
+      window.removeEventListener('focus', onResume)
+    }
+  }, [refreshSwipeQuota])
+  useEffect(() => {
+    if (swipeQuota?.remaining !== 0) return
+    const timer = setInterval(refreshSwipeQuota, 30000)
+    return () => clearInterval(timer)
+  }, [swipeQuota?.remaining, refreshSwipeQuota])
   useEffect(() => {
     if (!quotaDialog) return
     const timer = setInterval(() => setQuotaNow(Date.now()), 1000)
@@ -4494,7 +4510,7 @@ const loadMatches = useCallback(async () => {
     if (error || !data) return notify(error?.message || 'ไม่สามารถย้อนกลับได้ หากเกิด Match แล้วจะย้อนกลับไม่ได้')
     seenSwipes.current.delete(lastSwipe.person.id)
     setPeople(old => [lastSwipe.person, ...(old || []).filter(p=>p.id!==lastSwipe.person.id)])
-    setLastSwipe(null); notify('ย้อนกลับการปัดล่าสุดแล้ว')
+    setLastSwipe(null); refreshSwipeQuota(); notify('ย้อนกลับการปัดล่าสุดแล้ว')
   }
   const superLike = async (p) => {
     if (!p?.id || superBusy || swipeInFlight.current.has(p.id)) return false
@@ -4505,6 +4521,7 @@ const loadMatches = useCallback(async () => {
     swipeInFlight.current.delete(p.id)
     if (error) return notify(error.message.includes('limit') ? 'ใช้ Super Like ครบ 3 ครั้งของวันนี้แล้ว' : 'Super Like ไม่สำเร็จ: '+error.message)
     setLastSwipe(null)
+    refreshSwipeQuota()
     notify(`ส่ง Super Like ให้ ${p.display_name} แล้ว`)
     // Delay card removal until the Super Like burst has played.
     setTimeout(() => setPeople(old => (old || []).filter(x=>x.id!==p.id)), 950)
