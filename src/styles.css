@@ -4228,3 +4228,10 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     backdrop-filter:none;-webkit-backdrop-filter:none;
   }
 }
+
+/* Lightweight loading state: shown only while discovery profiles are fetching. */
+.nm-swipe-smart-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:260px;text-align:center}
+.nm-swipe-smart-loading strong{font-weight:800;letter-spacing:.12em}
+.nm-swipe-smart-loading>span:not(.spin){font-size:13px;opacity:.75}
+.nm-swipe-loading-heart{width:60px;height:60px;border-radius:20px;display:grid;place-items:center;color:#ff69a4;background:rgba(255,105,164,.12)}
+@media(prefers-reduced-motion:reduce){.nm-swipe-smart-loading .spin{animation:none}}
