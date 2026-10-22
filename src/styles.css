@@ -4272,3 +4272,20 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   .app-shell.home-swipe-locked .v76-home-actions>.btn svg{width:15px;height:15px}
   .app-shell.home-swipe-locked .result-meta{margin-top:3px!important;margin-bottom:6px!important}
 }
+
+/* Swipe mobile header redesign: isolated layout, no horizontal overflow. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .page-content{box-sizing:border-box!important;min-width:0!important;width:100%!important;max-width:100%!important;overflow-x:hidden!important;padding-inline:12px!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-content:start!important;justify-items:stretch!important;gap:6px!important;min-width:0!important;width:100%!important;max-width:100%!important;padding:0!important;margin:0 0 6px!important;overflow:visible!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row>div:first-child{width:100%!important;min-width:0!important;max-width:100%!important;flex:none!important;padding:0!important;margin:0!important;transform:none!important;text-align:left!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row .section-kicker{display:none!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row h1{font-size:17px!important;line-height:1.25!important;letter-spacing:0!important;margin:0!important;padding:0!important;white-space:normal!important;overflow-wrap:anywhere!important;text-align:left!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row p{font-size:10px!important;line-height:1.35!important;margin:2px 0 0!important;white-space:normal!important;overflow-wrap:anywhere!important;text-align:left!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row .v76-home-actions{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;gap:5px!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:visible!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row .v76-home-actions>.btn{flex:0 1 auto!important;min-width:0!important;min-height:32px!important;padding:6px 7px!important;font-size:10px!important;line-height:1.15!important;border-radius:10px!important;gap:4px!important;white-space:nowrap!important}
+ .app-shell.home-swipe-locked .page-content>.welcome-row .v76-home-actions>.btn svg{width:13px!important;height:13px!important;flex-shrink:0}
+ .app-shell.home-swipe-locked .page-content>.welcome-row .v76-home-actions>.nm-notification-bell{flex:0 0 auto!important}
+ .app-shell.home-swipe-locked .result-meta{width:100%!important;min-width:0!important;max-width:100%!important;font-size:10px!important;gap:5px!important;margin:0 0 5px!important}
+ .app-shell.home-swipe-locked .nm-swipe-quota{max-width:100%!important;width:100%!important;margin:0 0 6px!important}
+}
+@media(max-width:370px){.app-shell.home-swipe-locked .page-content>.welcome-row .v76-home-actions>.btn{font-size:9px!important;padding:5px!important}.app-shell.home-swipe-locked .page-content>.welcome-row h1{font-size:16px!important}}
