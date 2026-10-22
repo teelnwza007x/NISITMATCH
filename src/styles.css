@@ -4377,3 +4377,21 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  .app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{top:27px!important;left:12px!important;font-size:9px!important;letter-spacing:.6px!important}
 }
 @media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{animation:none!important}}
+
+/* Discover header v3: notification occupies its own slot; compact quota is in normal flow. */
+.app-shell.home-swipe-locked .nm-discover-mobile-shell .v76-home-actions>.nm-notification-bell{position:absolute!important;top:0!important;right:0!important;left:auto!important;bottom:auto!important;z-index:4!important;width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border-radius:12px!important;display:grid!important;place-items:center!important;color:#fff!important;background:#211831!important;border:1px solid #6c538c!important;box-shadow:none!important;transform:none!important}
+.app-shell.home-swipe-locked .nm-discover-mobile-shell{position:relative!important}
+.app-shell.home-swipe-locked .nm-discover-mobile-shell>.welcome-row>div:first-child{box-sizing:border-box!important;padding-right:46px!important;min-height:40px!important}
+.app-shell.home-swipe-locked .nm-swipe-quota{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;position:relative!important;inset:auto!important;transform:none!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:45px!important;margin:0 0 7px!important;padding:7px 11px!important;border:1px solid rgba(199,168,243,.22)!important;border-radius:12px!important;background:#181629!important;box-shadow:none!important;flex:0 0 auto!important}
+.app-shell.home-swipe-locked .nm-quota-label{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-width:0}
+.app-shell.home-swipe-locked .nm-quota-label>span{font-size:11px;font-weight:750;color:#e9dcff;line-height:1.25}
+.app-shell.home-swipe-locked .nm-quota-label>small{font-size:9px;line-height:1.25;color:#aeb0c7;overflow-wrap:anywhere}
+.app-shell.home-swipe-locked .nm-quota-count{font-size:17px;line-height:1;font-weight:800;color:#fff;flex:0 0 auto;white-space:nowrap}
+.app-shell.home-swipe-locked .nm-quota-count span{font-size:10px;font-weight:500;color:#aeb0c7}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell>.welcome-row{position:static!important}
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell .v76-home-actions{position:static!important}
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell .v76-home-actions>.nm-notification-bell{position:absolute!important;top:0!important;right:0!important;grid-column:auto!important;grid-row:auto!important}
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell h1{font-size:15px!important;line-height:1.2!important}
+ .app-shell.home-swipe-locked .page-content{overflow-x:hidden!important;overflow-y:auto!important}
+}
