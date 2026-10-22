@@ -4467,3 +4467,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   position:relative!important;z-index:1!important;will-change:auto!important
  }
 }
+
+/* Move only the Discover heading down without shifting actions or swipe deck. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell>.welcome-row>div:first-child{padding-top:12px!important;padding-right:46px!important;box-sizing:border-box!important}
+}
