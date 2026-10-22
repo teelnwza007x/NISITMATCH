@@ -4469,11 +4469,14 @@ const loadMatches = useCallback(async () => {
   }, [user?.id, notify, loadUnread, loadUnreadMessages, loadMatches])
 
   const [swipeQuota, setSwipeQuota] = useState(null)
+  const [swipeQuotaError, setSwipeQuotaError] = useState(false)
   const [swipeQuotaNow, setSwipeQuotaNow] = useState(Date.now())
   const refreshSwipeQuota = useCallback(async () => {
     if (!userId) return
     const { data, error } = await supabase.rpc('swipe_hourly_status')
-    if (!error && data?.[0]) setSwipeQuota(data[0])
+    if (error || !data?.[0]) { setSwipeQuotaError(true); setSwipeQuota(null); return }
+    setSwipeQuotaError(false)
+    setSwipeQuota(data[0])
   }, [userId])
   useEffect(() => {
     if (view !== 'home' || !userId) return
@@ -4504,7 +4507,7 @@ const loadMatches = useCallback(async () => {
       return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
     }
     setSwipeQuota(old => old ? { ...old, used: Math.min(30, old.used + 1), remaining: Math.max(0, old.remaining - 1) } : old)
-    refreshSwipeQuota()
+    await refreshSwipeQuota()
     seenSwipes.current.add(p.id)
     setLastSwipe({ person: p, at: Date.now(), matched: false })
     // Keep the current profile mounted while the swipe-out transition completes.
@@ -4667,7 +4670,7 @@ const loadMatches = useCallback(async () => {
             </div>, document.body)}
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span>{discoveryPageError && <button type="button" onClick={() => { setDiscoveryPageError(false); loadPeople({ nextPage: true }) }} style={{marginLeft:8,padding:'6px 10px',borderRadius:10,border:'1px solid var(--theme-border)',background:'var(--theme-sidebar)',color:'var(--theme-text)',cursor:'pointer'}}>ลองโหลดเพิ่มอีกครั้ง</button>}</div>
             
-            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-swipe-loading-orbit"><div className="nm-swipe-loading-heart"><Heart size={29} fill="currentColor" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังเตรียมคนที่ใช่ให้คุณ...</span><div className="nm-swipe-loading-track"><span /></div><small>อีกนิดเดียวก็ได้เจอกัน</small></div> : swipePeople.length ? <><div className="nm-swipe-quota" role="status" aria-live="polite">{swipeQuota ? `ปัดแล้ว ${swipeQuota.used}/30 · เหลือ ${swipeQuota.remaining} ครั้งใน 60 นาที${swipeQuota.remaining === 0 ? ` · ปัดเพิ่มได้อีกประมาณ ${quotaWaitMinutes} นาที` : ''}` : 'โควตาการปัด 30 คนต่อ 60 นาที'}</div><SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /></> : empty}
+            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-swipe-loading-orbit"><div className="nm-swipe-loading-heart"><Heart size={29} fill="currentColor" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังเตรียมคนที่ใช่ให้คุณ...</span><div className="nm-swipe-loading-track"><span /></div><small>อีกนิดเดียวก็ได้เจอกัน</small></div> : swipePeople.length ? <><div className="nm-swipe-quota" role="status" aria-live="polite">{swipeQuota ? `ปัดแล้ว ${swipeQuota.used}/30 · เหลือ ${swipeQuota.remaining} ครั้งใน 60 นาที${swipeQuota.remaining === 0 ? ` · ปัดเพิ่มได้อีกประมาณ ${quotaWaitMinutes} นาที` : ''}` : swipeQuotaError ? 'ยังไม่เปิดระบบนับโควตา · กรุณาติดต่อผู้ดูแล' : 'กำลังตรวจสอบโควตา…'}</div><SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /></> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
