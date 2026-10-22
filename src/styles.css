@@ -4640,3 +4640,7 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  font:800 12px/1 system-ui,-apple-system,sans-serif!important;
  pointer-events:none!important;
 }
+
+/* Settings shortcuts use in-page buttons, never URL hash navigation. */
+.nm-settings-quick-nav button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:left;}
+.nm-settings-quick-nav button:focus-visible{outline:2px solid var(--pink,#f45ca5);outline-offset:3px;}
