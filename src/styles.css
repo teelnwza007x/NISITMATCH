@@ -4588,3 +4588,22 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
  box-shadow:0 2px 7px rgba(0,0,0,.16)!important;
  transform:none!important;animation:none!important;pointer-events:none!important;
 }
+
+/* Compact swipe dock: trim empty frame space without shrinking touch targets. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed{
+ width:min(100%,266px)!important;
+ padding:8px 10px!important;
+ margin:10px auto 5px!important;
+ border-radius:999px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .swipe-controls.nm-swipe-primary-actions{
+ width:100%!important;max-width:222px!important;gap:7px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed .nm-swipe-undo{
+ right:-5px!important;top:-10px!important;
+}
+@media(max-width:360px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area.nm-swipe-actions-framed{
+  width:min(100%,252px)!important;padding:7px 9px!important;
+ }
+}
