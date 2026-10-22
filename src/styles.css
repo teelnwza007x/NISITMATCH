@@ -4217,21 +4217,14 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(prefers-reduced-motion:reduce){.nm-admin-dashboard .nm-admin-shortcut,.nm-admin-dashboard .nm-admin-tabs button{transition:none!important;transform:none!important}}
 
 
-/* Swipe controls: reserve a dedicated lane for the more button, never cover photo progress. */
-.swipe-stage .swipe-photo-bars{right:clamp(62px,15%,78px);pointer-events:none;z-index:3}
-.swipe-stage .swipe-more-trigger{z-index:16}
-.swipe-stage .swipe-more-menu-card{z-index:26}
+/* Preserve the original swipe-card look; reserve space for the photo bars. */
+.swipe-stage .swipe-photo-bars{right:68px;pointer-events:none;z-index:3}
 @media(max-width:700px){
-  .app-shell.home-swipe-locked .swipe-stage .swipe-photo-bars{left:10px;right:60px;top:12px}
-  .app-shell.home-swipe-locked .swipe-more-trigger{top:22px;right:9px}
-  .app-shell.home-swipe-locked .swipe-more-menu-card{top:64px}
+  .app-shell.home-swipe-locked .swipe-stage .swipe-photo-bars{right:62px}
 }
-/* Mobile: avoid expensive backdrop filters and perpetual animation while swiping. */
+/* Lower GPU cost without changing the original swipe layout. */
 @media(hover:none) and (pointer:coarse){
   .swipe-stage .swipe-more-trigger,.swipe-stage .swipe-more-menu-card{
     backdrop-filter:none;-webkit-backdrop-filter:none;
   }
-  .swipe-stage .swipe-more-trigger{background:rgba(24,20,37,.83);box-shadow:0 3px 10px rgba(10,7,20,.2)}
-  .swipe-stage .swipe-more-menu-card{background:#211c2f;box-shadow:0 12px 28px rgba(5,3,13,.28)}
-  .swipe-action-area .swipe-control.super:not(:disabled){animation:none}
 }
