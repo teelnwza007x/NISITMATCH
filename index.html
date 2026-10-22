@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#12101d" />
   <meta name="color-scheme" content="dark" />
-  <style>html,body{margin:0;min-height:100%;background:#12101d;color:#fff}#root{min-height:100vh;min-height:100dvh;background:#12101d}#nm-first-paint{position:fixed;inset:0;display:grid;place-items:center;background:#12101d;color:#ff85b9;font:700 18px system-ui,sans-serif;letter-spacing:.14em;z-index:0}#root:not(:empty)+#nm-first-paint{display:none}</style>
+  <style>html,body{margin:0;min-height:100%;background:#12101d;color:#fff}#root{min-height:100vh;min-height:100dvh;background:#12101d}#nm-first-paint{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#12101d;color:#fff;font:700 18px system-ui,sans-serif;letter-spacing:.14em;z-index:0}#nm-first-paint img{width:108px;height:108px;object-fit:contain;animation:nm-logo-breathe 1.6s ease-in-out infinite}#nm-first-paint span{font-size:18px;letter-spacing:.2em;color:#ff85b9}#nm-first-paint i{width:80px;height:3px;border-radius:20px;background:linear-gradient(90deg,transparent,#ff75b5,transparent);animation:nm-logo-breathe 1.6s ease-in-out infinite}#root:not(:empty)+#nm-first-paint{display:none}@keyframes nm-logo-breathe{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.03)}}@media(prefers-reduced-motion:reduce){#nm-first-paint img,#nm-first-paint i{animation:none}}</style>
   <meta name="description" content="NISIT MATCH พื้นที่ทำความรู้จักและค้นหา Match สำหรับนิสิตนักศึกษาไทย" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -22,5 +22,5 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 </head>
-<body><div id="root"></div><div id="nm-first-paint" aria-hidden="true">NISIT MATCH</div><script type="module" src="/src/main.jsx"></script></body>
+<body><div id="root"></div><div id="nm-first-paint" aria-hidden="true"><img src="/nisit-match-logo.png" alt="" /><span>NISIT MATCH</span><i></i></div><script type="module" src="/src/main.jsx"></script></body>
 </html>
