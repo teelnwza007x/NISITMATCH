@@ -3988,3 +3988,22 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(prefers-reduced-motion:reduce) {
  .nm-premium-hero-clean,.nm-premium-hero-clean:before,.nm-premium-hero-clean:after,.nm-premium-hero-clean .v76-premium-orb { animation:none!important; }
 }
+
+
+/* Mobile swipe performance: avoid expensive live shadows while dragging.
+   Preserve the card layout, photo framing, and existing swipe animations. */
+@media (hover: none) and (pointer: coarse) {
+  .swipe-front:active {
+    box-shadow: none !important;
+  }
+  .swipe-front > img,
+  .swipe-behind-image {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .swipe-front:active .swipe-info,
+  .swipe-front:active .swipe-song {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
