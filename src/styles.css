@@ -4110,3 +4110,18 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   color:rgba(255,255,255,.85)!important;
   box-shadow:none!important;
 }
+
+
+/* Use the same Thai typeface and weight as the "แชตของคุณ" heading. */
+.chat-layout.chat-inbox-open .nm-inbox-head .nm-inbox-count,
+.nm-inbox-head .nm-inbox-count{
+  font-family:inherit!important;
+  font-size:17px!important;
+  font-weight:700!important;
+  line-height:1.6!important;
+  letter-spacing:0!important;
+}
+@media(max-width:420px){
+  .chat-layout.chat-inbox-open .nm-inbox-head .nm-inbox-count,
+  .nm-inbox-head .nm-inbox-count{font-size:15px!important}
+}
