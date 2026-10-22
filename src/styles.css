@@ -4007,3 +4007,13 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-campus-filter small{opacity:.75;font-size:12px;line-height:1.5}
 @media(max-width:480px){.nm-ku-campus-picker,.nm-campus-filter{padding:12px;margin:12px 0}.nm-ku-campus-picker select{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.nm-ku-campus-picker select{transition:none}}
+
+/* Campus selection follows the existing university choice-grid theme */
+.nm-ku-campus-picker{margin:18px 0;padding:0;border:0;background:transparent;box-shadow:none}
+.nm-ku-campus-picker .choice-heading{margin-bottom:14px}
+.nm-campus-option-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.nm-campus-option{width:100%;min-width:0;text-align:left;cursor:pointer}
+.nm-campus-option .uni-option-copy{min-width:0}
+.nm-campus-option .uni-option-copy b{overflow-wrap:anywhere}
+.nm-campus-option:focus-visible{outline:2px solid #d6b76e;outline-offset:3px}
+@media(max-width:520px){.nm-campus-option-grid{grid-template-columns:1fr}.nm-campus-option{min-height:62px}}
