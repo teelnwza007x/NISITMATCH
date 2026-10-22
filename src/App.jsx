@@ -4079,6 +4079,14 @@ function AppContent() {
       }
     }
   }, [userId])
+  const unreadRefreshTimer = useRef(null)
+  const scheduleUnreadRefresh = useCallback(() => {
+    if (document.visibilityState === 'hidden' || unreadRefreshTimer.current !== null) return
+    unreadRefreshTimer.current = window.setTimeout(() => {
+      unreadRefreshTimer.current = null
+      loadUnreadMessages()
+    }, 450)
+  }, [loadUnreadMessages])
   useEffect(() => {
     if (!userId) { setUnreadMessages(0); return }
     loadUnreadMessages()
@@ -4087,12 +4095,12 @@ function AppContent() {
       if (document.visibilityState === 'visible') loadUnreadMessages()
     }, 30000)
     const channel = supabase.channel(`unread-messages-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadUnreadMessages())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleUnreadRefresh)
       .subscribe()
     const refresh = () => { if (document.visibilityState === 'visible') loadUnreadMessages() }
     document.addEventListener('visibilitychange', refresh)
-    return () => { clearInterval(poll); document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
-  }, [userId, loadUnreadMessages])
+    return () => { clearTimeout(unreadRefreshTimer.current); unreadRefreshTimer.current = null; clearInterval(poll); document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
+  }, [userId, loadUnreadMessages, scheduleUnreadRefresh])
 
   
 const loadMatches = useCallback(async () => {
