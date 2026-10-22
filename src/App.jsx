@@ -2911,11 +2911,11 @@ function AdminDashboard({ onBack }) {
     const update = () => {
       if (!alive) return
       const state = channel.presenceState()
-      const count = Object.values(state).reduce((total, entries) => total + entries.filter(entry => entry.active === true).length, 0)
+      const count = Object.values(state || {}).reduce((total, entries) => total + (Array.isArray(entries) ? entries.filter(entry => entry?.active === true).length : 0), 0)
       setOnlineCount(count)
       setOnlineError(false)
     }
-    channel.on('presence', { event: 'sync' }, update)
+    channel.on('presence', { event: 'sync' }, () => { try { update() } catch (error) { console.warn('Admin presence sync failed', error); if (alive) { setOnlineError(true); setOnlineCount(null) } } })
     channel.subscribe(status => {
       if (!alive) return
       if (status === 'SUBSCRIBED') update()
