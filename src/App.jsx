@@ -19,6 +19,28 @@ const makeClientId = () => {
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 }
 
+// Shrink profile photos before upload so mobile swiping downloads fewer bytes.
+// GIFs and unsupported/animated formats are preserved to avoid changing their behavior.
+const optimizeProfilePhoto = async (file) => {
+  if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size < 350 * 1024) return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) { bitmap.close?.(); return file }
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close?.()
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], file.name.replace(/\\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg', lastModified: Date.now() })
+  } catch {
+    return file
+  }
+}
+
 const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(b), c => c.charCodeAt(0)) }
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
@@ -2338,9 +2360,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     const uploaded = [...photos]
     const keyMap = {}
     for (const item of newPhotos) {
-      const ext = item.file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const uploadFile = await optimizeProfilePhoto(item.file)
+      const ext = uploadFile.type === 'image/jpeg' ? 'jpg' : uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : (uploadFile.name.split('.').pop()?.toLowerCase() || 'jpg')
       const path = `${user.id}/photo-${makeClientId()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, item.file, { contentType: item.file.type })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadFile, { contentType: uploadFile.type || item.file.type, upsert: false })
       if (uploadError) { setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
       uploaded.push(path); keyMap[item.key] = path
     }
