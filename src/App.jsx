@@ -4357,12 +4357,14 @@ const loadMatches = useCallback(async () => {
   }, [userId, verificationCandidateKey])
 
   useEffect(() => { const refresh = () => { if (document.visibilityState === 'visible' && user?.id) loadMatches() }; document.addEventListener('visibilitychange', refresh); return () => document.removeEventListener('visibilitychange', refresh) }, [user?.id, loadMatches])
+  const notificationViewRef = useRef(view)
+  notificationViewRef.current = view
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) return
     const ch = supabase.channel('notif-' + user.id).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, async (p) => {
       if (p.new.type === 'hangout_message') {
         let activeRoom = null; try { activeRoom = sessionStorage.getItem(`nisit-active-hangout-chat:${user.id}`) } catch {}
-        if (view === 'messages' && activeRoom === p.new.ref_id) { await supabase.from('notifications').update({ read: true }).eq('id', p.new.id).eq('user_id', user.id); loadUnread(); loadUnreadMessages(); return }
+        if (notificationViewRef.current === 'messages' && activeRoom === p.new.ref_id) { await supabase.from('notifications').update({ read: true }).eq('id', p.new.id).eq('user_id', user.id); loadUnread(); loadUnreadMessages(); return }
         loadUnread(); loadUnreadMessages()
         let title = 'ข้อความใหม่ใน Hangout', body = 'มีสมาชิกส่งข้อความในห้องกลุ่ม'
         const [{ data: event }, { data: latest }, { data: memberProfiles }] = await Promise.all([
@@ -4384,7 +4386,7 @@ const loadMatches = useCallback(async () => {
       notify(p.new.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!' : 'มีคนกำลังสนใจคุณอยู่'); loadUnread(); if (p.new.type === 'match') loadMatches()
     }).subscribe()
     return () => supabase.removeChannel(ch)
-  }, [user, view, notify, loadUnread, loadUnreadMessages, loadMatches])
+  }, [user?.id, notify, loadUnread, loadUnreadMessages, loadMatches])
 
   const swipeInFlight = useRef(new Set())
   const swipe = async (p, is_like) => {
