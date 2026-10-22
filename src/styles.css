@@ -4241,3 +4241,9 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-swipe-loading-track span{display:block;width:38%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f95b9b,#ffb3d1);animation:nm-swipe-loading-slide 1.35s ease-in-out infinite alternate;will-change:transform}
 @keyframes nm-swipe-loading-slide{from{transform:translateX(0)}to{transform:translateX(165%)}}
 @media(prefers-reduced-motion:reduce){.nm-swipe-loading-track span{animation:none;width:100%;will-change:auto}}
+
+/* Lightweight photo placeholders: no JS timers or React render on image load. */
+.swipe-front,.detail-gallery{background:#241b31}
+.swipe-front>img.nm-image-loading,.detail-gallery>img.nm-image-loading{opacity:.18}
+.swipe-front>img:not(.nm-image-loading),.detail-gallery>img:not(.nm-image-loading){opacity:1;transition:opacity .2s ease-out}
+@media(prefers-reduced-motion:reduce){.swipe-front>img,.detail-gallery>img{transition:none!important}}
