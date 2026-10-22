@@ -2697,6 +2697,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   siam: { name: 'มหาวิทยาลัยสยาม', domains: ['siam.edu'] },
   nbu: { name: 'มหาวิทยาลัยนอร์ทกรุงเทพ', domains: ['northbkk.ac.th'] },
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
+  rmutto: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลตะวันออก', domains: ['rmutto.ac.th'] },
   rmutt: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลธัญบุรี', domains: ['mail.rmutt.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
