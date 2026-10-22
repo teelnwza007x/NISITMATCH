@@ -3907,6 +3907,8 @@ function AppContent() {
   const [discovery, setDiscovery] = useState(null), [discoveryReady, setDiscoveryReady] = useState(false), [discoveryEditing, setDiscoveryEditing] = useState(false)
   const [visibleDetail, setVisibleDetail] = useState(null)
   const [detailLeaving, setDetailLeaving] = useState(false)
+  // Keep the swipe viewport fixed while the profile detail portal is open.
+  useViewportScrollLock(!!visibleDetail)
   useEffect(() => {
     if (detail) { setVisibleDetail(detail); setDetailLeaving(false); return }
     if (!visibleDetail) return
