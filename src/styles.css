@@ -4862,3 +4862,45 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nm-premium-nav-glint{0%,16%{left:-55%;opacity:0}24%{opacity:.85}54%{left:120%;opacity:.8}64%,100%{left:120%;opacity:0}}
 .nm-premium-unlimited{border-color:rgba(246,201,112,.3);background:linear-gradient(120deg,rgba(255,210,110,.09),rgba(210,125,255,.06))}
 @media(prefers-reduced-motion:reduce){.premium-nav-item::before{animation:none!important;opacity:0!important}}
+
+
+/* v42: gentle notification bell animation while unread notifications exist */
+@keyframes nm-notification-bell-ring {
+  0%, 68%, 100% { transform: rotate(0deg) scale(1); }
+  72% { transform: rotate(-12deg) scale(1.04); }
+  76% { transform: rotate(10deg) scale(1.04); }
+  80% { transform: rotate(-8deg); }
+  84% { transform: rotate(6deg); }
+  88% { transform: rotate(-3deg); }
+  92% { transform: rotate(0deg) scale(1); }
+}
+@keyframes nm-notification-unread-pulse {
+  0%, 100% { transform: scale(.92); opacity: .85; box-shadow: 0 0 0 0 rgba(255, 92, 159, .28); }
+  50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 0 5px rgba(255, 92, 159, 0); }
+}
+.nm-notification-bell-unread > svg {
+  transform-origin: 50% 12%;
+  animation: nm-notification-bell-ring 2.8s ease-in-out infinite;
+}
+.nm-notification-bell-unread .nm-discover-unread {
+  animation: nm-notification-unread-pulse 2.2s ease-in-out infinite;
+}
+.nav-item.has-unread-notifications > svg,
+.bottom-nav-item.has-unread-notifications .bottom-icon > svg {
+  transform-origin: 50% 12%;
+  animation: nm-notification-bell-ring 2.8s ease-in-out infinite;
+}
+.nav-item.has-unread-notifications .nav-count,
+.bottom-nav-item.has-unread-notifications .bottom-dot {
+  animation: nm-notification-unread-pulse 2.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-notification-bell-unread > svg,
+  .nm-notification-bell-unread .nm-discover-unread,
+  .nav-item.has-unread-notifications > svg,
+  .bottom-nav-item.has-unread-notifications .bottom-icon > svg,
+  .nav-item.has-unread-notifications .nav-count,
+  .bottom-nav-item.has-unread-notifications .bottom-dot {
+    animation: none !important;
+  }
+}
