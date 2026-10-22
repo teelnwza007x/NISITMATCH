@@ -2907,21 +2907,26 @@ function AdminDashboard({ onBack }) {
   const [adminTab, setAdminTab] = useState('overview')
   useEffect(() => {
     let alive = true
-    const channel = supabase.channel('nm-site-visitors-v1')
+    // Read the shared visitor channel; attaching presence handlers to an already
+    // subscribed channel throws in supabase-js and crashes the React tree.
     const update = () => {
       if (!alive) return
-      const state = channel.presenceState()
-      const count = Object.values(state || {}).reduce((total, entries) => total + (Array.isArray(entries) ? entries.filter(entry => entry?.active === true).length : 0), 0)
-      setOnlineCount(count)
-      setOnlineError(false)
+      const channel = supabase.getChannels().find(item => item.topic === 'realtime:nm-site-visitors-v1')
+      if (!channel) { setOnlineCount(null); setOnlineError(true); return }
+      try {
+        const state = channel.presenceState()
+        const count = Object.values(state || {}).reduce((total, entries) => total + (Array.isArray(entries) ? entries.filter(entry => entry?.active === true).length : 0), 0)
+        setOnlineCount(count)
+        setOnlineError(false)
+      } catch (error) {
+        console.warn('Admin presence read failed', error)
+        setOnlineError(true)
+        setOnlineCount(null)
+      }
     }
-    channel.on('presence', { event: 'sync' }, () => { try { update() } catch (error) { console.warn('Admin presence sync failed', error); if (alive) { setOnlineError(true); setOnlineCount(null) } } })
-    channel.subscribe(status => {
-      if (!alive) return
-      if (status === 'SUBSCRIBED') update()
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setOnlineError(true); setOnlineCount(null) }
-    })
-    return () => { alive = false; supabase.removeChannel(channel) }
+    update()
+    const timer = setInterval(update, 3000)
+    return () => { alive = false; clearInterval(timer) }
   }, [])
   const [reports, setReports] = useState([])
   const [growth, setGrowth] = useState(null)
