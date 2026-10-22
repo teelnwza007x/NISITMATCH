@@ -4607,3 +4607,17 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   width:min(100%,252px)!important;padding:7px 9px!important;
  }
 }
+
+/* iPhone Dynamic Island: solid black safe-area backing, no blur or floating layers.
+   The island is managed by iOS; this only styles the web app around it. */
+@supports (-webkit-touch-callout:none){
+ html{background:#000!important;}
+ body{background:#000!important;}
+ body::before,body::after{display:none!important;}
+ #root{background:#12101d;}
+ .app-shell{background:#12101d;}
+ .app-shell::before,.app-shell::after{pointer-events:none;}
+ @supports (padding-top:env(safe-area-inset-top)){
+  html{background:linear-gradient(to bottom,#000 0,#000 env(safe-area-inset-top),#12101d env(safe-area-inset-top),#12101d 100%)!important;}
+ }
+}
