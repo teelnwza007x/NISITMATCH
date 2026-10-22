@@ -3004,7 +3004,7 @@ function AdminDashboard({ onBack }) {
     <div className="nm-admin-navigation">
       <div className="nm-admin-welcome">
         <div><span className="nm-admin-eyebrow"><ShieldCheck size={14}/> NISIT MATCH CONTROL CENTER</span><h2>จัดการทุกอย่างในที่เดียว</h2><p>เลือกเมนูที่ต้องการ ระบบจะแสดงข้อมูลและเครื่องมือเฉพาะส่วนนั้น</p></div>
-        <div className="nm-admin-online-card" role="status" aria-live="polite"><span className="nm-admin-online-dot"/><span className="nm-admin-online-label">ออนไลน์ตอนนี้ <small>ใช้งานใน 2 นาทีล่าสุด</small></span><strong>${onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong>{onlineError && <small title="ไม่สามารถโหลดจำนวนออนไลน์ได้">โหลดไม่ได้</small>}</div>
+        <div className="nm-admin-online-card" role="status" aria-live="polite"><span className="nm-admin-online-dot"/><span className="nm-admin-online-label">ออนไลน์ตอนนี้ <small>ใช้งานใน 2 นาทีล่าสุด</small></span><strong>{onlineCount === null ? '—' : onlineCount.toLocaleString('th-TH')}</strong>{onlineError && <small title="ไม่สามารถโหลดจำนวนออนไลน์ได้">โหลดไม่ได้</small>}</div>
         <div className="nm-admin-live-status"><span className={health==='ok'?'nm-admin-status-dot is-ok':health==='error'?'nm-admin-status-dot is-error':'nm-admin-status-dot'}/>{health==='ok'?'ฐานข้อมูลตอบสนอง':health==='error'?'ตรวจสอบการเชื่อมต่อ':'สถานะรอตรวจสอบ'}</div>
       </div>
       {adminTab === 'overview' && <div className="nm-admin-shortcuts" aria-label="งานที่ใช้บ่อย">
