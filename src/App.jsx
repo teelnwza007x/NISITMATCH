@@ -4244,7 +4244,7 @@ const loadMatches = useCallback(async () => {
     if (!silent) {
       // Advance by the number of raw RPC rows, not the number surviving UI filters.
       discoveryOffset.current = offset + (data?.length || 0)
-      discoveryHasMore.current = (data?.length || 0) === discoveryPageSize
+      discoveryHasMore.current = (data?.length || 0) >= discoveryPageSize
     }
     // One random ordering per signed-in user/session. New members append without reshuffling visible cards.
     const sessionKey = userId || ''
