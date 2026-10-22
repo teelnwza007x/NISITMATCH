@@ -1156,6 +1156,17 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const chatExtrasSupported = useRef(true)
   const pendingSends = useRef(new Map())
   const [text, setText] = useState('')
+  // A Match greeting is only a draft: the member chooses whether to send it.
+  useEffect(() => {
+    if (!roomId || !me) return
+    try {
+      const key = 'nisit-match-greeting:' + me
+      const pending = JSON.parse(sessionStorage.getItem(key) || 'null')
+      if (pending?.roomId !== roomId || typeof pending?.text !== 'string') return
+      sessionStorage.removeItem(key)
+      setText(current => current || pending.text.slice(0, 2000))
+    } catch {}
+  }, [roomId, me])
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [partnerOnline, setPartnerOnline] = useState(false)
   const [chatViewport, setChatViewport] = useState(null)
@@ -3806,7 +3817,8 @@ function AppContent() {
     return () => { active = false; document.removeEventListener('visibilitychange', onVisible) }
   }, [session?.user?.id, dailyOpen])
   const [newMatch, setNewMatch] = useState(null)
-  useEffect(() => { if (newMatch) playNisitSound('match') }, [newMatch])
+  const [matchGreeting, setMatchGreeting] = useState('')
+  useEffect(() => { if (newMatch) { playNisitSound('match'); setMatchGreeting('') } }, [newMatch])
   useEffect(() => {
     if (!newMatch) return
     const onKey = e => { if (e.key === 'Escape') setNewMatch(null) }
@@ -4158,6 +4170,7 @@ const loadMatches = useCallback(async () => {
     discoveryInFlight.current = false
     if (nextPage) setDiscoveryLoadingMore(false)
     if (error) {
+      if (nextPage) discoveryHasMore.current = false // Prevent a retry loop on network failure.
       // A silent refresh must not leave the deck stuck on its initial spinner.
       // Keep existing cards when refreshing in the background.
       setPeople(current => ((silent || nextPage) && current !== null) ? current : [])
@@ -4199,8 +4212,8 @@ const loadMatches = useCallback(async () => {
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
   // Fetch the next batch before the deck runs out; retain the visible swipe card.
   useEffect(() => {
-    if (view === 'home' && people !== null && people.length <= 8 && discoveryHasMore.current && !discoveryInFlight.current) loadPeople({ nextPage: true })
-  }, [view, people?.length, loadPeople])
+    if (view === 'home' && people !== null && swipePeople.length <= 8 && discoveryHasMore.current && !discoveryInFlight.current) loadPeople({ nextPage: true })
+  }, [view, people?.length, swipePeople.length, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
@@ -4531,7 +4544,7 @@ const loadMatches = useCallback(async () => {
         ][guideStep]}</p></div>
         <div className="nm-guide-v2-actions"><button type="button" className="nm-guide-v2-back" onClick={guideStep===0?closeGuide:()=>setGuideStep(x=>x-1)}>{guideStep===0?'ไว้ทีหลัง':'ย้อนกลับ'}</button><button type="button" className="nm-guide-v2-next" onClick={guideStep===5?closeGuide:()=>setGuideStep(x=>x+1)}>{guideStep===5?'เริ่มใช้งาน':'ถัดไป'} <ArrowRight size={18}/></button></div>
       </div></div>, document.body)}
-      {newMatch && createPortal(<div className="match-overlay v26-match-overlay" style={{position:'fixed',inset:0,zIndex:99999,overflowY:'auto',overscrollBehavior:'contain',padding:'max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom))'}} role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog" style={{maxHeight:'calc(100dvh - 40px)',overflowY:'auto',margin:'auto'}}><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>, document.body)}
+      {newMatch && createPortal(<div className="match-overlay v26-match-overlay" style={{position:'fixed',inset:0,zIndex:99999,overflowY:'auto',overscrollBehavior:'contain',padding:'max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom))'}} role="dialog" aria-modal="true" aria-label="คุณแมตช์กันแล้ว" onMouseDown={e => {if(e.target === e.currentTarget) setNewMatch(null)}}><div className="v26-match-dialog v56-match-dialog v67-match-dialog" style={{maxHeight:'calc(100dvh - 40px)',overflowY:'auto',margin:'auto'}}><div className="v64-match-glow" aria-hidden="true"/><div className="v67-match-shockwave" aria-hidden="true"/><div className="v67-match-shockwave second" aria-hidden="true"/><div className="v67-match-confetti" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{"--i":i,"--angle":`${i*360/24}deg`}}/>)}</div><div className="v67-match-crown" aria-hidden="true"><Heart size={70} fill="currentColor"/></div><div className="v56-match-sparkles" aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{"--i":i}} />)}</div><button className="match-close" onClick={() => setNewMatch(null)} aria-label="ปิด"><X size={21}/></button><div className="v26-match-kicker">A NEW CONNECTION</div><div className="v26-match-pictures v64-match-pictures"><div className="v26-match-picture yours"><Av u={profile}/></div><span className="v26-match-heart"><Heart size={24} fill="currentColor"/></span><div className="v26-match-picture theirs"><Av u={newMatch.p}/></div></div><h1>It's a Match<span>!</span></h1><p>คุณกับ {newMatch.p.display_name} ถูกใจกันและกัน<br/>นี่อาจเป็นจุดเริ่มต้นของเรื่องราวดี ๆ</p><div className="nm-match-greeting" aria-label="ไอเดียเริ่มบทสนทนา"><span>ไม่รู้จะทักอะไร? เลือกข้อความเปิดแชตได้เลย</span><div className="nm-match-greeting-options">{[`หวัดดี ${newMatch.p.display_name} 😊 วันนี้เป็นไงบ้าง?`, 'ดีใจที่เราแมตช์กัน 💗 ชอบทำอะไรเวลาว่าง?', 'เพลงที่ฟังช่วงนี้คือเพลงอะไรเหรอ? 🎵'].map((g,i)=><button type="button" key={i} className={matchGreeting===g?'selected':''} onClick={()=>setMatchGreeting(g)} aria-pressed={matchGreeting===g}>{g}</button>)}</div><small>ข้อความจะอยู่ในช่องพิมพ์ ยังไม่ส่งอัตโนมัติ</small></div><button className="v26-match-primary" onClick={() => {try { sessionStorage.setItem('nisit-active-chat:' + user.id, newMatch.id); if (matchGreeting) sessionStorage.setItem('nisit-match-greeting:' + user.id, JSON.stringify({roomId:newMatch.id,text:matchGreeting})) } catch {} setNewMatch(null);go('messages')}}>เริ่มพูดคุย <ArrowRight size={18}/></button><button className="v26-match-secondary" onClick={() => setNewMatch(null)}>ปัดต่อ</button></div></div>, document.body)}
       {Toast}
     </div>
   )
