@@ -4240,6 +4240,7 @@ const loadMatches = useCallback(async () => {
     }
     setDiscoveryLimited(false)
     if (!silent) {
+      // Advance by the number of raw RPC rows, not the number surviving UI filters.
       discoveryOffset.current = offset + (data?.length || 0)
       discoveryHasMore.current = (data?.length || 0) === 30
     }
@@ -4273,8 +4274,8 @@ const loadMatches = useCallback(async () => {
   }, [discoveryReady, discovery?.min, discovery?.max, discovery?.gender, discovery?.mode, discovery?.radius, discovery?.universities, discovery?.campusOnly, fl.min, fl.max, notify, userId])
   // Fetch the next batch before the deck runs out; retain the visible swipe card.
   useEffect(() => {
-    if (view === 'home' && people !== null && people.length <= 8 && discoveryHasMore.current && !discoveryInFlight.current) loadPeople({ nextPage: true })
-  }, [view, people?.length, loadPeople])
+    if (view === 'home' && people !== null && filteredPeople.length < 25 && discoveryHasMore.current && !discoveryInFlight.current && !discoveryLoadingMore) loadPeople({ nextPage: true })
+  }, [view, people?.length, filteredPeople.length, discoveryLoadingMore, loadPeople])
   // Refresh only when returning to Swipe, without replacing the current card.
   useEffect(() => {
     if (view !== 'home' || !userId || !profile) return
