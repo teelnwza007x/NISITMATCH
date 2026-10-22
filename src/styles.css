@@ -4644,3 +4644,49 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   display:none!important;
  }
 }
+
+/* Swipe-only viewport lock: other app pages and dialogs remain scrollable. */
+@media(max-width:700px){
+ .app-shell.home-swipe-locked{
+  height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+ }
+ .app-shell.home-swipe-locked .main-area,
+ .app-shell.home-swipe-locked .page-content{
+  min-height:0!important;max-height:100%!important;overflow:hidden!important;
+  overscroll-behavior:none!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage{
+  min-height:0!important;overflow:hidden!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{
+  overflow:hidden!important;overscroll-behavior:none!important;
+ }
+}
+/* Use three equal grid cells, then center each button in its cell.
+   The counter badge and the floating undo button do not affect icon axes. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ align-items:center!important;justify-items:center!important;
+ width:100%!important;max-width:222px!important;
+ margin-inline:auto!important;padding:0!important;gap:6px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control{
+ position:relative!important;display:grid!important;place-items:center!important;
+ justify-self:center!important;align-self:center!important;
+ width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+ padding:0!important;margin:0!important;box-sizing:border-box!important;
+ line-height:0!important;transform:none!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control.accept{
+ width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control>svg{
+ position:absolute!important;top:50%!important;left:50%!important;
+ width:23px!important;height:23px!important;margin:0!important;
+ transform:translate(-50%,-50%)!important;translate:none!important;
+ display:block!important;flex:none!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls.nm-swipe-primary-actions>.swipe-control.accept>svg{
+ width:26px!important;height:26px!important;
+}
