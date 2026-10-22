@@ -2691,6 +2691,10 @@ const VERIFIED_CAMPUS_DOMAINS = {
   ssru: { name: 'มหาวิทยาลัยราชภัฏสวนสุนันทา', domains: ['ssru.ac.th'] },
   huachiew: { name: 'มหาวิทยาลัยหัวเฉียวเฉลิมพระเกียรติ', domains: ['hcu.ac.th', 'live.hcu.ac.th', 'student.hcu.ac.th'] },
   ru: { name: 'มหาวิทยาลัยรามคำแหง', domains: ['rumail.ru.ac.th'] },
+  mju: { name: 'มหาวิทยาลัยแม่โจ้', domains: ['mju.ac.th'] },
+  dpu: { name: 'มหาวิทยาลัยธุรกิจบัณฑิตย์', domains: ['dpu.ac.th'] },
+  npru: { name: 'มหาวิทยาลัยราชภัฏนครปฐม', domains: ['webmail.npru.ac.th'] },
+  rmutto: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลตะวันออก', domains: ['rmutto.ac.th'] },
 }
 
 function CampusEmailVerification({ user }) {
@@ -2701,9 +2705,9 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru']],
-    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt']],
-    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew']]
+    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru','mju','npru']],
+    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt','rmutto']],
+    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
   const campusResults = campusGroups.map(([title, ids]) => [title, ids.filter(id => {
