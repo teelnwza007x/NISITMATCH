@@ -4417,16 +4417,32 @@ const loadMatches = useCallback(async () => {
     return () => supabase.removeChannel(ch)
   }, [user?.id, notify, loadUnread, loadUnreadMessages, loadMatches])
 
+  const [swipeQuota, setSwipeQuota] = useState(null)
+  const [quotaDialog, setQuotaDialog] = useState(false)
+  const [quotaNow, setQuotaNow] = useState(Date.now())
+  const refreshSwipeQuota = useCallback(async () => {
+    if (!user?.id) return
+    const { data, error } = await supabase.rpc('nm_swipe_quota_status')
+    if (!error && data) setSwipeQuota(data)
+  }, [user?.id])
+  useEffect(() => { refreshSwipeQuota() }, [refreshSwipeQuota])
+  useEffect(() => {
+    if (!quotaDialog) return
+    const timer = setInterval(() => setQuotaNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [quotaDialog])
+  const quotaWaitMinutes = swipeQuota?.next_available_at ? Math.max(0, Math.ceil((new Date(swipeQuota.next_available_at).getTime() - quotaNow) / 60000)) : 0
+  useEffect(() => { if (quotaDialog && swipeQuota?.next_available_at && quotaWaitMinutes === 0) { refreshSwipeQuota(); setQuotaDialog(false) } }, [quotaDialog, quotaWaitMinutes, swipeQuota?.next_available_at, refreshSwipeQuota])
   const swipeInFlight = useRef(new Set())
   const swipe = async (p, is_like) => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
-    if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
+    if (swipeQuota?.remaining === 0 && quotaWaitMinutes > 0) { setQuotaDialog(true); return }\n    if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
     swipeInFlight.current.add(p.id)
     let error
     try { ({ error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })) }
     catch (e) { error = e }
     finally { swipeInFlight.current.delete(p.id) }
-    if (error) return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`)
+    if (error) { if (String(error.message).includes('SWIPE_QUOTA_EXCEEDED')) { await refreshSwipeQuota(); setQuotaNow(Date.now()); setQuotaDialog(true); return } return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`) }\n    setSwipeQuota(old => old ? {...old, used: Number(old.used || 0) + 1, remaining: Math.max(0, Number(old.remaining || 0) - 1)} : old)\n    refreshSwipeQuota()
     seenSwipes.current.add(p.id)
     setLastSwipe({ person: p, at: Date.now(), matched: false })
     // Keep the current profile mounted while the swipe-out transition completes.
@@ -4584,6 +4600,7 @@ const loadMatches = useCallback(async () => {
             </div>, document.body)}
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span>{discoveryPageError && <button type="button" onClick={() => { setDiscoveryPageError(false); loadPeople({ nextPage: true }) }} style={{marginLeft:8,padding:'6px 10px',borderRadius:10,border:'1px solid var(--theme-border)',background:'var(--theme-sidebar)',color:'var(--theme-text)',cursor:'pointer'}}>ลองโหลดเพิ่มอีกครั้ง</button>}</div>
             
+            {quotaDialog && <div role="presentation" style={{position:'fixed',inset:0,zIndex:99999,background:'rgba(0,0,0,.72)',display:'grid',placeItems:'center',padding:20}} onClick={() => setQuotaDialog(false)}><div role="alertdialog" aria-modal="true" aria-label="โควต้าการปัดหมดแล้ว" onClick={e => e.stopPropagation()} style={{width:'min(100%,360px)',padding:28,borderRadius:24,background:'#171923',color:'#fff',textAlign:'center',boxShadow:'0 24px 80px #0009',border:'1px solid #ffffff25'}}><div style={{fontSize:42,marginBottom:12}}>💙</div><h2 style={{margin:'0 0 12px'}}>วันนี้ปัดครบแล้ว</h2><p style={{opacity:.8,lineHeight:1.6}}>ใช้ครบ 30 ครั้งในรอบ 24 ชั่วโมง</p><strong style={{display:'block',fontSize:30,margin:'18px 0'}}>อีก {quotaWaitMinutes} นาที</strong><p style={{opacity:.75}}>จะกลับมาปัดได้อีกครั้ง</p><button type="button" autoFocus onClick={() => setQuotaDialog(false)} style={{width:'100%',border:0,borderRadius:14,padding:14,background:'#f45b93',color:'white',fontWeight:700,cursor:'pointer'}}>รับทราบ</button></div></div>}
             {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-swipe-loading-orbit"><div className="nm-swipe-loading-heart"><Heart size={29} fill="currentColor" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังเตรียมคนที่ใช่ให้คุณ...</span><div className="nm-swipe-loading-track"><span /></div><small>อีกนิดเดียวก็ได้เจอกัน</small></div> : swipePeople.length ? <SwipeDeck people={swipePeople} myInterests={profile?.interests || []} onLike={(x) => { playNisitSound('like'); swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
