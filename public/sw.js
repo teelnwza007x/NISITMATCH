@@ -24,3 +24,23 @@ self.addEventListener('notificationclick', event => {
     return clients.openWindow(url)
   }))
 })
+
+// Cache only the public offline fallback. Never cache authenticated API responses or chats.
+const OFFLINE_CACHE = 'nisit-match-offline-v1'
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(OFFLINE_CACHE).then(cache => cache.add('/offline.html')))
+  self.skipWaiting()
+})
+self.addEventListener('activate', event => {
+  event.waitUntil(Promise.all([
+    caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('nisit-match-offline-') && key !== OFFLINE_CACHE).map(key => caches.delete(key)))),
+    self.clients.claim()
+  ]))
+})
+self.addEventListener('fetch', event => {
+  if (event.request.mode !== 'navigate' || event.request.method !== 'GET') return
+  event.respondWith(fetch(event.request).catch(async () => {
+    const cache = await caches.open(OFFLINE_CACHE)
+    return (await cache.match('/offline.html')) || Response.error()
+  }))
+})
