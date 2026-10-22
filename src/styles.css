@@ -4365,3 +4365,15 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .app-shell.home-swipe-locked .nm-discover-mobile-shell .premium-sparkle-button svg{color:#fff0a3!important;filter:drop-shadow(0 0 3px rgba(255,235,147,.55))}
 @keyframes nm-premium-gold-shimmer{0%,15%,100%{background-position:100% 50%}55%{background-position:0% 50%}}
 @media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .nm-discover-mobile-shell .premium-sparkle-button{animation:none!important}}
+
+/* Swipe visual polish: Premium badge below photo progress, clear compact header. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{top:27px!important;left:12px!important;z-index:4!important;max-width:calc(100% - 90px)!important;padding:5px 10px!important;border-radius:999px!important;color:#fff1ba!important;background:linear-gradient(110deg,#704515,#ad7928,#f2ce6e,#9e671d)!important;background-size:180% 100%!important;border:1px solid #f4ce73!important;box-shadow:0 2px 9px rgba(177,115,25,.3),inset 0 1px rgba(255,244,180,.4)!important;text-shadow:0 1px 2px #5e3d13!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation:nm-premium-gold-shimmer 5s ease-in-out infinite!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge:before{display:none!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-photo-bars{top:12px!important;left:12px!important;right:72px!important;z-index:3!important}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell>.welcome-row>div:first-child{filter:none!important;-webkit-filter:none!important;opacity:1!important;text-shadow:none!important;transform:none!important}
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell h1{filter:none!important;-webkit-filter:none!important;opacity:1!important;text-shadow:none!important;font-weight:750!important;color:#fff!important;letter-spacing:0!important}
+ .app-shell.home-swipe-locked .nm-discover-mobile-shell p{filter:none!important;-webkit-filter:none!important;opacity:1!important;text-shadow:none!important;color:#b9bed0!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{top:27px!important;left:12px!important;font-size:9px!important;letter-spacing:.6px!important}
+}
+@media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .swipe-stage .swipe-premium-badge{animation:none!important}}
