@@ -1423,9 +1423,17 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
           setMsgs(prev => prev.some(m => m.id === incoming.id) ? prev :
             [...prev, incoming].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
         } else if (payload.eventType === 'UPDATE' && payload.new?.id) {
-          setMsgs(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m))
+          setMsgs(prev => {
+            const index = prev.findIndex(m => m.id === payload.new.id)
+            if (index < 0) return prev
+            const existing = prev[index]
+            if (Object.entries(payload.new).every(([key, value]) => existing[key] === value)) return prev
+            const next = [...prev]
+            next[index] = { ...existing, ...payload.new }
+            return next
+          })
         } else if (payload.eventType === 'DELETE' && payload.old?.id) {
-          setMsgs(prev => prev.filter(m => m.id !== payload.old.id))
+          setMsgs(prev => prev.some(m => m.id === payload.old.id) ? prev.filter(m => m.id !== payload.old.id) : prev)
         }
       }).on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (!active || payload?.sender === me) return
@@ -1445,11 +1453,11 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
 
   useEffect(() => {
     let active = true
-    const files = msgs.filter(m => m.attachment_path && !mediaUrls[m.attachment_path])
+    const files = [...new Set(msgs.map(m => m.attachment_path).filter(path => path && !mediaUrls[path]))]
     if (!files.length) return
-    Promise.all(files.map(async m => {
-      const { data, error } = await supabase.storage.from('chat-media').createSignedUrl(m.attachment_path, 3600)
-      return [m.attachment_path, error ? null : data?.signedUrl]
+    Promise.all(files.map(async path => {
+      const { data, error } = await supabase.storage.from('chat-media').createSignedUrl(path, 3600)
+      return [path, error ? null : data?.signedUrl]
     })).then(entries => { if (active) setMediaUrls(prev => ({ ...prev, ...Object.fromEntries(entries.filter(x => x[1])) })) })
     return () => { active = false }
   }, [msgs, mediaUrls])
