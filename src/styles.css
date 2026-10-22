@@ -4588,3 +4588,59 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 }
 @media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{transition:none!important}}
 
+
+/* Swipe polish: calm information hierarchy and genuinely centered action icons. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ text-align:center!important;line-height:1!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control>svg{
+ display:block!important;position:static!important;flex:0 0 auto!important;
+ margin:0!important;inset:auto!important;translate:none!important;
+ transform:none!important;vertical-align:middle!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ gap:5px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>h2{
+ margin:0 0 2px!important;line-height:1.2!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>p{
+ margin:0!important;line-height:1.4!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>.tags{
+ margin:2px 0 0!important;gap:5px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ margin:5px 0 0!important;flex-shrink:0!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song .itunes-song-card.itunes-premium.compact{
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ box-sizing:border-box!important;padding:8px 10px!important;
+ border-radius:13px!important;box-shadow:none!important;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song .itunes-premium-main{
+ min-width:0!important;gap:9px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song .itunes-premium-artwrap{
+ width:38px!important;height:38px!important;min-width:38px!important;flex:0 0 38px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song .itunes-premium-copy{
+ min-width:0!important;overflow:hidden!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song .itunes-premium-copy strong,
+.app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-song .itunes-premium-copy>span{
+ display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;
+ white-space:nowrap!important;
+}
+@media(max-width:700px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info{
+  gap:4px!important;padding-left:14px!important;padding-right:14px!important;
+ }
+ .app-shell.home-swipe-locked .swipe-stage .swipe-front .swipe-info>.tags .tag:nth-child(n+3){
+  display:none!important;
+ }
+}
