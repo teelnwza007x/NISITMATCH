@@ -4429,3 +4429,57 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   backdrop-filter:none!important;
  }
 }
+
+/* Swipe actions: consistent four-button design with sharp icons and no glow blur. */
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area{
+ width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+ margin-top:8px!important;margin-bottom:4px!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+ justify-items:center!important;align-items:center!important;
+ width:min(100%,350px)!important;max-width:100%!important;
+ box-sizing:border-box!important;gap:clamp(5px,2vw,14px)!important;
+ margin:0 auto!important;padding:5px 6px!important;
+ background:transparent!important;border:none!important;box-shadow:none!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{
+ display:grid!important;place-items:center!important;position:relative!important;
+ width:clamp(44px,11vw,56px)!important;height:clamp(44px,11vw,56px)!important;
+ min-width:0!important;min-height:0!important;max-width:100%!important;
+ flex:none!important;aspect-ratio:1!important;padding:0!important;margin:0!important;
+ border-radius:50%!important;border:1px solid rgba(255,255,255,.22)!important;
+ box-sizing:border-box!important;box-shadow:inset 0 1px rgba(255,255,255,.10)!important;
+ backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+ filter:none!important;animation:none!important;translate:none!important;
+ transform:none;transition:transform .15s ease,background-color .15s ease!important;
+ -webkit-tap-highlight-color:transparent;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control svg{
+ display:block!important;position:static!important;width:46%!important;height:46%!important;
+ margin:auto!important;flex:none!important;filter:none!important;
+ stroke-width:2.7!important;transform:none!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.undo{
+ background:#29283c!important;color:#cbb8ff!important;border-color:#51486d!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.reject{
+ background:#33242d!important;color:#ff9da9!important;border-color:#70424f!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.accept{
+ width:clamp(52px,13vw,64px)!important;height:clamp(52px,13vw,64px)!important;
+ background:linear-gradient(145deg,#ff78ae,#e63c82)!important;color:#fff!important;
+ border-color:#ff9ac2!important;box-shadow:inset 0 1px rgba(255,255,255,.32)!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.super{
+ background:#302747!important;color:#c7adff!important;border-color:#69518f!important;
+}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control:active:not(:disabled){transform:scale(.92)!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control:disabled{opacity:.38!important;cursor:not-allowed!important}
+.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control:focus-visible{outline:2px solid #ffb3d9!important;outline-offset:3px!important}
+@media(max-width:360px){
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-controls{width:100%!important;gap:4px!important;padding:4px 2px!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{width:42px!important;height:42px!important}
+ .app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control.accept{width:49px!important;height:49px!important}
+}
+@media(prefers-reduced-motion:reduce){.app-shell.home-swipe-locked .swipe-stage .swipe-action-area .swipe-control{transition:none!important}}
