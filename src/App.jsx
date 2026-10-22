@@ -7,6 +7,34 @@ import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMe
 import { createPortal } from 'react-dom'
 import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, MailCheck, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from './supabase'
+
+// Cache public premium badges briefly and deduplicate concurrent requests.
+// The swipe deck changes frequently, so querying every visible profile on every
+// deck update can create thousands of redundant RPC calls per day.
+const PREMIUM_STATUS_TTL_MS = 2 * 60 * 1000
+const premiumStatusCache = new Map()
+const premiumStatusRequests = new Map()
+const getPublicPremiumStatus = async (profileId) => {
+  const cached = premiumStatusCache.get(profileId)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+  const pending = premiumStatusRequests.get(profileId)
+  if (pending) return pending
+  const request = (async () => {
+    try {
+      const { data, error } = await supabase.rpc('is_profile_premium', { p_profile_id: profileId })
+      if (error) return null
+      const value = data === true
+      premiumStatusCache.set(profileId, { value, expiresAt: Date.now() + PREMIUM_STATUS_TTL_MS })
+      return value
+    } catch {
+      return null
+    } finally {
+      premiumStatusRequests.delete(profileId)
+    }
+  })()
+  premiumStatusRequests.set(profileId, request)
+  return request
+}
 import EmailCenter from './components/EmailCenter'
 import { authRedirectUrl, isAuthCallbackPath, clearAuthCallbackUrl } from './authRedirect'
 import './authLink.css'
@@ -17,6 +45,28 @@ import { campusDistance, hasCampusCoordinates } from './data/campusCoordinates'
 const makeClientId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   return `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+}
+
+// Shrink profile photos before upload so mobile swiping downloads fewer bytes.
+// GIFs and unsupported/animated formats are preserved to avoid changing their behavior.
+const optimizeProfilePhoto = async (file) => {
+  if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size < 350 * 1024) return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) { bitmap.close?.(); return file }
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close?.()
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], (file.name.split('.').slice(0, -1).join('.') || 'profile-photo') + '.jpg', { type: 'image/jpeg', lastModified: Date.now() })
+  } catch {
+    return file
+  }
 }
 
 const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(b), c => c.charCodeAt(0)) }
@@ -430,9 +480,9 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     return () => { active = false }
   }, [person?.id])
   const photoItems = [...photos.map(path => ({ type: 'image', path, key: path })), ...cardVideos].sort((a, b) => { const order = person?.media_order; if (!Array.isArray(order)) return 0; const ai = order.indexOf(a.key), bi = order.indexOf(b.key); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) })
-  // Warm the next image in the current gallery and the next profile cover.
-  // Run right after paint (rather than waiting for idle time) so quick taps/swipes
-  // are more likely to hit the browser cache, while keeping only two images in flight.
+  // Prioritize the next image in the open gallery. Avoid downloading the next
+  // profile cover at the same time: on mobile this can compete with swipe animation
+  // and delay the image the user is actively trying to view.
   useEffect(() => {
     if (typeof window === 'undefined' || document.visibilityState !== 'visible') return
     let cancelled = false
@@ -441,17 +491,14 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
     const warm = () => {
       if (cancelled) return
       const nextPhoto = photoItems[photo + 1]?.type === 'image' ? photoItems[photo + 1].path : null
-      const nextPerson = people[1]
-      const paths = [nextPhoto, nextPerson?.avatar_path || nextPerson?.photo_paths?.[0]].filter(Boolean)
-      for (const path of new Set(paths)) {
-        const url = pub(path)
-        if (!url) continue
-        const img = new Image()
-        img.decoding = 'async'
-        img.fetchPriority = 'low'
-        img.src = url
-        images.push(img)
-      }
+      if (!nextPhoto) return
+      const url = pub(nextPhoto)
+      if (!url) return
+      const img = new Image()
+      img.decoding = 'async'
+      img.fetchPriority = 'low'
+      img.src = url
+      images.push(img)
     }
     frameId = window.requestAnimationFrame(warm)
     return () => {
@@ -459,7 +506,7 @@ function SwipeDeck({ people, myInterests = [], onLike, onSkip, onSuperLike, onUn
       if (frameId !== null) window.cancelAnimationFrame(frameId)
       images.forEach(img => { img.onload = null; img.onerror = null })
     }
-  }, [person?.id, photo, people[1]?.id, photos, cardVideos, person?.media_order])
+  }, [person?.id, photo, photos, cardVideos, person?.media_order])
   const act = async (like) => {
     if (!person || busyRef.current) return
     busyRef.current = true
@@ -2338,9 +2385,10 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     const uploaded = [...photos]
     const keyMap = {}
     for (const item of newPhotos) {
-      const ext = item.file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const uploadFile = await optimizeProfilePhoto(item.file)
+      const ext = uploadFile.type === 'image/jpeg' ? 'jpg' : uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : (uploadFile.name.split('.').pop()?.toLowerCase() || 'jpg')
       const path = `${user.id}/photo-${makeClientId()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, item.file, { contentType: item.file.type })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, uploadFile, { contentType: uploadFile.type || item.file.type, upsert: false })
       if (uploadError) { setBusy(false); return notify(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`) }
       uploaded.push(path); keyMap[item.key] = path
     }
@@ -4128,17 +4176,16 @@ const loadMatches = useCallback(async () => {
     setPeople(null)
     loadPeople()
   }, [profile?.id, discoveryReady, discovery?.gender, discovery?.min, discovery?.max, discovery?.mode, discovery?.radius, discovery?.universities, loadPeople])
-  // Public Premium status for swipe cards: only a boolean is returned by the RPC.
+  // Public Premium status for swipe cards: use a short cache so advancing the deck
+  // does not re-query the same profile IDs over and over.
   const premiumCandidateKey = (people || []).map(p => p.id).filter(Boolean).join('|')
   useEffect(() => {
     if (!premiumCandidateKey) return
     let active = true
     const ids = premiumCandidateKey.split('|').slice(0, 40)
     Promise.all(ids.map(async id => {
-      try {
-        const { data, error } = await supabase.rpc('is_profile_premium', { p_profile_id: id })
-        return error ? null : [id, data === true]
-      } catch { return null }
+      const value = await getPublicPremiumStatus(id)
+      return value === null ? null : [id, value]
     })).then(results => {
       if (!active) return
       const status = new Map(results.filter(Boolean))
