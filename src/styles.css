@@ -4247,3 +4247,15 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .swipe-front>img.nm-image-loading,.detail-gallery>img.nm-image-loading{opacity:.18}
 .swipe-front>img:not(.nm-image-loading),.detail-gallery>img:not(.nm-image-loading){opacity:1;transition:opacity .2s ease-out}
 @media(prefers-reduced-motion:reduce){.swipe-front>img,.detail-gallery>img{transition:none!important}}
+
+/* Compact swipe header on narrow screens; prevent long quota copy overflowing. */
+@media(max-width:600px){
+  .nm-swipe-quota{min-width:0;max-width:calc(100% - 24px);gap:8px!important;padding:8px 10px!important;margin:0 12px 8px!important;border-radius:12px!important}
+  .nm-swipe-quota>span:first-child{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+  .nm-swipe-quota>span:first-child strong{font-size:11px!important;line-height:1.3}
+  .nm-swipe-quota>span:first-child small{font-size:10px!important;line-height:1.3;white-space:normal}
+  .nm-swipe-quota>span:last-child{flex:0 0 auto;align-self:center}
+  .nm-swipe-quota>span:last-child strong{font-size:19px!important}
+  .nm-swipe-quota>span:last-child small{font-size:10px!important}
+  .result-meta{min-width:0;max-width:100%;flex-wrap:wrap;gap:4px 8px;font-size:11px;overflow-wrap:anywhere}
+}
