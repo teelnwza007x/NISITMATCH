@@ -1127,7 +1127,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     }
   }, [me, refreshInbox])
   const [onlineMatchIds, setOnlineMatchIds] = useState({})
-  const presenceIds = matches.slice(0, 20).map(m => m.p?.id).filter(Boolean).join(',')
+  // Limit presence polling to the 10 most recent matches to reduce per-client RPC load.
+  const presenceIds = matches.slice(0, 10).map(m => m.p?.id).filter(Boolean).join(',')
   useEffect(() => {
     if (!presenceIds) { setOnlineMatchIds({}); return }
     let active = true
@@ -1150,7 +1151,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       } finally { presenceBusy = false }
     }
     refresh()
-    const timer = setInterval(refresh, 60000)
+    const timer = setInterval(refresh, 90000)
     const visible = () => { if (document.visibilityState === 'visible') refresh() }
     document.addEventListener('visibilitychange', visible)
     return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', visible) }
