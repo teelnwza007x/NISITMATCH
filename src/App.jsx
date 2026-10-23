@@ -4626,7 +4626,26 @@ const loadMatches = useCallback(async () => {
     try { ({ error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })) }
     catch (e) { error = e }
     finally { swipeInFlight.current.delete(p.id) }
-    if (error) { if (String(error.message).includes('SWIPE_QUOTA_EXCEEDED')) { await refreshSwipeQuota(); setQuotaNow(Date.now()); setQuotaDialog(true); return } return notify(error.code === '23505' ? 'คุณเลือกคนนี้ไปแล้ว' : `บันทึกไม่สำเร็จ: ${error.message}`) }
+    if (error) {
+      if (String(error.message).includes('SWIPE_QUOTA_EXCEEDED')) {
+        await refreshSwipeQuota(); setQuotaNow(Date.now()); setQuotaDialog(true); return
+      }
+      // A stale deck or retried network request can hit the likes primary key
+      // (from_id, to_id). Treat an existing row as an already-processed swipe:
+      // do not count quota twice and do not leave the same card stuck on screen.
+      if (error.code === '23505') {
+        const { data: existingSwipe, error: lookupError } = await supabase
+          .from('likes').select('from_id').eq('from_id', user.id).eq('to_id', p.id).maybeSingle()
+        if (!lookupError && existingSwipe) {
+          seenSwipes.current.add(p.id)
+          setPeople(list => (list || []).filter(x => x.id !== p.id))
+          setDetail(null)
+          notify('บันทึกการปัดรายการนี้ไว้แล้ว')
+          return
+        }
+      }
+      return notify(`บันทึกไม่สำเร็จ: ${error.message}`)
+    }
     setSwipeQuota(old => old ? {...old, used: Number(old.used || 0) + 1, remaining: Math.max(0, Number(old.remaining || 0) - 1)} : old)
     refreshSwipeQuota()
     seenSwipes.current.add(p.id)
