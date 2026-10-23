@@ -110,7 +110,7 @@ const GenderSymbol = ({ gender }) => {
   const config = gender === 'male' ? { symbol: '♂', color: '#60a5fa', label: 'ชาย' } : gender === 'female' ? { symbol: '♀', color: '#f472b6', label: 'หญิง' } : gender === 'other' ? { symbol: '⚧', color: '#c084fc', label: 'อื่น ๆ' } : null
   if (!config) return null
   const { symbol, color, label } = config
-  return <span title={`เพศ: ${label}`} aria-label={`เพศ: ${label}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',verticalAlign:'middle',marginLeft:5,width:20,height:20,borderRadius:'50%',color:gender === 'other' ? '#ffffff' : color,background:gender === 'other' ? 'linear-gradient(135deg,#7c3aed,#a21caf)' : `${color}22`,boxShadow:gender === 'other' ? '0 2px 12px rgba(168,85,247,.28)' : 'none',flexShrink:0}}><span style={{fontSize:15,fontWeight:700,lineHeight:1}}>{symbol}</span></span>
+  return <span title={`เพศ: ${label}`} aria-label={`เพศ: ${label}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',verticalAlign:'middle',marginLeft:5,width:20,height:20,borderRadius:'50%',color:gender === 'other' ? '#ffffff' : color,background:gender === 'other' ? 'linear-gradient(135deg,#7c3aed,#a21caf)' : `${color}22`,boxShadow:gender === 'other' ? '0 2px 12px rgba(168,85,247,.28)' : 'none',flexShrink:0}}>{gender === 'other' ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 16v6M9 19h6M15 9l6-6M17 3h4v4M9 9L4 4M4 8V4h4"/></svg> : <span style={{fontSize:15,fontWeight:700,lineHeight:1}}>{symbol}</span>}</span>
 }
 
 const uniName = (id) => UNIVERSITIES.find((u) => u.id === id)?.name || id
