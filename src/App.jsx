@@ -4688,10 +4688,45 @@ const loadMatches = useCallback(async () => {
   const quotaNextTimeLabel = swipeQuota?.next_available_at ? new Date(swipeQuota.next_available_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : ''
   useEffect(() => { if (quotaDialog && swipeQuota?.next_available_at && quotaWaitMinutes === 0) { refreshSwipeQuota(); setQuotaDialog(false) } }, [quotaDialog, quotaWaitMinutes, swipeQuota?.next_available_at, refreshSwipeQuota])
   const swipeInFlight = useRef(new Set())
-  const swipe = async (p, is_like) => {
+  const swipe = async (p, is_like, { allowExisting = false } = {}) => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
+    if (swipeInFlight.current.has(p.id)) return
+    // A profile opened from "คนที่กดใจคุณ" may already have a row in likes
+    // from an earlier pass. In that case upgrade the existing row to a Like
+    // instead of silently returning because it is already in seenSwipes.
+    if (allowExisting && is_like) {
+      swipeInFlight.current.add(p.id)
+      try {
+        const existing = await supabase.from('likes').select('is_like')
+          .eq('from_id', user.id).eq('to_id', p.id).maybeSingle()
+        if (existing.error) return notify('ตรวจสอบสถานะหัวใจไม่สำเร็จ: ' + existing.error.message)
+        if (existing.data?.is_like === true) {
+          setDetail(null)
+          return notify('คุณส่งหัวใจให้คนนี้ไปแล้ว 💙')
+        }
+        if (existing.data?.is_like === false) {
+          const updated = await supabase.from('likes').update({ is_like: true })
+            .eq('from_id', user.id).eq('to_id', p.id).select('from_id').maybeSingle()
+          if (updated.error) return notify('ส่งหัวใจไม่สำเร็จ: ' + updated.error.message)
+          if (!updated.data) return notify('อัปเดตหัวใจไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+          seenSwipes.current.add(p.id)
+          setPeople(list => (list || []).filter(x => x.id !== p.id))
+          setDetail(null)
+          const [a, b] = [user.id, p.id].sort()
+          const match = await supabase.from('matches').select('id').eq('user_a', a).eq('user_b', b).maybeSingle()
+          if (match.error) notify('ส่งหัวใจแล้ว แต่ตรวจสอบ Match ไม่สำเร็จ กรุณารีเฟรชหน้า')
+          else if (match.data) { setLastSwipe(null); setNewMatch({ id: match.data.id, p }); await loadMatches() }
+          else notify(`ส่งหัวใจให้ ${p.display_name} แล้ว 💙`)
+          return
+        }
+      } catch (e) {
+        return notify('ส่งหัวใจไม่สำเร็จ: ' + (e?.message || 'เกิดข้อผิดพลาด'))
+      } finally {
+        swipeInFlight.current.delete(p.id)
+      }
+    }
     if (swipeQuota?.remaining === 0 && quotaWaitMinutes > 0) { setQuotaDialog(true); return }
-    if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
+    if (seenSwipes.current.has(p.id) && !allowExisting) return
     swipeInFlight.current.add(p.id)
     let error
     let swipeInserted = false
@@ -4951,7 +4986,7 @@ const loadMatches = useCallback(async () => {
           <p className="detail-campus-line"><GraduationCap size={15} />{visibleDetail.university_id ? universityWithCampus(visibleDetail) : 'มหาวิทยาลัยยังไม่ระบุ'}{visibleDetail.faculty ? ` · ${visibleDetail.faculty}` : ''}{visibleDetail.major ? ` · ${visibleDetail.major}` : ''}</p>{verifiedCampusIds.includes(visibleDetail.id) && <CampusVerifiedBadge universityId={visibleDetail.university_id} />}{visibleDetail.relationship_intent && <RelationshipVibe intent={visibleDetail.relationship_intent} />}<p>{visibleDetail.bio || 'กำลังมองหาคนที่คุยกันได้อย่างสบายใจ'}</p>
           <div className="tags nm-member-interest-tags">{(visibleDetail.interests || []).map((i, index) => <span className="tag" style={{"--tag-index":index}} key={i}>{i}</span>)}</div>
           <div className="match-profile-song">{itunesTrack(visibleDetail) ? <ITunesSongCard track={itunesTrack(visibleDetail)} compact /> : <div className="detail-no-song"><Music2 size={17}/><span><b>ยังไม่ได้เพิ่มเพลงโปรด</b><small>เพลงที่สมาชิกเลือกจะแสดงตรงนี้</small></span></div>}</div>
-          {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(visibleDetail, true)}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
+          {detailIsMatch ? <button className="btn btn-pink btn-full" onClick={() => { setDetail(null); go("messages") }}><MessageCircle size={17} /> กลับไปคุยกัน</button> : <button className="btn btn-pink btn-full" onClick={() => swipe(visibleDetail, true, { allowExisting: true })}><Heart size={17} fill="currentColor" /> ส่งหัวใจให้คนนี้</button>}
           <button type="button" className="detail-bottom-close" onClick={() => setDetail(null)}>← กลับไปหน้าปัด</button>
           <div className="detail-secondary"><button onClick={() => report(visibleDetail)}><Flag size={15} /> รายงานโปรไฟล์</button><button onClick={() => block(visibleDetail)}><Ban size={15} /> บล็อก</button></div></div></div></div>, document.body)}
       {reportTarget && createPortal(<div className="modal-backdrop nm-dialog-backdrop nm-report-portal" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !reportBusy) setReportTarget(null) }}><div className="nm-dialog" role="dialog" aria-modal="true" aria-labelledby="nm-report-title"><button className="nm-dialog-close" type="button" onClick={() => setReportTarget(null)} disabled={reportBusy} aria-label="ปิด"><X size={20}/></button><div className="nm-dialog-eyebrow"><ShieldCheck size={16}/> SAFETY CENTER</div><h2 id="nm-report-title">รายงานผู้ใช้</h2><p>รายงานโปรไฟล์ของ {reportTarget.display_name || 'ผู้ใช้นี้'} ทีมดูแลจะตรวจสอบข้อมูลโดยไม่เปิดเผยตัวตนผู้รายงานแก่ผู้ถูกรายงาน</p><label className="nm-field-label" htmlFor="nm-report-reason">เหตุผลที่รายงาน</label><select id="nm-report-reason" className="nm-report-select" value={reportReason} onChange={e => setReportReason(e.target.value)}><option value="fake_profile">โปรไฟล์ปลอมหรือแอบอ้าง</option><option value="harassment">คุกคามหรือใช้คำพูดไม่เหมาะสม</option><option value="inappropriate">เนื้อหาไม่เหมาะสม</option><option value="scam">หลอกลวงหรือสแปม</option><option value="other">อื่น ๆ</option></select><label className="nm-field-label" htmlFor="nm-report-notes">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label><textarea id="nm-report-notes" className="nm-report-notes" maxLength={350} value={reportNotes} onChange={e => setReportNotes(e.target.value)} placeholder="เล่าเหตุการณ์สั้น ๆ เพื่อช่วยให้ตรวจสอบได้เร็วขึ้น"/><div className="nm-dialog-actions"><button type="button" className="btn btn-ghost" onClick={() => setReportTarget(null)} disabled={reportBusy}>ยกเลิก</button><button type="button" className="btn btn-pink" onClick={submitReport} disabled={reportBusy}>{reportBusy ? 'กำลังส่ง...' : 'ส่งรายงาน'}</button></div></div></div>, document.body)}
