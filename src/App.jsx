@@ -1878,6 +1878,21 @@ const itunesTrack = (p) => p?.itunes_track_id ? {
   url: p.itunes_track_url || '',
 } : null
 
+// Stable server snapshot used to prevent stale device-local editor drafts from
+// replacing the current account profile when the editor opens on another device.
+const profileSyncSignature = (p) => JSON.stringify({
+  id: p?.id || null,
+  avatar_path: p?.avatar_path || null,
+  photo_paths: Array.isArray(p?.photo_paths) ? p.photo_paths : [],
+  media_order: p?.media_order || [],
+  itunes_track_id: p?.itunes_track_id ?? null,
+  itunes_track_name: p?.itunes_track_name || null,
+  itunes_track_artist: p?.itunes_track_artist || null,
+  itunes_track_image: p?.itunes_track_image || p?.itunes_track_artwork || null,
+  itunes_track_preview: p?.itunes_track_preview || null,
+  itunes_track_url: p?.itunes_track_url || null,
+})
+
 function ITunesSongCard({ track, compact = false }) {
   const audioRef = useRef(null)
   const [playing, setPlaying] = useState(false)
@@ -2308,6 +2323,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     }, 120)
     return () => { active = false; window.clearTimeout(timer) }
   }, [user.id])
+  const serverProfileSignature = profileSyncSignature(profile)
   const [f, setF] = useState(() => initialProfileForm(profile))
   const [busy, setBusy] = useState(false)
   const [draftReady, setDraftReady] = useState(false)
@@ -2371,15 +2387,20 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
     let idleId = null
     let fallbackTimer = null
     setDraftReady(false)
-    const restoreDraft = () => draftAction(user.id, 'read').then(d => {
+    const restoreDraft = () => draftAction(user.id, 'read').then(async d => {
       if (!alive) return
-      if (d && d.version === 1) {
+      // IndexedDB drafts are device-local. Restore only if they match the server
+      // profile snapshot; stale drafts must not replace saved photos or music.
+      if (d && d.version === 1 && d.profileSignature === serverProfileSignature) {
         if (d.f) setF(d.f)
         if (Array.isArray(d.photos)) setPhotos(d.photos)
         if (d.song !== undefined) setSong(d.song)
         if (Array.isArray(d.newPhotos)) setNewPhotos(d.newPhotos.filter(x => x.file instanceof Blob).map(x => ({ ...x, url: URL.createObjectURL(x.file) })))
         if (typeof d.mainPhoto === 'string') setMainPhoto(d.mainPhoto)
         if (Array.isArray(d.photoOrder) && d.photoOrder.length) setPhotoOrder(d.photoOrder)
+      } else if (d) {
+        // Remove legacy or outdated local data; Supabase remains authoritative.
+        await draftAction(user.id, 'delete').catch(err => console.warn('Stale profile draft cleanup unavailable:', err))
       }
       setDraftReady(true)
     }).catch(err => { console.warn('Draft restore unavailable:', err); if (alive) setDraftReady(true) })
@@ -2391,18 +2412,18 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
       if (idleId !== null) window.cancelIdleCallback(idleId)
       if (fallbackTimer !== null) window.clearTimeout(fallbackTimer)
     }
-  }, [user.id])
+  }, [user.id, serverProfileSignature])
   useEffect(() => {
     if (!draftReady) return
     const revision = ++draftRevision.current
     const timer = setTimeout(() => {
       if (skipDraftSave.current || revision !== draftRevision.current) return
-      draftAction(user.id, 'write', { version: 1, f, photos, mainPhoto, photoOrder, song,
+      draftAction(user.id, 'write', { version: 1, profileSignature: serverProfileSignature, f, photos, mainPhoto, photoOrder, song,
         newPhotos: newPhotos.map(({ key, file }) => ({ key, file }))
       }).catch(err => console.warn('Draft autosave unavailable:', err))
     }, 350)
     return () => clearTimeout(timer)
-  }, [draftReady, user.id, f, photos, mainPhoto, photoOrder, song, newPhotos])
+  }, [draftReady, user.id, serverProfileSignature, f, photos, mainPhoto, photoOrder, song, newPhotos])
   // Release preview URLs when the editor unmounts.
   const photoUrls = useRef([])
   useEffect(() => { photoUrls.current = newPhotos.map(p => p.url) }, [newPhotos])
