@@ -3954,7 +3954,7 @@ function SiteVisitorPresence() {
 
 function AppContent() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
-  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [view, setView] = useState(() => window.location.pathname === '/notifications' ? 'notifications' : window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
+  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [authInitTimedOut, setAuthInitTimedOut] = useState(false), [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false), [view, setView] = useState(() => window.location.pathname === '/notifications' ? 'notifications' : window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   // Reset page position after the new view is committed, including direct route changes.
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
@@ -4138,15 +4138,33 @@ function AppContent() {
   }, [userId])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    let active = true
+    // Supabase Auth can occasionally stall during an API outage. Never leave the
+    // entire app on an infinite spinner; show a retry screen after 12 seconds.
+    const timeout = window.setTimeout(() => { if (active) setAuthInitTimedOut(true) }, 12000)
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active) return
+      if (error) { setAuthInitTimedOut(true); return }
+      window.clearTimeout(timeout)
+      setAuthInitTimedOut(false)
+      setSession(data.session)
+    }).catch(() => { if (active) setAuthInitTimedOut(true) })
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return
+      window.clearTimeout(timeout)
+      setAuthInitTimedOut(false)
       // SIGNED_IN also fires when an existing session is revalidated after app resume.
       setSession(nextSession)
     })
-    return () => data.subscription.unsubscribe()
+    return () => { active = false; window.clearTimeout(timeout); data.subscription.unsubscribe() }
   }, [])
   useEffect(() => { if (userId) setModal('') }, [userId])
-  const loadProfile = useCallback(async () => { if (!userId) return; const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
+  const loadProfile = useCallback(async () => { if (!userId) return; setProfileLoadTimedOut(false); const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
+  useEffect(() => {
+    if (!userId || profile !== undefined) { setProfileLoadTimedOut(false); return }
+    const timeout = window.setTimeout(() => setProfileLoadTimedOut(true), 12000)
+    return () => window.clearTimeout(timeout)
+  }, [userId, profile])
   const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false).in('type', ['interest', 'match', 'hangout_message']); setUnread(count || 0) }, [userId])
   // Message badges are separate from activity notifications: unread chat messages
   // animate the Messages tab, without generating a noisy notification for each text.
@@ -4717,7 +4735,12 @@ const loadMatches = useCallback(async () => {
   // A failed background page can be retried without clearing existing swipe cards.
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
-  if (session === undefined || (user && profile === undefined)) return <div className="page-center"><span className="spin" /></div>
+  if (session === undefined) return authInitTimedOut
+    ? <main className="page-center" role="alert"><section className="empty-state"><h3>เชื่อมต่อระบบไม่สำเร็จ</h3><p>ระบบยืนยันตัวตนตอบกลับช้า อาจเป็นปัญหาชั่วคราวของเซิร์ฟเวอร์ ข้อมูลของคุณยังไม่ถูกลบ</p><button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>ลองเชื่อมต่ออีกครั้ง</button></section></main>
+    : <div className="page-center"><span className="spin" /></div>
+  if (user && profile === undefined) return profileLoadTimedOut
+    ? <main className="page-center" role="alert"><section className="empty-state"><h3>โหลดโปรไฟล์ไม่สำเร็จ</h3><p>ระบบยังติดต่อฐานข้อมูลไม่ได้ ลองโหลดโปรไฟล์ใหม่โดยไม่ต้องออกจากระบบ</p><button type="button" className="btn btn-primary" onClick={() => loadProfile()}>ลองอีกครั้ง</button></section></main>
+    : <div className="page-center"><span className="spin" /></div>
   if (authCallback) return <AuthLinkScreen onFinished={() => { clearAuthCallbackUrl(); setAuthCallback(false) }} />
   if (!user) return <><Landing onLogin={() => setModal('login')} onRegister={() => setModal('register')} />{modal && <AuthModal mode={modal} setMode={setModal} close={() => setModal('')} notify={notify} />}{Toast}</>
   if (!profile) return <main className="page-content onboard"><ProfilePage user={user} onboarding onSaved={loadProfile} notify={notify} /><button className="btn btn-ghost btn-small" onClick={() => supabase.auth.signOut()}><LogOut size={14} /> ออกจากระบบ</button>{Toast}</main>
