@@ -1133,7 +1133,10 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       }, 750)
     }
     const channel = supabase.channel(`inbox-preview-${me}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleInboxRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+        const matchId = payload?.new?.match_id || payload?.old?.match_id
+        if (matchId && matches.some(match => match.id === matchId)) scheduleInboxRefresh()
+      })
       .subscribe()
     // Fallback for projects without Realtime publication enabled for messages.
     // Realtime is primary; use a less frequent visible-only fallback to limit
