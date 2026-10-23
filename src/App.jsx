@@ -11,7 +11,7 @@ import { supabase } from './supabase'
 // Cache public premium badges briefly and deduplicate concurrent requests.
 // The swipe deck changes frequently, so querying every visible profile on every
 // deck update can create thousands of redundant RPC calls per day.
-const PREMIUM_STATUS_TTL_MS = 2 * 60 * 1000
+const PREMIUM_STATUS_TTL_MS = 10 * 60 * 1000
 const premiumStatusCache = new Map()
 const premiumStatusRequests = new Map()
 const PREMIUM_MAX_CONCURRENT = 3
