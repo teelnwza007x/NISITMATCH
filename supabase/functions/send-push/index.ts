@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       : item.type === 'message' ? 'คุณมีข้อความใหม่ในแชท'
       : item.type === 'admin_report' ? 'มีรายงานสมาชิกใหม่รอตรวจสอบ'
       : 'มีคำขอโดเมนมหาวิทยาลัยใหม่'
-    const payload = JSON.stringify({ title: adminType ? 'NISIT MATCH · Admin' : 'NISIT MATCH', body, tag: 'nisit-'+item.id })
+    const payload = JSON.stringify({ title: adminType ? 'NISIT MATCH · Admin' : 'NISIT MATCH', body, type: item.type, url: item.type === 'message' || item.type === 'match' ? '/messages' : '/', tag: 'nisit-'+item.id })
     let transientFailure = false
     for (const s of subs || []) {
       try {
