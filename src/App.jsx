@@ -2600,7 +2600,7 @@ function ProfilePage({ user, profile, onSaved, notify, onboarding, ownerPremium 
         <button type="button" className={editTab === 'photos' ? 'active' : ''} aria-current={editTab === 'photos' ? 'page' : undefined} onClick={() => { setAboutMenuOpen(false); selectEditTab('photos') }}><Camera size={18}/><span>รูปและวิดีโอ</span></button>
         <button type="button" className={aboutTabs.some(([id]) => id === editTab) ? 'active' : ''} aria-expanded={aboutMenuOpen} aria-controls="nm-about-profile-tabs" onClick={() => { playNisitSound('menu'); setAboutMenuOpen(v => !v); if (!aboutTabs.some(([id]) => id === editTab)) selectEditTab('basic') }}><UserRound size={18}/><span>เกี่ยวกับฉัน</span><ChevronDown size={16} className={aboutMenuOpen ? 'nm-chevron-open' : ''}/></button>
         {aboutMenuOpen && <div id="nm-about-profile-tabs" className="nm-edit-subtabs">{aboutTabs.map(([id, name, Icon]) => <button key={id} type="button" className={editTab === id ? 'active' : ''} aria-current={editTab === id ? 'page' : undefined} onClick={() => selectEditTab(id)}><Icon size={16}/><span>{name}</span></button>)}</div>}
-        {!aboutMenuOpen && <>
+        {!onboarding && !aboutMenuOpen && <>
         <div className="nm-edit-nav-separator"/>
         <div className="nm-edit-category-label">บัญชีและความปลอดภัย</div>
         <button type="button" className={editTab === 'account-email' ? 'active' : ''} aria-current={editTab === 'account-email' ? 'page' : undefined} onClick={() => selectEditTab('account-email')}><ShieldCheck size={18}/><span>ยืนยันอีเมลบัญชี</span></button>
