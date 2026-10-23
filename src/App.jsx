@@ -1098,8 +1098,19 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   }, [me, matches])
   useEffect(() => {
     refreshInbox()
+    // Debounce bursts of Realtime message events. The messages table is shared
+    // across users, so a burst can otherwise trigger repeated inbox queries
+    // across every open client.
+    let inboxRefreshTimer = null
+    const scheduleInboxRefresh = () => {
+      if (inboxRefreshTimer) clearTimeout(inboxRefreshTimer)
+      inboxRefreshTimer = setTimeout(() => {
+        inboxRefreshTimer = null
+        if (document.visibilityState === 'visible') refreshInbox()
+      }, 750)
+    }
     const channel = supabase.channel(`inbox-preview-${me}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refreshInbox)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, scheduleInboxRefresh)
       .subscribe()
     // Fallback for projects without Realtime publication enabled for messages.
     // Realtime is primary; use a less frequent visible-only fallback to limit
@@ -1107,7 +1118,13 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 90000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
-    return () => { inboxRequest.current++; clearInterval(poll); document.removeEventListener('visibilitychange', visible); supabase.removeChannel(channel) }
+    return () => {
+      inboxRequest.current++
+      clearInterval(poll)
+      if (inboxRefreshTimer) clearTimeout(inboxRefreshTimer)
+      document.removeEventListener('visibilitychange', visible)
+      supabase.removeChannel(channel)
+    }
   }, [me, refreshInbox])
   const [onlineMatchIds, setOnlineMatchIds] = useState({})
   const presenceIds = matches.slice(0, 20).map(m => m.p?.id).filter(Boolean).join(',')
