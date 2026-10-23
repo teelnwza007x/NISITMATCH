@@ -136,8 +136,19 @@ const pub = (p) => {
 }
 const ph = (n) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f45ca5"/><stop offset="1" stop-color="#8e72ff"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><text x="50" y="66" font-size="48" text-anchor="middle" fill="#fff" font-family="sans-serif">${((n || '?').trim()[0]) || '?'}</text></svg>`)
 const photoCandidates = (u) => [...new Set([u?.avatar_path, ...(Array.isArray(u?.photo_paths) ? u.photo_paths : [])].filter(Boolean).map(pub).filter(Boolean))]
-// Preload only the next swipe card, avoiding downloads for the whole deck.
-const preloadImage = (src) => { if (!src || typeof Image === 'undefined') return; const image = new Image(); image.decoding = 'async'; image.src = src }
+// Reuse a small bounded set of decoded swipe thumbnails instead of allocating a
+// new Image on every render or profile transition (important on mobile Safari).
+const swipeImageCache = new Map()
+const preloadImage = (src) => {
+  if (!src || typeof Image === 'undefined' || swipeImageCache.has(src)) return
+  const image = new Image()
+  image.decoding = 'async'
+  swipeImageCache.set(src, image)
+  image.onload = () => { image.decode?.().catch(() => {}) }
+  image.onerror = () => { swipeImageCache.delete(src) }
+  image.src = src
+  if (swipeImageCache.size > 5) swipeImageCache.delete(swipeImageCache.keys().next().value)
+}
 const Av = ({ u, cls = 'avatar', loading = 'lazy', fetchPriority = 'auto' }) => {
   const candidates = photoCandidates(u)
   const [attempt, setAttempt] = useState(0)
@@ -497,7 +508,7 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
   const noRef = useRef(null)
   const busyRef = useRef(false)
   const person = people[0]
-  useEffect(() => { const next = people[1]; if (next) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[1]?.avatar_path, people[1]?.photo_paths])
+  useEffect(() => { for (const next of people.slice(1, 3)) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[2]?.id])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
