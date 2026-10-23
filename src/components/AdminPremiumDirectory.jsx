@@ -16,6 +16,9 @@ export default function AdminPremiumDirectory() {
   const [grantingUser, setGrantingUser] = useState('')
   const [grantMessage, setGrantMessage] = useState('')
   const [grantError, setGrantError] = useState('')
+  const [ownerBusy, setOwnerBusy] = useState(false)
+  const [ownerMessage, setOwnerMessage] = useState('')
+  const [ownerError, setOwnerError] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const reload = useCallback(async () => {
@@ -55,6 +58,18 @@ export default function AdminPremiumDirectory() {
     }
     setGrantingUser('')
   }
+  const manageOwnerPremium = async action => {
+    const verb = action === 'grant' ? 'เพิ่ม' : 'ลบ'
+    if (!window.confirm('ยืนยัน' + verb + ' Premium Owner ของบัญชีที่เข้าสู่ระบบอยู่หรือไม่?')) return
+    setOwnerBusy(true); setOwnerError(''); setOwnerMessage('')
+    try {
+      const { data, error: err } = await supabase.rpc('nm_owner_premium_manage', { p_action: action, p_days: Number(grantDays) })
+      if (err) throw err
+      setOwnerMessage(action === 'grant' ? 'เพิ่ม Owner Premium สำเร็จ หมดอายุ ' + new Date(data).toLocaleString('th-TH') : 'ยกเลิก Owner Premium สำเร็จ')
+      await reload()
+    } catch (err) { setOwnerError(verb + ' Owner Premium ไม่สำเร็จ: ' + err.message) }
+    finally { setOwnerBusy(false) }
+  }
   const sourceLabel = provider => {
     const value = String(provider || '').toLowerCase()
     if (value === 'referral') return 'ชวนเพื่อน'
@@ -77,6 +92,19 @@ export default function AdminPremiumDirectory() {
         <span style={{fontSize:12,opacity:.72}}>ทั้งหมด · ใช้งาน {Number(source.active_count || 0).toLocaleString('th-TH')} คน</span>
       </article>)}
     </div>}
+    <div style={{border:'1px solid #f9a8d455',borderRadius:16,padding:15,margin:'16px 0',background:'linear-gradient(135deg,#ec489918,#8b5cf60d)'}}>
+      <h4 style={{margin:'0 0 7px'}}>จัดการ Premium Owner</h4>
+      <p style={{fontSize:12,opacity:.75,margin:'0 0 12px'}}>เฉพาะบัญชีเจ้าของระบบ การลบยกเลิกเฉพาะสิทธิ์ Owner ไม่ลบประวัติการชำระเงิน</p>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+        <select aria-label="จำนวนวัน Owner Premium" value={grantDays} onChange={e=>setGrantDays(e.target.value)} style={{padding:10,borderRadius:12}}>
+          {[1,3,7,14,30,90,365].map(d=><option key={d} value={d}>{d} วัน</option>)}
+        </select>
+        <button type="button" className="btn" disabled={ownerBusy} onClick={()=>manageOwnerPremium('grant')}>{ownerBusy?'กำลังดำเนินการ…':'เพิ่ม Premium Owner'}</button>
+        <button type="button" className="btn btn-ghost" disabled={ownerBusy} onClick={()=>manageOwnerPremium('revoke')} style={{color:'#fda4af',borderColor:'#fda4af55'}}>ลบ Premium Owner</button>
+      </div>
+      {ownerError && <p role="alert" style={{color:'#fda4af',fontSize:12}}>{ownerError}</p>}
+      {ownerMessage && <p role="status" style={{color:'#86efac',fontSize:12}}>{ownerMessage}</p>}
+    </div>
     <div style={{border:'1px solid #a78bfa55',borderRadius:16,padding:14,margin:'16px 0',background:'linear-gradient(145deg,#8b5cf610,#ffffff04)'}}>
       <h4 style={{margin:'0 0 6px'}}>เพิ่ม Premium ให้สมาชิก</h4>
       <p style={{fontSize:12,opacity:.75,margin:'0 0 12px'}}>ค้นหาด้วยชื่อหรืออีเมล แล้วเลือกจำนวนวันที่ต้องการให้สิทธิ์</p>
