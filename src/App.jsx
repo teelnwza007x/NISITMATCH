@@ -3172,8 +3172,8 @@ function AdminDashboard({ onBack }) {
             <div style={{display:'flex',justifyContent:'space-between',fontSize:11,opacity:.7,marginTop:8}}><span>{analyticsDaily[0]?.day}</span><span>{analyticsDaily[analyticsDaily.length-1]?.day}</span></div>
           </div>
           <div style={{padding:14,border:'1px solid #ffffff20',borderRadius:14}}>
-            <h4 style={{margin:'0 0 12px'}}>10 อันดับมหาวิทยาลัยตามจำนวนสมาชิก</h4>
-            {(analyticsV2.universities||[]).map((u,i)=><div key={u.name} style={{display:'grid',gridTemplateColumns:'26px minmax(0,1fr) auto',gap:9,alignItems:'center',padding:'9px 0',borderBottom:'1px solid #ffffff12'}}>
+            <h4 style={{margin:'0 0 12px'}}>สมาชิกแยกตามมหาวิทยาลัยทั้งหมด</h4>
+            {(analyticsV2.universities||[]).map((u,i)=><div key={u.id||u.name} style={{display:'grid',gridTemplateColumns:'26px minmax(0,1fr) auto',gap:9,alignItems:'center',padding:'9px 0',borderBottom:'1px solid #ffffff12'}}>
               <span style={{opacity:.7}}>{i+1}</span><div style={{minWidth:0}}><div style={{overflowWrap:'anywhere',fontSize:13}}>{u.name}</div><div style={{height:5,background:'#ffffff16',borderRadius:8,marginTop:6}}><div style={{height:'100%',width:(100*Number(u.members||0)/Math.max(1,Number(analyticsV2.universities?.[0]?.members||1)))+'%',background:'#b794f4',borderRadius:8}}/></div></div><strong>{Number(u.members||0).toLocaleString('th-TH')}</strong>
             </div>)}
           </div>
