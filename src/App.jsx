@@ -147,7 +147,7 @@ const preloadImage = (src) => {
   image.onload = () => { image.decode?.().catch(() => {}) }
   image.onerror = () => { swipeImageCache.delete(src) }
   image.src = src
-  if (swipeImageCache.size > 5) swipeImageCache.delete(swipeImageCache.keys().next().value)
+  if (swipeImageCache.size > 8) swipeImageCache.delete(swipeImageCache.keys().next().value)
 }
 const Av = ({ u, cls = 'avatar', loading = 'lazy', fetchPriority = 'auto' }) => {
   const candidates = photoCandidates(u)
@@ -510,7 +510,7 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
   const person = people[0]
   const [enteringPersonId, setEnteringPersonId] = useState(null)
   const arrivalTimerRef = useRef(null)
-  useEffect(() => { for (const next of people.slice(1, 3)) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[2]?.id])
+  useEffect(() => { for (const next of people.slice(1, 4)) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[2]?.id, people[3]?.id])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
@@ -1286,6 +1286,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const pendingOlderScroll = useRef(null)
+  const olderFetchInFlight = useRef(false)
   useLayoutEffect(() => {
     const pending = pendingOlderScroll.current
     if (!pending || pending.roomId !== roomId) return
@@ -1457,14 +1458,15 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const partnerName = p => p?.display_name?.trim() || 'คู่ Match'
 
   const fetchMessages = useCallback(async (older = false) => {
-    if (!roomId) return
+    if (!roomId || (older && olderFetchInFlight.current)) return
+    if (older) olderFetchInFlight.current = true
     if (older) { initialChatScroll.current = true; userReadingHistory.current = true; stickToBottom.current = false; setLoadingOlder(true) }
     const anchor = older ? msgs[0]?.created_at : null
     let query = supabase.from('messages').select('*').eq('match_id', roomId)
       .order('created_at', { ascending: false }).limit(40)
     if (anchor) query = query.lt('created_at', anchor)
     const { data, error } = await query
-    if (error) { notify('โหลดข้อความไม่สำเร็จ: ' + error.message); setLoadingOlder(false); return }
+    if (error) { notify('โหลดข้อความไม่สำเร็จ: ' + error.message); olderFetchInFlight.current = false; setLoadingOlder(false); return }
     const rows = (data || []).reverse()
     setHasMore((data || []).length === 40)
     if (older) {
@@ -1475,6 +1477,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       pendingOlderScroll.current = box ? { roomId, height: before, top: beforeTop } : null
       setMsgs(prev => { const existing = new Set(prev.map(p => p.id)); const incoming = rows.filter(row => !existing.has(row.id)); return incoming.length ? [...incoming, ...prev] : prev })
     } else setMsgs(rows)
+    olderFetchInFlight.current = false
     setLoadingOlder(false)
   }, [roomId, msgs[0]?.created_at, notify])
 
