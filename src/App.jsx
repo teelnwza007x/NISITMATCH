@@ -4937,12 +4937,25 @@ const loadMatches = useCallback(async () => {
   // A failed background page can be retried without clearing existing swipe cards.
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
+function AppStartupLoading({ message = 'กำลังเตรียมพื้นที่ของคุณ...' }) {
+  return <main className="nm-startup-loading" role="status" aria-live="polite" aria-label="กำลังเปิด NISIT MATCH">
+    <div className="nm-startup-glow" aria-hidden="true" />
+    <div className="nm-startup-content">
+      <div className="nm-startup-symbol" aria-hidden="true"><span className="nm-startup-ring" /><span className="nm-startup-heart"><Heart size={37} strokeWidth={2.2} fill="currentColor" /></span><span className="nm-startup-spark nm-startup-spark-one" /><span className="nm-startup-spark nm-startup-spark-two" /></div>
+      <div className="nm-startup-brand">NISIT <em>MATCH</em></div>
+      <p>{message}</p>
+      <div className="nm-startup-progress" aria-hidden="true"><span /></div>
+    </div>
+    <div className="nm-startup-footer">CONNECT · DISCOVER · MATCH</div>
+  </main>
+}
+
   if (session === undefined) return authInitTimedOut
     ? <main className="page-center" role="alert"><section className="empty-state"><h3>เชื่อมต่อระบบไม่สำเร็จ</h3><p>ระบบยืนยันตัวตนตอบกลับช้า อาจเป็นปัญหาชั่วคราวของเซิร์ฟเวอร์ ข้อมูลของคุณยังไม่ถูกลบ</p><button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>ลองเชื่อมต่ออีกครั้ง</button></section></main>
-    : <div className="page-center"><span className="spin" /></div>
+    : <AppStartupLoading message="กำลังเชื่อมต่ออย่างปลอดภัย..." />
   if (user && profile === undefined) return profileLoadTimedOut
     ? <main className="page-center" role="alert"><section className="empty-state"><h3>โหลดโปรไฟล์ไม่สำเร็จ</h3><p>ระบบยังติดต่อฐานข้อมูลไม่ได้ ลองโหลดโปรไฟล์ใหม่โดยไม่ต้องออกจากระบบ</p><button type="button" className="btn btn-primary" onClick={() => { setProfileLoadTimedOut(false); setProfileLoadAttempt(attempt => attempt + 1); loadProfile() }}>ลองอีกครั้ง</button></section></main>
-    : <div className="page-center"><span className="spin" /></div>
+    : <AppStartupLoading message="กำลังเตรียมโปรไฟล์ของคุณ..." />
   if (authCallback) return <AuthLinkScreen onFinished={() => { clearAuthCallbackUrl(); setAuthCallback(false) }} />
   if (!user) return <><Landing onLogin={() => setModal('login')} onRegister={() => setModal('register')} />{modal && <AuthModal mode={modal} setMode={setModal} close={() => setModal('')} notify={notify} />}{Toast}</>
   if (!profile) return <main className="page-content onboard"><ProfilePage user={user} onboarding onSaved={loadProfile} notify={notify} /><button className="btn btn-ghost btn-small" onClick={() => supabase.auth.signOut()}><LogOut size={14} /> ออกจากระบบ</button>{Toast}</main>
