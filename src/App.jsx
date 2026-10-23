@@ -1127,8 +1127,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     }
   }, [me, refreshInbox])
   const [onlineMatchIds, setOnlineMatchIds] = useState({})
-  // Limit presence polling to the 10 most recent matches to reduce per-client RPC load.
-  const presenceIds = matches.slice(0, 10).map(m => m.p?.id).filter(Boolean).join(',')
+  // Keep presence checks for the same 20 matches, but poll less often to reduce RPC load.
+  const presenceIds = matches.slice(0, 20).map(m => m.p?.id).filter(Boolean).join(',')
   useEffect(() => {
     if (!presenceIds) { setOnlineMatchIds({}); return }
     let active = true
