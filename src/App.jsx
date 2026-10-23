@@ -509,6 +509,7 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
   const busyRef = useRef(false)
   const person = people[0]
   const [enteringPersonId, setEnteringPersonId] = useState(null)
+  const arrivalTimerRef = useRef(null)
   useEffect(() => { for (const next of people.slice(1, 3)) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[2]?.id])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
@@ -525,12 +526,15 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
   useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
   useEffect(() => { cancelAnimationFrame(dragFrame.current); dragFrame.current = 0 }, [person?.id])
   useLayoutEffect(() => {
+    window.clearTimeout(arrivalTimerRef.current)
     if (person?.id) {
       setEnteringPersonId(person.id)
-      requestAnimationFrame(() => setEnteringPersonId(null))
-      // Ensure the entry class only lasts one paint; CSS handles the motion.
-      // A new profile resets this effect even when the deck stays mounted.
+      // Keep the arrival class until the CSS transition has completed.
+      // Clearing it in the very next frame prevents the animation from being seen.
+      const arrivalTimer = window.setTimeout(() => setEnteringPersonId(current => current === person.id ? null : current), 380)
       setPhoto(0)
+      // This cleanup runs when the profile changes or the deck unmounts.
+      arrivalTimerRef.current = arrivalTimer
     }
     setPhoto(0)
     setSuperBurst(false)
@@ -538,6 +542,7 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
     start.current = null
     dragNow.current = { x: 0, y: 0 }
     paint(0, 0)
+    return () => window.clearTimeout(arrivalTimerRef.current)
   }, [person?.id, paint])
   const photos = useMemo(() => person ? [person.avatar_path, ...(person.photo_paths || []).filter(x => x !== person.avatar_path)].filter(Boolean).slice(0, 6) : [], [person?.avatar_path, person?.photo_paths])
   useEffect(() => {
@@ -4734,9 +4739,10 @@ const loadMatches = useCallback(async () => {
     if (!user?.id) return
     const { data, error } = await supabase.rpc('nm_swipe_quota_status')
     if (!error && data) setSwipeQuota(data)
+    return !error ? data : null
   }, [user?.id])
   useEffect(() => { refreshSwipeQuota() }, [refreshSwipeQuota])
-  // A rolling 24-hour allowance can recover while the app remains open.
+  // A rolling 90-minute allowance can recover while the app remains open.
   // Refresh on return to the PWA and periodically while the quota is exhausted.
   useEffect(() => {
     const onResume = () => { if (document.visibilityState === 'visible') refreshSwipeQuota() }
@@ -4761,7 +4767,16 @@ const loadMatches = useCallback(async () => {
   const quotaWaitMinutes = Math.ceil(quotaRemainingSeconds / 60)
   const quotaWaitLabel = [Math.floor(quotaRemainingSeconds / 3600), Math.floor((quotaRemainingSeconds % 3600) / 60), quotaRemainingSeconds % 60].map(n => String(n).padStart(2, '0')).join(':')
   const quotaNextTimeLabel = swipeQuota?.next_available_at ? new Date(swipeQuota.next_available_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : ''
-  useEffect(() => { if (quotaDialog && swipeQuota?.next_available_at && quotaWaitMinutes === 0) { refreshSwipeQuota(); setQuotaDialog(false) } }, [quotaDialog, quotaWaitMinutes, swipeQuota?.next_available_at, refreshSwipeQuota])
+  const quotaExpiryChecking = useRef(false)
+  useEffect(() => {
+    if (!quotaDialog || !swipeQuota?.next_available_at || quotaWaitMinutes !== 0 || quotaExpiryChecking.current) return
+    let active = true
+    quotaExpiryChecking.current = true
+    refreshSwipeQuota().then(status => {
+      if (active && status && (status.unlimited || Number(status.remaining) > 0)) setQuotaDialog(false)
+    }).finally(() => { quotaExpiryChecking.current = false })
+    return () => { active = false }
+  }, [quotaDialog, quotaWaitMinutes, swipeQuota?.next_available_at, refreshSwipeQuota])
   const swipeInFlight = useRef(new Set())
   const swipe = async (p, is_like, { allowExisting = false } = {}) => {
     if (!user || !p?.id) return notify('กรุณาเข้าสู่ระบบก่อน')
