@@ -27,11 +27,35 @@
   border-radius:50%!important;
 }
 .chat-fullscreen .chat-date-divider{
-  background:rgba(255,255,255,.055)!important;
-  border:1px solid rgba(255,255,255,.075)!important;
-  color:#aeb0c2!important;
+  /* Keep the full-width row transparent; only the date label is a pill. */
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  padding:0!important;
+  margin:16px 0 20px!important;
+  opacity:1!important;
+}
+.chat-fullscreen .chat-date-divider > span{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:max-content!important;
+  max-width:calc(100% - 32px)!important;
+  padding:7px 15px!important;
+  background:#20202d!important;
+  border:1px solid rgba(232,145,194,.15)!important;
   border-radius:999px!important;
   box-shadow:none!important;
+  color:#bcb7c9!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  line-height:1.3!important;
+  white-space:nowrap;
 }
 .chat-fullscreen .message-row.mine .message-bubble{
   background:linear-gradient(135deg,#d86fa9 0%,#ad5eab 100%)!important;
