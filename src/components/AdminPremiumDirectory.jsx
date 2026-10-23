@@ -35,7 +35,7 @@ export default function AdminPremiumDirectory() {
   const searchUsers = async () => {
     const q = targetQuery.trim()
     if (!q) { setTargetResults([]); setGrantError('กรอกชื่อหรืออีเมลของสมาชิกก่อน'); return }
-    setTargetLoading(true); setGrantError(''); setGrantMessage('')
+    setTargetLoading(true); setGrantError('')
     const { data, error: err } = await supabase.rpc('nm_admin_search_premium_users', { p_search: q })
     if (err) { setGrantError('ค้นหาสมาชิกไม่สำเร็จ: ' + err.message); setTargetResults([]) }
     else { setTargetResults(data || []); if (!(data || []).length) setGrantError('ไม่พบสมาชิกที่ค้นหา') }
