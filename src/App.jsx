@@ -2782,7 +2782,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru','mju','npru','cmu','cmru','dusit']],
+    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','nmu','ssru','catc','ru','mju','npru','cmu','cmru','bru','dusit']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt','rmutto','rmuti']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu','abac']]
   ]
