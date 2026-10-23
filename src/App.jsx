@@ -4648,28 +4648,34 @@ const loadMatches = useCallback(async () => {
     if (swipeInFlight.current.has(p.id) || seenSwipes.current.has(p.id)) return
     swipeInFlight.current.add(p.id)
     let error
-    try { ({ error } = await supabase.from('likes').insert({ from_id: user.id, to_id: p.id, is_like })) }
-    catch (e) { error = e }
+    let swipeInserted = false
+    let swipeResult = null
+    try {
+      // ON CONFLICT DO NOTHING avoids noisy likes_pkey errors when a stale deck
+      // or retry submits the same (from_id, to_id) pair more than once.
+      const result = await supabase.from('likes')
+        .upsert({ from_id: user.id, to_id: p.id, is_like }, { onConflict: 'from_id,to_id', ignoreDuplicates: true })
+        .select('from_id')
+        .maybeSingle()
+      error = result.error
+      swipeResult = result.data
+      swipeInserted = !!result.data
+    } catch (e) { error = e }
     finally { swipeInFlight.current.delete(p.id) }
     if (error) {
       if (String(error.message).includes('SWIPE_QUOTA_EXCEEDED')) {
         await refreshSwipeQuota(); setQuotaNow(Date.now()); setQuotaDialog(true); return
       }
-      // A stale deck or retried network request can hit the likes primary key
-      // (from_id, to_id). Treat an existing row as an already-processed swipe:
-      // do not count quota twice and do not leave the same card stuck on screen.
-      if (error.code === '23505') {
-        const { data: existingSwipe, error: lookupError } = await supabase
-          .from('likes').select('from_id').eq('from_id', user.id).eq('to_id', p.id).maybeSingle()
-        if (!lookupError && existingSwipe) {
-          seenSwipes.current.add(p.id)
-          setPeople(list => (list || []).filter(x => x.id !== p.id))
-          setDetail(null)
-          notify('บันทึกการปัดรายการนี้ไว้แล้ว')
-          return
-        }
-      }
       return notify(`บันทึกไม่สำเร็จ: ${error.message}`)
+    }
+    // A null result with no error means ON CONFLICT ignored an existing swipe.
+    // Do not increment quota or run match-side effects for that duplicate.
+    if (!swipeInserted) {
+      seenSwipes.current.add(p.id)
+      setPeople(list => (list || []).filter(x => x.id !== p.id))
+      setDetail(null)
+      notify('บันทึกการปัดรายการนี้ไว้แล้ว')
+      return
     }
     setSwipeQuota(old => old ? {...old, used: Number(old.used || 0) + 1, remaining: Math.max(0, Number(old.remaining || 0) - 1)} : old)
     refreshSwipeQuota()
