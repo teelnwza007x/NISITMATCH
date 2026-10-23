@@ -4267,16 +4267,38 @@ function AppContent() {
   useEffect(() => {
     if (!userId) { setUnreadMessages(0); return }
     loadUnreadMessages()
-    // Realtime already updates unread counts; poll only as a visible-tab fallback.
+    let roomIds = new Set()
+    let roomIdsReady = false
+    let alive = true
+    const loadRoomIds = async () => {
+      const { data, error } = await supabase.from('matches').select('id').or(`user_a.eq.${userId},user_b.eq.${userId}`)
+      if (alive && !error) {
+        roomIds = new Set((data || []).map(room => room.id))
+        roomIdsReady = true
+      }
+    }
+    loadRoomIds()
+    // Realtime is primary. Cache this user's rooms so unrelated messages do not trigger unread-count queries.
     const poll = setInterval(() => {
-      if (document.visibilityState === 'visible') loadUnreadMessages()
-    }, 30000)
+      if (document.visibilityState === 'visible') {
+        loadUnreadMessages()
+        loadRoomIds()
+      }
+    }, 90000)
     const channel = supabase.channel(`unread-messages-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadUnreadMessages())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+        const matchId = payload?.new?.match_id || payload?.old?.match_id
+        if (roomIdsReady && matchId && roomIds.has(matchId)) loadUnreadMessages()
+      })
       .subscribe()
-    const refresh = () => { if (document.visibilityState === 'visible') loadUnreadMessages() }
+    const refresh = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadMessages()
+        loadRoomIds()
+      }
+    }
     document.addEventListener('visibilitychange', refresh)
-    return () => { clearInterval(poll); document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
+    return () => { alive = false; clearInterval(poll); document.removeEventListener('visibilitychange', refresh); supabase.removeChannel(channel) }
   }, [userId, loadUnreadMessages])
 
   
