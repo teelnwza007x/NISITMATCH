@@ -136,8 +136,19 @@ const pub = (p) => {
 }
 const ph = (n) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f45ca5"/><stop offset="1" stop-color="#8e72ff"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><text x="50" y="66" font-size="48" text-anchor="middle" fill="#fff" font-family="sans-serif">${((n || '?').trim()[0]) || '?'}</text></svg>`)
 const photoCandidates = (u) => [...new Set([u?.avatar_path, ...(Array.isArray(u?.photo_paths) ? u.photo_paths : [])].filter(Boolean).map(pub).filter(Boolean))]
-// Preload only the next swipe card, avoiding downloads for the whole deck.
-const preloadImage = (src) => { if (!src || typeof Image === 'undefined') return; const image = new Image(); image.decoding = 'async'; image.src = src }
+// Reuse a small bounded set of decoded swipe thumbnails instead of allocating a
+// new Image on every render or profile transition (important on mobile Safari).
+const swipeImageCache = new Map()
+const preloadImage = (src) => {
+  if (!src || typeof Image === 'undefined' || swipeImageCache.has(src)) return
+  const image = new Image()
+  image.decoding = 'async'
+  swipeImageCache.set(src, image)
+  image.onload = () => { image.decode?.().catch(() => {}) }
+  image.onerror = () => { swipeImageCache.delete(src) }
+  image.src = src
+  if (swipeImageCache.size > 5) swipeImageCache.delete(swipeImageCache.keys().next().value)
+}
 const Av = ({ u, cls = 'avatar', loading = 'lazy', fetchPriority = 'auto' }) => {
   const candidates = photoCandidates(u)
   const [attempt, setAttempt] = useState(0)
@@ -497,11 +508,11 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
   const noRef = useRef(null)
   const busyRef = useRef(false)
   const person = people[0]
-  useEffect(() => { const next = people[1]; if (next) preloadImage(photoCandidates(next)[0]) }, [people[1]?.id, people[1]?.avatar_path])
+  useEffect(() => { for (const next of people.slice(1, 3)) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[2]?.id])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
-    card.style.transition = animate ? 'transform 520ms cubic-bezier(.22,1,.36,1)' : 'none'
+    card.style.transition = animate ? 'transform 360ms cubic-bezier(.22,1,.36,1)' : 'none'
     card.style.transform = `translate3d(${x}px,${y}px,0) rotate(${x / 18}deg)`
     const strength = Math.min(Math.abs(x) / 125, 1)
     for (const [el, visible] of [[yesRef.current, x > 12], [noRef.current, x < -12]]) {
@@ -567,11 +578,10 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
     try {
       // Give the visual feedback a short beat, then move the card on the compositor.
       // The database request runs concurrently with the exit animation.
-      await new Promise(resolve => setTimeout(resolve, 120))
       paint(like ? 560 : -560, -22, true)
       await Promise.all([
         (like ? onLike(person) : onSkip(person)),
-        new Promise(resolve => setTimeout(resolve, 840))
+        new Promise(resolve => setTimeout(resolve, 380))
       ])
     } finally { setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0) }
   }
@@ -637,7 +647,7 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
-    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" loading="eager" fetchPriority="low" /></div>}
+    {people[1] && <div className="swipe-card swipe-behind"><img className="swipe-behind-image" src={swipePhotoUrl(people[1].avatar_path || people[1].photo_paths?.[0]) || ph(people[1].display_name)} alt="" loading="eager" fetchPriority="high" decoding="async" draggable="false" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
       {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={swipePhotoUrl(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} loading="eager" fetchPriority="high" decoding="async" onError={(e) => { const original = pub(photoItems[photo]?.path); if (original && e.currentTarget.src !== original) { e.currentTarget.src = original; return } e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
@@ -4726,8 +4736,9 @@ const loadMatches = useCallback(async () => {
     const timer = setInterval(() => setQuotaNow(Date.now()), 1000)
     return () => clearInterval(timer)
   }, [quotaDialog])
-  const quotaWaitMinutes = swipeQuota?.next_available_at ? Math.max(0, Math.ceil((new Date(swipeQuota.next_available_at).getTime() - quotaNow) / 60000)) : 0
-  const quotaWaitLabel = quotaWaitMinutes >= 60 ? `${Math.floor(quotaWaitMinutes / 60)} ชั่วโมง${quotaWaitMinutes % 60 ? ` ${quotaWaitMinutes % 60} นาที` : ''}` : `${quotaWaitMinutes} นาที`
+  const quotaRemainingSeconds = swipeQuota?.next_available_at ? Math.max(0, Math.ceil((new Date(swipeQuota.next_available_at).getTime() - quotaNow) / 1000)) : 0
+  const quotaWaitMinutes = Math.ceil(quotaRemainingSeconds / 60)
+  const quotaWaitLabel = [Math.floor(quotaRemainingSeconds / 3600), Math.floor((quotaRemainingSeconds % 3600) / 60), quotaRemainingSeconds % 60].map(n => String(n).padStart(2, '0')).join(':')
   const quotaNextTimeLabel = swipeQuota?.next_available_at ? new Date(swipeQuota.next_available_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : ''
   useEffect(() => { if (quotaDialog && swipeQuota?.next_available_at && quotaWaitMinutes === 0) { refreshSwipeQuota(); setQuotaDialog(false) } }, [quotaDialog, quotaWaitMinutes, swipeQuota?.next_available_at, refreshSwipeQuota])
   const swipeInFlight = useRef(new Set())
@@ -4927,12 +4938,25 @@ const loadMatches = useCallback(async () => {
   // A failed background page can be retried without clearing existing swipe cards.
   const Toast = toast && <div className="toast"><Heart size={16} fill="currentColor" />{toast}</div>
 
+function AppStartupLoading({ message = 'กำลังเตรียมพื้นที่ของคุณ...' }) {
+  return <main className="nm-startup-loading" role="status" aria-live="polite" aria-label="กำลังเปิด NISIT MATCH">
+    <div className="nm-startup-glow" aria-hidden="true" />
+    <div className="nm-startup-content">
+      <div className="nm-startup-symbol" aria-hidden="true"><span className="nm-startup-ring" /><span className="nm-startup-heart"><Heart size={37} strokeWidth={2.2} fill="currentColor" /></span><span className="nm-startup-spark nm-startup-spark-one" /><span className="nm-startup-spark nm-startup-spark-two" /></div>
+      <div className="nm-startup-brand">NISIT <em>MATCH</em></div>
+      <p>{message}</p>
+      <div className="nm-startup-progress" aria-hidden="true"><span /></div>
+    </div>
+    <div className="nm-startup-footer">CONNECT · DISCOVER · MATCH</div>
+  </main>
+}
+
   if (session === undefined) return authInitTimedOut
     ? <main className="page-center" role="alert"><section className="empty-state"><h3>เชื่อมต่อระบบไม่สำเร็จ</h3><p>ระบบยืนยันตัวตนตอบกลับช้า อาจเป็นปัญหาชั่วคราวของเซิร์ฟเวอร์ ข้อมูลของคุณยังไม่ถูกลบ</p><button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>ลองเชื่อมต่ออีกครั้ง</button></section></main>
-    : <div className="page-center"><span className="spin" /></div>
+    : <AppStartupLoading message="กำลังเชื่อมต่ออย่างปลอดภัย..." />
   if (user && profile === undefined) return profileLoadTimedOut
     ? <main className="page-center" role="alert"><section className="empty-state"><h3>โหลดโปรไฟล์ไม่สำเร็จ</h3><p>ระบบยังติดต่อฐานข้อมูลไม่ได้ ลองโหลดโปรไฟล์ใหม่โดยไม่ต้องออกจากระบบ</p><button type="button" className="btn btn-primary" onClick={() => { setProfileLoadTimedOut(false); setProfileLoadAttempt(attempt => attempt + 1); loadProfile() }}>ลองอีกครั้ง</button></section></main>
-    : <div className="page-center"><span className="spin" /></div>
+    : <AppStartupLoading message="กำลังเตรียมโปรไฟล์ของคุณ..." />
   if (authCallback) return <AuthLinkScreen onFinished={() => { clearAuthCallbackUrl(); setAuthCallback(false) }} />
   if (!user) return <><Landing onLogin={() => setModal('login')} onRegister={() => setModal('register')} />{modal && <AuthModal mode={modal} setMode={setModal} close={() => setModal('')} notify={notify} />}{Toast}</>
   if (!profile) return <main className="page-content onboard"><ProfilePage user={user} onboarding onSaved={loadProfile} notify={notify} /><button className="btn btn-ghost btn-small" onClick={() => supabase.auth.signOut()}><LogOut size={14} /> ออกจากระบบ</button>{Toast}</main>
@@ -4978,8 +5002,8 @@ const loadMatches = useCallback(async () => {
             </div>, document.body)}
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span>{discoveryPageError && <button type="button" onClick={() => { setDiscoveryPageError(false); loadPeople({ nextPage: true }) }} style={{marginLeft:8,padding:'6px 10px',borderRadius:10,border:'1px solid var(--theme-border)',background:'var(--theme-sidebar)',color:'var(--theme-text)',cursor:'pointer'}}>ลองโหลดเพิ่มอีกครั้ง</button>}</div>
             
-            {quotaDialog && <div className="nm-quota-overlay" role="presentation" onClick={() => setQuotaDialog(false)}><section className="nm-quota-dialog" role="alertdialog" aria-modal="true" aria-labelledby="nm-quota-title" aria-describedby="nm-quota-description" onClick={e => e.stopPropagation()}><div className="nm-quota-symbol" aria-hidden="true"><Heart size={30} fill="currentColor"/><span className="nm-quota-orbit" aria-hidden="true"/></div><span className="nm-quota-eyebrow">NISIT MATCH · SWIPE LIMIT</span><h2 id="nm-quota-title">พักหัวใจสักครู่</h2><p id="nm-quota-description" className="nm-quota-description">คุณใช้สิทธิ์ปัดครบ 30 ครั้งในรอบ 1 ชั่วโมงแล้ว</p><div className="nm-quota-timer"><span>ปัดได้อีกครั้งใน</span><strong aria-live="off">{quotaWaitLabel}</strong>{quotaNextTimeLabel && <small>เริ่มปัดได้ประมาณ {quotaNextTimeLabel} น.</small>}</div><p className="nm-quota-footnote">ระหว่างนี้แวะดูข้อความหรือโปรไฟล์ของคุณได้นะ</p><button type="button" className="nm-quota-confirm" autoFocus onClick={() => setQuotaDialog(false)}>เข้าใจแล้ว <span aria-hidden="true">→</span></button></section></div>}
-            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-swipe-loading-orbit"><div className="nm-swipe-loading-heart"><Heart size={29} fill="currentColor" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังเตรียมคนที่ใช่ให้คุณ...</span><div className="nm-swipe-loading-track"><span /></div><small>อีกนิดเดียวก็ได้เจอกัน</small></div> : swipePeople.length ? <SwipeDeck key={swipePeople[0]?.id || 'empty-swipe'} people={swipePeople} swipeRemaining={ownerPremium ? null : (swipeQuota?.remaining ?? null)} myInterests={profile?.interests || []} onLike={(x) => { if (swipeQuota?.remaining !== 0) playNisitSound('like'); return swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
+            {quotaDialog && <div className="nm-quota-overlay" role="presentation" onClick={() => setQuotaDialog(false)}><section className="nm-quota-dialog nm-quota-premium-dialog" role="alertdialog" aria-modal="true" aria-labelledby="nm-quota-title" aria-describedby="nm-quota-description" onClick={e => e.stopPropagation()}><div className="nm-quota-symbol" aria-hidden="true"><Heart size={30} fill="currentColor"/><span className="nm-quota-orbit" aria-hidden="true"/></div><span className="nm-quota-eyebrow">NISIT MATCH · SWIPE LIMIT</span><h2 id="nm-quota-title">หัวใจของคุณหมดแล้ว</h2><p id="nm-quota-description" className="nm-quota-description">คุณใช้สิทธิ์ปัดฟรีครบแล้ว</p><div className="nm-quota-timer"><span>ปัดฟรีได้อีกครั้งใน</span><strong className="nm-quota-countdown" aria-live="off">{swipeQuota?.next_available_at ? quotaWaitLabel : 'กำลังตรวจสอบ...'}</strong>{quotaNextTimeLabel && <small>เริ่มปัดได้ประมาณ {quotaNextTimeLabel} น.</small>}</div><div className="nm-quota-premium-offer"><strong>ไม่อยากรอใช่ไหม?</strong><span>Premium ปัดได้ไม่จำกัด ไม่ต้องรอรีเซ็ตโควตา</span><button type="button" className="nm-quota-premium-action" onClick={() => { setQuotaDialog(false); setView('premium') }}>ดู Premium เริ่มต้น ฿39 <span aria-hidden="true">→</span></button></div><button type="button" className="nm-quota-confirm" onClick={() => setQuotaDialog(false)}>รอปัดฟรีรอบถัดไป</button></section></div>}
+            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-loading-ambient" aria-hidden="true" /><div className="nm-loading-card-stack" aria-hidden="true"><div className="nm-loading-card nm-loading-card-third" /><div className="nm-loading-card nm-loading-card-second" /><div className="nm-loading-card nm-loading-card-main"><div className="nm-loading-avatar"><Heart size={30} strokeWidth={2.4} fill="currentColor" /></div><div className="nm-loading-card-line" /><div className="nm-loading-card-line short" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังค้นหาคนที่ใช่สำหรับคุณ</span><div className="nm-swipe-loading-track" aria-hidden="true"><span /></div><small>เตรียมโปรไฟล์ให้พร้อมสำหรับการปัด</small></div> : swipePeople.length ? <SwipeDeck people={swipePeople} swipeRemaining={ownerPremium ? null : (swipeQuota?.remaining ?? null)} myInterests={profile?.interests || []} onLike={(x) => { if (swipeQuota?.remaining !== 0) playNisitSound('like'); return swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
