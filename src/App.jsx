@@ -497,7 +497,7 @@ function CropPhotoDialog({ file, onDone, onCancel, notify }) {
   </div></div>, document.body)
 }
 
-function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
+function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myInterests = [], onLike, onSkip, onSuperLike, onUndo, canUndo, onOpen, onReport, verifiedIds = [] }) {
   const [photo, setPhoto] = useState(0), [busy, setBusy] = useState(false), [superBurst, setSuperBurst] = useState(false), [swipeBurst, setSwipeBurst] = useState(null), [showSwipeMenu, setShowSwipeMenu] = useState(false)
   const [cardVideos, setCardVideos] = useState([])
   const start = useRef(null)
@@ -562,10 +562,23 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
     galleryPreloads.current.set(url, image)
     return () => { galleryPreloads.current.clear() }
   }, [person?.id, photo, person?.avatar_path, person?.photo_paths, cardVideos, person?.media_order])
+  useEffect(() => {
+    if (!quotaDialogOpen) return
+    start.current = null
+    dragNow.current = { x: 0, y: 0 }
+    cancelAnimationFrame(dragFrame.current)
+    dragFrame.current = 0
+    paint(0, 0, true)
+    busyRef.current = false
+    setBusy(false)
+    setSwipeBurst(null)
+  }, [quotaDialogOpen, paint])
   const act = async (like) => {
-    if (!person || busyRef.current) return
+    if (!person || busyRef.current || quotaDialogOpen) return
     // Exhausted quota: show the quota dialog directly, without swipe burst, vibration or card exit.
     if (swipeRemaining !== null && Number(swipeRemaining) <= 0) {
+      dragNow.current = { x: 0, y: 0 }
+      paint(0, 0, true)
       await (like ? onLike(person) : onSkip(person))
       return
     }
@@ -603,7 +616,7 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
     }
   }
   const down = (e) => {
-    if (busyRef.current || (e.pointerType === 'mouse' && e.button !== 0)) return
+    if (quotaDialogOpen || busyRef.current || (e.pointerType === 'mouse' && e.button !== 0)) return
     // Do not cancel touch at pointer-down: the browser needs a chance to
     // recognize vertical intent and scroll the discovery page naturally.
     start.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId, horizontal: false }
@@ -5003,7 +5016,7 @@ function AppStartupLoading({ message = 'กำลังเตรียมพื�
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span>{discoveryPageError && <button type="button" onClick={() => { setDiscoveryPageError(false); loadPeople({ nextPage: true }) }} style={{marginLeft:8,padding:'6px 10px',borderRadius:10,border:'1px solid var(--theme-border)',background:'var(--theme-sidebar)',color:'var(--theme-text)',cursor:'pointer'}}>ลองโหลดเพิ่มอีกครั้ง</button>}</div>
             
             {quotaDialog && <div className="nm-quota-overlay" role="presentation" onClick={() => setQuotaDialog(false)}><section className="nm-quota-dialog nm-quota-premium-dialog" role="alertdialog" aria-modal="true" aria-labelledby="nm-quota-title" aria-describedby="nm-quota-description" onClick={e => e.stopPropagation()}><div className="nm-quota-symbol" aria-hidden="true"><Heart size={30} fill="currentColor"/><span className="nm-quota-orbit" aria-hidden="true"/></div><span className="nm-quota-eyebrow">NISIT MATCH · SWIPE LIMIT</span><h2 id="nm-quota-title">หัวใจของคุณหมดแล้ว</h2><p id="nm-quota-description" className="nm-quota-description">คุณใช้สิทธิ์ปัดฟรีครบแล้ว</p><div className="nm-quota-timer"><span>ปัดฟรีได้อีกครั้งใน</span><strong className="nm-quota-countdown" aria-live="off">{swipeQuota?.next_available_at ? quotaWaitLabel : 'กำลังตรวจสอบ...'}</strong>{quotaNextTimeLabel && <small>เริ่มปัดได้ประมาณ {quotaNextTimeLabel} น.</small>}</div><div className="nm-quota-premium-offer"><strong>ไม่อยากรอใช่ไหม?</strong><span>Premium ปัดได้ไม่จำกัด ไม่ต้องรอรีเซ็ตโควตา</span><button type="button" className="nm-quota-premium-action" onClick={() => { setQuotaDialog(false); setView('premium') }}>ดู Premium เริ่มต้น ฿39 <span aria-hidden="true">→</span></button></div><button type="button" className="nm-quota-confirm" onClick={() => setQuotaDialog(false)}>รอปัดฟรีรอบถัดไป</button></section></div>}
-            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-loading-ambient" aria-hidden="true" /><div className="nm-loading-card-stack" aria-hidden="true"><div className="nm-loading-card nm-loading-card-third" /><div className="nm-loading-card nm-loading-card-second" /><div className="nm-loading-card nm-loading-card-main"><div className="nm-loading-avatar"><Heart size={30} strokeWidth={2.4} fill="currentColor" /></div><div className="nm-loading-card-line" /><div className="nm-loading-card-line short" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังค้นหาคนที่ใช่สำหรับคุณ</span><div className="nm-swipe-loading-track" aria-hidden="true"><span /></div><small>เตรียมโปรไฟล์ให้พร้อมสำหรับการปัด</small></div> : swipePeople.length ? <SwipeDeck people={swipePeople} swipeRemaining={ownerPremium ? null : (swipeQuota?.remaining ?? null)} myInterests={profile?.interests || []} onLike={(x) => { if (swipeQuota?.remaining !== 0) playNisitSound('like'); return swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
+            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-loading-ambient" aria-hidden="true" /><div className="nm-loading-card-stack" aria-hidden="true"><div className="nm-loading-card nm-loading-card-third" /><div className="nm-loading-card nm-loading-card-second" /><div className="nm-loading-card nm-loading-card-main"><div className="nm-loading-avatar"><Heart size={30} strokeWidth={2.4} fill="currentColor" /></div><div className="nm-loading-card-line" /><div className="nm-loading-card-line short" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังค้นหาคนที่ใช่สำหรับคุณ</span><div className="nm-swipe-loading-track" aria-hidden="true"><span /></div><small>เตรียมโปรไฟล์ให้พร้อมสำหรับการปัด</small></div> : swipePeople.length ? <SwipeDeck people={swipePeople} quotaDialogOpen={quotaDialog} swipeRemaining={ownerPremium ? null : (swipeQuota?.remaining ?? null)} myInterests={profile?.interests || []} onLike={(x) => { if (swipeQuota?.remaining !== 0) playNisitSound('like'); return swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
