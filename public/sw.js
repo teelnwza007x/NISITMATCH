@@ -5,7 +5,7 @@ self.addEventListener('push', event => {
     // Suppress OS notifications while any NISIT MATCH window is actively visible.
     // Background and closed-app notifications continue as before.
     const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
-    if (windows.some(client => client.visibilityState === 'visible' && client.focused)) return
+    if (data.type !== 'message' && windows.some(client => client.visibilityState === 'visible' && client.focused)) return
     const title = data.title || 'Nisit Match 💗'
     // Suppress duplicate delivery of the same announcement on this device.
     // Multiple subscriptions or retrying workers can deliver identical pushes.
