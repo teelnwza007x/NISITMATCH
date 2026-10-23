@@ -5160,3 +5160,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-quota-premium-offer>strong{color:#fff;font-size:15px}.nm-quota-premium-offer>span{color:rgba(255,255,255,.7);font-size:12px;line-height:1.6}
 .nm-quota-premium-action{width:100%;min-height:43px;margin-top:4px;border:0;border-radius:13px;background:linear-gradient(110deg,#ff6da9,#f04b90);color:#fff;font:inherit;font-weight:750;cursor:pointer;box-shadow:0 6px 22px rgba(247,78,143,.2)}
 .nm-quota-premium-action:focus-visible,.nm-quota-premium-dialog .nm-quota-confirm:focus-visible{outline:2px solid #ffc3dd;outline-offset:3px}
+
+/* Smooth next-profile arrival after the previous card exits. */
+@keyframes nmSwipeNextArrive{from{opacity:.78;scale:.955;filter:brightness(.88)}to{opacity:1;scale:1;filter:brightness(1)}}
+.swipe-stage .swipe-front.nm-swipe-enter{animation:nmSwipeNextArrive 340ms cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 75%;backface-visibility:hidden}
+@media(prefers-reduced-motion:reduce){.swipe-stage .swipe-front.nm-swipe-enter{animation:none}}
