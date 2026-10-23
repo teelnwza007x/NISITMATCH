@@ -5115,3 +5115,23 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .nm-discover-notifications{position:relative!important;overflow:visible!important;flex-shrink:0;min-width:40px;min-height:40px}
 .nm-discover-notifications .nm-discover-unread{top:1px!important;right:1px!important;left:auto!important;bottom:auto!important;z-index:10!important;min-width:17px!important;height:17px!important;line-height:1!important;visibility:visible!important;opacity:1!important;pointer-events:none!important}
 .nm-discover-title-row{padding-right:3px;box-sizing:border-box}
+
+
+/* Lightweight layered-card discovery loading screen (GPU-friendly). */
+.nm-swipe-smart-loading{min-height:350px;gap:12px;padding:36px 20px 32px;border-radius:30px;background:radial-gradient(ellipse at 50% 34%,rgba(251,87,159,.16),transparent 62%),linear-gradient(160deg,#251b35,#13111e 78%);box-shadow:inset 0 1px rgba(255,255,255,.08);}
+.nm-loading-ambient{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 40%,rgba(255,112,181,.1),transparent 50%);}
+.nm-loading-card-stack{position:relative;width:126px;height:154px;margin:0 0 12px;perspective:600px;contain:layout style;}
+.nm-loading-card{position:absolute;inset:7px 12px 4px;border:1px solid rgba(255,255,255,.17);border-radius:18px;background:linear-gradient(145deg,#47324f,#241d35);box-shadow:0 12px 26px rgba(0,0,0,.24);backface-visibility:hidden;}
+.nm-loading-card-third{transform:translate3d(19px,1px,0) rotate(12deg);opacity:.48;}
+.nm-loading-card-second{transform:translate3d(-15px,1px,0) rotate(-10deg);opacity:.75;}
+.nm-loading-card-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(155deg,#58354f,#32263e 62%,#251e35);animation:nm-loading-card-float 2.6s ease-in-out infinite;}
+.nm-loading-avatar{display:grid;place-items:center;width:61px;height:61px;border-radius:50%;color:#ff87b8;background:linear-gradient(135deg,rgba(255,139,190,.26),rgba(255,139,190,.07));box-shadow:0 0 28px rgba(255,104,174,.12);}
+.nm-loading-card-line{width:62%;height:5px;border-radius:10px;background:rgba(255,255,255,.18);}
+.nm-loading-card-line.short{width:39%;height:4px;background:rgba(255,255,255,.1);}
+.nm-swipe-smart-loading strong{font-size:21px;letter-spacing:.1em;position:relative;}
+.nm-swipe-smart-loading>span{position:relative;font-size:13px;color:rgba(255,255,255,.82);}
+.nm-swipe-smart-loading small{position:relative;font-size:11px;color:rgba(255,255,255,.5);}
+.nm-swipe-smart-loading .nm-swipe-loading-track{width:min(210px,75%);height:4px;margin:10px 0 0;}
+.nm-swipe-smart-loading .nm-swipe-loading-track span{width:38%;animation:nm-swipe-loading-slide 1.35s ease-in-out infinite alternate;}
+@keyframes nm-loading-card-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-8px,0)}}
+@media(prefers-reduced-motion:reduce){.nm-loading-card-main{animation:none}.nm-swipe-smart-loading .nm-swipe-loading-track span{animation:none;width:100%}}
