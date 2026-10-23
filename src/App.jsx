@@ -1085,7 +1085,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   const inboxRequest = useRef(0)
   const inboxRefreshInFlight = useRef(false)
   const inboxRefreshQueued = useRef(false)
-  const inboxRefreshTimer = useRef(null)
+  const inboxRefreshQueuedTimer = useRef(null)
   const inboxRefreshRunner = useRef(null)
   const refreshInbox = useCallback(async () => {
     if (document.visibilityState === 'hidden') return
@@ -1110,9 +1110,9 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       inboxRefreshInFlight.current = false
       if (inboxRefreshQueued.current) {
         inboxRefreshQueued.current = false
-        if (inboxRefreshTimer.current) clearTimeout(inboxRefreshTimer.current)
-        inboxRefreshTimer.current = setTimeout(() => {
-          inboxRefreshTimer.current = null
+        if (inboxRefreshQueuedTimer.current) clearTimeout(inboxRefreshQueuedTimer.current)
+        inboxRefreshQueuedTimer.current = setTimeout(() => {
+          inboxRefreshQueuedTimer.current = null
           inboxRefreshRunner.current?.()
         }, 350)
       }
@@ -1145,7 +1145,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       inboxRequest.current++
       clearInterval(poll)
       if (inboxRefreshTimer) clearTimeout(inboxRefreshTimer)
-      if (inboxRefreshTimer.current) clearTimeout(inboxRefreshTimer.current)
+      if (inboxRefreshQueuedTimer.current) clearTimeout(inboxRefreshQueuedTimer.current)
       inboxRefreshQueued.current = false
       document.removeEventListener('visibilitychange', visible)
       supabase.removeChannel(channel)
