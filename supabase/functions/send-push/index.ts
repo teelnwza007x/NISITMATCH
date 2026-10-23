@@ -18,9 +18,17 @@ Deno.serve(async (req) => {
   if (error) return new Response(error.message, { status: 500 })
   let processed = 0
   for (const item of queue || []) {
+    // Atomically claim this attempt so overlapping cron invocations cannot send
+    // the same queued notification at the same time.
+    const { data: claimed, error: claimError } = await db.from('push_queue')
+      .update({ attempts: item.attempts + 1 })
+      .eq('id', item.id).eq('attempts', item.attempts)
+      .is('processed_at', null).select('id').maybeSingle()
+    if (claimError || !claimed) continue
+
     const { data: subs, error: subError } = await db.from('push_subscriptions').select('endpoint,p256dh,auth').eq('user_id',item.user_id)
     if (subError) continue
-    if (!['match', 'interest', 'admin_report', 'admin_domain'].includes(item.type)) {
+    if (!['match', 'interest', 'message', 'admin_report', 'admin_domain'].includes(item.type)) {
       await db.from('push_queue').update({ processed_at: new Date().toISOString() }).eq('id', item.id)
       continue
     }
@@ -44,6 +52,7 @@ Deno.serve(async (req) => {
     }
     const body = item.type === 'match' ? 'คุณได้รับการแมตช์แล้ว!'
       : item.type === 'interest' ? 'มีคนกำลังสนใจคุณอยู่'
+      : item.type === 'message' ? 'คุณมีข้อความใหม่ในแชท'
       : item.type === 'admin_report' ? 'มีรายงานสมาชิกใหม่รอตรวจสอบ'
       : 'มีคำขอโดเมนมหาวิทยาลัยใหม่'
     const payload = JSON.stringify({ title: adminType ? 'NISIT MATCH · Admin' : 'NISIT MATCH', body, tag: 'nisit-'+item.id })
@@ -57,7 +66,10 @@ Deno.serve(async (req) => {
         else transientFailure = true
       }
     }
-    await db.from('push_queue').update({ attempts: item.attempts+1, ...(transientFailure ? {} : {processed_at:new Date().toISOString()}) }).eq('id',item.id).is('processed_at',null)
+    if (!transientFailure) {
+      await db.from('push_queue').update({ processed_at: new Date().toISOString() })
+        .eq('id', item.id).is('processed_at', null)
+    }
     processed++
   }
   // Broadcast announcements are queued separately from match notifications.
@@ -65,6 +77,13 @@ Deno.serve(async (req) => {
     .select('announcement_id,user_id,attempts').is('processed_at',null).lt('attempts',3).limit(30)
   if (announceError) return Response.json({ processed, announcementError: announceError.message }, { status: 500 })
   for (const job of announcements || []) {
+    // Atomically claim before sending; concurrent workers cannot claim the same attempt.
+    const { data: claimed, error: claimError } = await db.from('nm_announcement_push_queue')
+      .update({ attempts: job.attempts + 1 })
+      .eq('announcement_id', job.announcement_id).eq('user_id', job.user_id)
+      .eq('attempts', job.attempts).is('processed_at', null)
+      .select('announcement_id').maybeSingle()
+    if (claimError || !claimed) continue
     const { data: announcement } = await db.from('nm_announcements')
       .select('title,body').eq('id',job.announcement_id).maybeSingle()
     if (!announcement) {
@@ -87,7 +106,7 @@ Deno.serve(async (req) => {
       }
     }
     await db.from('nm_announcement_push_queue').update({
-      attempts:job.attempts+1,...(retry ? {} : {processed_at:new Date().toISOString()})
+      ...(retry ? {} : {processed_at:new Date().toISOString()})
     }).eq('announcement_id',job.announcement_id).eq('user_id',job.user_id).is('processed_at',null)
     processed++
   }
