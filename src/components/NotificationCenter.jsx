@@ -36,7 +36,7 @@ export default function NotificationCenter({ onNavigate, onReadChange }) {
   const load = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true)
     else setLoading(true)
-    const { data, error: loadError } = await supabase.rpc('nm_my_notifications', { p_limit: 50 })
+    const { data, error: loadError } = await supabase.rpc('nm_my_notifications', { p_limit: 100 })
     if (loadError) {
       setError('โหลดการแจ้งเตือนไม่สำเร็จ กรุณาตรวจสอบ SQL V146 และ V147')
     } else {
