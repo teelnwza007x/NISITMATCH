@@ -5110,3 +5110,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 .app-shell.home-swipe-locked .nm-discover-notifications{position:relative!important;isolation:isolate!important;overflow:visible!important}
 .app-shell.home-swipe-locked .nm-discover-notifications .nm-discover-unread{position:absolute!important;top:-5px!important;right:-5px!important;left:auto!important;bottom:auto!important;min-width:17px!important;width:auto!important;height:17px!important;padding:0 4px!important;box-sizing:border-box!important;border-radius:999px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#ec4899!important;border:2px solid #17131f!important;color:#fff!important;font-size:9px!important;font-weight:700!important;line-height:1!important;transform:none!important;animation:none!important;z-index:2!important;box-shadow:none!important}
 .app-shell.home-swipe-locked .nm-discover-notifications .nm-discover-unread-dot{display:none!important}
+
+/* Keep notification count inside the bell touch target on narrow iPhone/PWA layouts. */
+.nm-discover-notifications{position:relative!important;overflow:visible!important;flex-shrink:0;min-width:40px;min-height:40px}
+.nm-discover-notifications .nm-discover-unread{top:1px!important;right:1px!important;left:auto!important;bottom:auto!important;z-index:10!important;min-width:17px!important;height:17px!important;line-height:1!important;visibility:visible!important;opacity:1!important;pointer-events:none!important}
+.nm-discover-title-row{padding-right:3px;box-sizing:border-box}
