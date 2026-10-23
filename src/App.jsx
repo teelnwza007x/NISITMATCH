@@ -5,7 +5,7 @@ import AdminAlerts from './components/AdminAlerts'
 import './dailyRewards.css'
 import React, { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Heart, Mars, Venus, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, MailCheck, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown, Volume2, VolumeX } from 'lucide-react'
+import { Heart, Search, MessageCircle, UserRound, Settings, LogOut, X, ShieldCheck, GraduationCap, Sparkles, SlidersHorizontal, Send, ImagePlus, Mic, Square, Play, Pause, Trash2, Camera, Flag, Ban, Menu, ArrowRight, ArrowLeft, Check, Bell, Users, LockKeyhole, Music2, ExternalLink, MapPin, Globe2, Compass, Cake, LocateFixed, Palette, Eye, Reply, SmilePlus, CheckCheck, Star, Undo2, Crop, Video, Crown, Gift, MailCheck, CalendarDays, Clock, MapPinned, Ticket, Eye as EyeIcon, HeartHandshake, MoreHorizontal, ChevronDown, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from './supabase'
 
 // Cache public premium badges briefly and deduplicate concurrent requests.
@@ -107,10 +107,10 @@ const urlBase64ToUint8Array = (base64) => { const b = (base64 + '='.repeat((4 - 
 const INTERESTS = ['ดนตรี','เกม','คาเฟ่','ท่องเที่ยว','ถ่ายรูป','หนังและซีรีส์','กีฬา','อ่านหนังสือ','อาหาร','ศิลปะ','สัตว์เลี้ยง','เทคโนโลยี']
 const GENDERS = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' }
 const GenderSymbol = ({ gender }) => {
-  const config = gender === 'male' ? { Icon: Mars, color: '#60a5fa', label: 'ชาย' } : gender === 'female' ? { Icon: Venus, color: '#f472b6', label: 'หญิง' } : gender === 'other' ? { Icon: Sparkles, color: '#c084fc', label: 'อื่น ๆ' } : null
+  const config = gender === 'male' ? { symbol: '♂', color: '#60a5fa', label: 'ชาย' } : gender === 'female' ? { symbol: '♀', color: '#f472b6', label: 'หญิง' } : gender === 'other' ? { symbol: '⚧', color: '#c084fc', label: 'อื่น ๆ' } : null
   if (!config) return null
-  const { Icon, color, label } = config
-  return <span title={`เพศ: ${label}`} aria-label={`เพศ: ${label}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',verticalAlign:'middle',marginLeft:7,width:25,height:25,borderRadius:'50%',color,background:`${color}22`,flexShrink:0}}><Icon size={16} strokeWidth={2.4}/></span>
+  const { symbol, color, label } = config
+  return <span title={`เพศ: ${label}`} aria-label={`เพศ: ${label}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',verticalAlign:'middle',marginLeft:7,width:25,height:25,borderRadius:'50%',color,background:`${color}22`,flexShrink:0}}><span style={{fontSize:19,fontWeight:700,lineHeight:1}}>{symbol}</span></span>
 }
 
 const uniName = (id) => UNIVERSITIES.find((u) => u.id === id)?.name || id
