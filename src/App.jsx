@@ -497,11 +497,11 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
   const noRef = useRef(null)
   const busyRef = useRef(false)
   const person = people[0]
-  useEffect(() => { const next = people[1]; if (next) preloadImage(photoCandidates(next)[0]) }, [people[1]?.id, people[1]?.avatar_path])
+  useEffect(() => { const next = people[1]; if (next) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[1]?.avatar_path, people[1]?.photo_paths])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
     if (!card) return
-    card.style.transition = animate ? 'transform 520ms cubic-bezier(.22,1,.36,1)' : 'none'
+    card.style.transition = animate ? 'transform 360ms cubic-bezier(.22,1,.36,1)' : 'none'
     card.style.transform = `translate3d(${x}px,${y}px,0) rotate(${x / 18}deg)`
     const strength = Math.min(Math.abs(x) / 125, 1)
     for (const [el, visible] of [[yesRef.current, x > 12], [noRef.current, x < -12]]) {
@@ -567,11 +567,10 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
     try {
       // Give the visual feedback a short beat, then move the card on the compositor.
       // The database request runs concurrently with the exit animation.
-      await new Promise(resolve => setTimeout(resolve, 120))
       paint(like ? 560 : -560, -22, true)
       await Promise.all([
         (like ? onLike(person) : onSkip(person)),
-        new Promise(resolve => setTimeout(resolve, 840))
+        new Promise(resolve => setTimeout(resolve, 380))
       ])
     } finally { setSwipeBurst(null); busyRef.current = false; setBusy(false); paint(0, 0) }
   }
@@ -637,7 +636,7 @@ function SwipeDeck({ people, swipeRemaining = null, myInterests = [], onLike, on
   }
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
-    {people[1] && <div className="swipe-card swipe-behind"><Av u={people[1]} cls="swipe-behind-image" loading="eager" fetchPriority="low" /></div>}
+    {people[1] && <div className="swipe-card swipe-behind"><img className="swipe-behind-image" src={swipePhotoUrl(people[1].avatar_path || people[1].photo_paths?.[0]) || ph(people[1].display_name)} alt="" loading="eager" fetchPriority="high" decoding="async" draggable="false" /></div>}
     <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
       {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={swipePhotoUrl(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} loading="eager" fetchPriority="high" decoding="async" onError={(e) => { const original = pub(photoItems[photo]?.path); if (original && e.currentTarget.src !== original) { e.currentTarget.src = original; return } e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
@@ -4979,7 +4978,7 @@ const loadMatches = useCallback(async () => {
             <div className="result-meta"><span>โปรไฟล์ที่ตรงกับสเปกของคุณ</span><span>{swipePeople.length} โปรไฟล์{discoveryLoadingMore ? ' · กำลังโหลดเพิ่ม' : ''}{discoveryPageError ? ' · โหลดเพิ่มไม่สำเร็จ' : ''}</span>{discoveryPageError && <button type="button" onClick={() => { setDiscoveryPageError(false); loadPeople({ nextPage: true }) }} style={{marginLeft:8,padding:'6px 10px',borderRadius:10,border:'1px solid var(--theme-border)',background:'var(--theme-sidebar)',color:'var(--theme-text)',cursor:'pointer'}}>ลองโหลดเพิ่มอีกครั้ง</button>}</div>
             
             {quotaDialog && <div className="nm-quota-overlay" role="presentation" onClick={() => setQuotaDialog(false)}><section className="nm-quota-dialog" role="alertdialog" aria-modal="true" aria-labelledby="nm-quota-title" aria-describedby="nm-quota-description" onClick={e => e.stopPropagation()}><div className="nm-quota-symbol" aria-hidden="true"><Heart size={30} fill="currentColor"/><span className="nm-quota-orbit" aria-hidden="true"/></div><span className="nm-quota-eyebrow">NISIT MATCH · SWIPE LIMIT</span><h2 id="nm-quota-title">พักหัวใจสักครู่</h2><p id="nm-quota-description" className="nm-quota-description">คุณใช้สิทธิ์ปัดครบ 30 ครั้งในรอบ 1 ชั่วโมงแล้ว</p><div className="nm-quota-timer"><span>ปัดได้อีกครั้งใน</span><strong aria-live="off">{quotaWaitLabel}</strong>{quotaNextTimeLabel && <small>เริ่มปัดได้ประมาณ {quotaNextTimeLabel} น.</small>}</div><p className="nm-quota-footnote">ระหว่างนี้แวะดูข้อความหรือโปรไฟล์ของคุณได้นะ</p><button type="button" className="nm-quota-confirm" autoFocus onClick={() => setQuotaDialog(false)}>เข้าใจแล้ว <span aria-hidden="true">→</span></button></section></div>}
-            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-swipe-loading-orbit"><div className="nm-swipe-loading-heart"><Heart size={29} fill="currentColor" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังเตรียมคนที่ใช่ให้คุณ...</span><div className="nm-swipe-loading-track"><span /></div><small>อีกนิดเดียวก็ได้เจอกัน</small></div> : swipePeople.length ? <SwipeDeck key={swipePeople[0]?.id || 'empty-swipe'} people={swipePeople} swipeRemaining={ownerPremium ? null : (swipeQuota?.remaining ?? null)} myInterests={profile?.interests || []} onLike={(x) => { if (swipeQuota?.remaining !== 0) playNisitSound('like'); return swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
+            {people === null ? <div className="page-center nm-swipe-smart-loading" role="status" aria-live="polite"><div className="nm-swipe-loading-orbit"><div className="nm-swipe-loading-heart"><Heart size={29} fill="currentColor" /></div></div><strong>NISIT <em>MATCH</em></strong><span>กำลังเตรียมคนที่ใช่ให้คุณ...</span><div className="nm-swipe-loading-track"><span /></div><small>อีกนิดเดียวก็ได้เจอกัน</small></div> : swipePeople.length ? <SwipeDeck people={swipePeople} swipeRemaining={ownerPremium ? null : (swipeQuota?.remaining ?? null)} myInterests={profile?.interests || []} onLike={(x) => { if (swipeQuota?.remaining !== 0) playNisitSound('like'); return swipe(x, true) }} onSkip={(x) => swipe(x, false)} onSuperLike={superLike} onUndo={undoSwipe} canUndo={!!lastSwipe && !superBusy} onOpen={openDetail} onReport={report} verifiedIds={verifiedCampusIds} /> : empty}
             <div className="section-heading matches-heading"><div><h2>พื้นที่ของความสัมพันธ์</h2><p>เมื่อคุณ Match กับใคร แชตของคุณจะปรากฏตรงนี้</p></div></div>
             <div className="empty-state compact"><div className="empty-icon"><MessageCircle /></div><div><b>{matches.length ? `คุณมี ${matches.length} Match แล้ว` : 'ทุกความสัมพันธ์เริ่มจากการทักทาย'}</b><p>{matches.length ? 'เข้าไปเริ่มบทสนทนากับคนที่ Match กันได้เลย' : 'กดถูกใจโปรไฟล์ที่คุณสนใจ แล้วรอให้ถูกใจกันทั้งสองฝ่าย'}</p></div><button className="btn btn-ghost" onClick={() => go(matches.length ? 'messages' : 'home')}>{matches.length ? 'เปิดข้อความ' : 'ปัดต่อ'} <ArrowRight size={15} /></button></div>
           </>}
