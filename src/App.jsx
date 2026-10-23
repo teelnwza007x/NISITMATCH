@@ -810,7 +810,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     }
     loadHangoutRooms()
     // Avoid repeated Supabase reads while Safari/PWA is in the background.
-    const poll = setInterval(() => { if (document.visibilityState === 'visible') loadHangoutRooms() }, 30000)
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') loadHangoutRooms() }, 60000)
     const onVisible = () => { if (document.visibilityState === 'visible') loadHangoutRooms() }
     document.addEventListener('visibilitychange', onVisible)
     const channel = supabase.channel(`hangout-room-list-${me}`)
@@ -954,7 +954,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       const { data: receipts } = await supabase.from('hangout_message_reads').select('message_id,user_id,read_at').eq('event_id', eventId)
       if (receipts) setHangoutReadReceipts(receipts)
       } finally { fallbackBusy = false }
-    }, 15000)
+    }, 45000)
     return () => { clearInterval(fallbackPoll); supabase.removeChannel(channel) }
   }, [hangoutChatEvent?.id])
   useEffect(() => {
@@ -1141,7 +1141,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
     // Fallback for projects without Realtime publication enabled for messages.
     // Realtime is primary; use a less frequent visible-only fallback to limit
     // two queries per match on mobile connections.
-    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 90000)
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshInbox() }, 180000)
     const visible = () => { if (document.visibilityState === 'visible') refreshInbox() }
     document.addEventListener('visibilitychange', visible)
     return () => {
@@ -1156,7 +1156,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   }, [me, refreshInbox])
   const [onlineMatchIds, setOnlineMatchIds] = useState({})
   // Keep presence checks for the same 20 matches, but poll less often to reduce RPC load.
-  const presenceIds = matches.slice(0, 20).map(m => m.p?.id).filter(Boolean).join(',')
+  // Only poll the first 10 inbox presence indicators; each RPC is a database request.
+  const presenceIds = matches.slice(0, 10).map(m => m.p?.id).filter(Boolean).join(',')
   useEffect(() => {
     if (!presenceIds) { setOnlineMatchIds({}); return }
     let active = true
@@ -1179,7 +1180,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       } finally { presenceBusy = false }
     }
     refresh()
-    const timer = setInterval(refresh, 90000)
+    const timer = setInterval(refresh, 180000)
     const visible = () => { if (document.visibilityState === 'visible') refresh() }
     document.addEventListener('visibilitychange', visible)
     return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', visible) }
@@ -1195,7 +1196,7 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       if (alive) setLastSeenAt(!error && data?.[0]?.last_seen_at ? data[0].last_seen_at : null)
     }
     loadPresence()
-    const timer=setInterval(() => { if (document.visibilityState === 'visible') loadPresence() },60000)
+    const timer=setInterval(() => { if (document.visibilityState === 'visible') loadPresence() },90000)
     const onVisible = () => { if (document.visibilityState === 'visible') loadPresence() }
     document.addEventListener('visibilitychange', onVisible)
     return ()=>{alive=false;clearInterval(timer);document.removeEventListener('visibilitychange', onVisible)}
