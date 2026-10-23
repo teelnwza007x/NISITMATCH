@@ -5165,3 +5165,36 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nmSwipeNextArrive{from{opacity:.78;scale:.955;filter:brightness(.88)}to{opacity:1;scale:1;filter:brightness(1)}}
 .swipe-stage .swipe-front.nm-swipe-enter{animation:nmSwipeNextArrive 340ms cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 75%;backface-visibility:hidden}
 @media(prefers-reduced-motion:reduce){.swipe-stage .swipe-front.nm-swipe-enter{animation:none}}
+
+/* Animated swipe-limit dialog — GPU-friendly decorative motion only. */
+.nm-quota-animated{isolation:isolate;overflow:hidden;padding-top:21px;background:radial-gradient(ellipse at 50% 8%,rgba(255,86,160,.22),transparent 57%),linear-gradient(160deg,#251b32,#12111c 85%)}
+.nm-quota-animated::after{content:"";position:absolute;inset:-60% -80%;pointer-events:none;z-index:-1;background:linear-gradient(115deg,transparent 44%,rgba(255,174,211,.045) 49%,transparent 54%);animation:nmQuotaLightSweep 7s ease-in-out infinite}
+.nm-quota-close{position:absolute;right:13px;top:13px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e9d8e5;display:grid;place-items:center;cursor:pointer;z-index:2}
+.nm-quota-close:focus-visible{outline:2px solid #ffc3dd;outline-offset:2px}
+.nm-quota-hero{position:relative;display:grid;place-items:center;height:118px;width:156px;margin:0 auto 1px}
+.nm-quota-animated .nm-quota-symbol{margin:0;width:75px;height:75px;border-radius:25px;z-index:1;box-shadow:0 12px 38px rgba(248,57,132,.36),inset 0 1px 0 rgba(255,255,255,.4);animation:nmQuotaHeartFloat 3.6s ease-in-out infinite}
+.nm-quota-hero-halo{position:absolute;width:105px;height:105px;border-radius:50%;background:radial-gradient(circle,rgba(255,94,162,.28),transparent 70%);filter:blur(9px);animation:nmQuotaHalo 3.6s ease-in-out infinite}
+.nm-quota-hero-ring{position:absolute;width:104px;height:104px;border:1px solid rgba(255,139,187,.25);border-radius:50%;animation:nmQuotaRing 3.5s ease-out infinite}
+.nm-quota-hero-ring.ring-two{animation-delay:1.75s}
+.nm-quota-particle{position:absolute;width:5px;height:5px;border-radius:50%;background:#ffc1de;box-shadow:0 0 12px #ff7eb4;animation:nmQuotaTwinkle 3s ease-in-out infinite}
+.nm-quota-particle.particle-one{top:15px;left:26px}
+.nm-quota-particle.particle-two{top:31px;right:14px;animation-delay:.7s;width:4px;height:4px}
+.nm-quota-particle.particle-three{bottom:18px;left:14px;animation-delay:1.4s;width:3px;height:3px}
+.nm-quota-particle.particle-four{bottom:10px;right:28px;animation-delay:2s}
+.nm-quota-animated .nm-quota-eyebrow{display:inline-block;animation:nmQuotaRise .5s .09s both}
+.nm-quota-animated h2{font-size:clamp(23px,6vw,27px);letter-spacing:-.5px;animation:nmQuotaRise .55s .15s both}
+.nm-quota-animated .nm-quota-description{animation:nmQuotaRise .55s .2s both}
+.nm-quota-animated .nm-quota-timer{position:relative;overflow:hidden;border-color:rgba(255,145,194,.22);background:linear-gradient(140deg,rgba(255,105,171,.11),rgba(255,255,255,.035));animation:nmQuotaRise .55s .27s both}
+.nm-quota-animated .nm-quota-countdown{font-variant-numeric:tabular-nums;text-shadow:0 0 24px rgba(255,107,168,.3)}
+.nm-quota-animated .nm-quota-premium-offer{animation:nmQuotaRise .55s .34s both}
+.nm-quota-animated .nm-quota-premium-action{position:relative;overflow:hidden}
+.nm-quota-animated .nm-quota-premium-action::after{content:"";position:absolute;top:0;bottom:0;left:-65%;width:35%;transform:skewX(-22deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);animation:nmQuotaButtonShine 4.5s ease-in-out infinite;pointer-events:none}
+.nm-quota-animated .nm-quota-confirm{animation:nmQuotaRise .55s .41s both}
+@keyframes nmQuotaHeartFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-7px) rotate(3deg)}}
+@keyframes nmQuotaHalo{0%,100%{opacity:.55;transform:scale(.88)}50%{opacity:1;transform:scale(1.13)}}
+@keyframes nmQuotaRing{0%{opacity:.7;transform:scale(.6)}75%,100%{opacity:0;transform:scale(1.6)}}
+@keyframes nmQuotaTwinkle{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1.5)}}
+@keyframes nmQuotaRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nmQuotaLightSweep{0%,35%,100%{transform:translateX(-32%)}60%{transform:translateX(32%)}}
+@keyframes nmQuotaButtonShine{0%,55%,100%{left:-65%}75%{left:135%}}
+@media(prefers-reduced-motion:reduce){.nm-quota-animated,.nm-quota-animated::after,.nm-quota-animated .nm-quota-symbol,.nm-quota-hero-halo,.nm-quota-hero-ring,.nm-quota-particle,.nm-quota-animated .nm-quota-eyebrow,.nm-quota-animated h2,.nm-quota-animated .nm-quota-description,.nm-quota-animated .nm-quota-timer,.nm-quota-animated .nm-quota-premium-offer,.nm-quota-animated .nm-quota-confirm,.nm-quota-animated .nm-quota-premium-action::after{animation:none!important}}
