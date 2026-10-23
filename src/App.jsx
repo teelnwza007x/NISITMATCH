@@ -2758,6 +2758,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   abac: { name: 'มหาวิทยาลัยอัสสัมชัญ', domains: ['au.edu'] },
   cmu: { name: 'มหาวิทยาลัยเชียงใหม่', domains: ['cmu.ac.th'] },
   cmru: { name: 'มหาวิทยาลัยราชภัฏเชียงใหม่', domains: ['cmru.ac.th'] },
+  bru: { name: 'มหาวิทยาลัยราชภัฏบุรีรัมย์', domains: ['live.bru.ac.th'] },
   rmuti: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน', domains: ['rmuti.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4utcc.ac.th'] },
   up: { name: 'มหาวิทยาลัยพะเยา', domains: ['up.ac.th'] },
