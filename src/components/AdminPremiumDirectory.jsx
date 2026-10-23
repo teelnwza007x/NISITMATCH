@@ -9,6 +9,13 @@ export default function AdminPremiumDirectory() {
   const [active, setActive] = useState(0)
   const [sources, setSources] = useState([])
   const [sourceError, setSourceError] = useState('')
+  const [targetQuery, setTargetQuery] = useState('')
+  const [targetResults, setTargetResults] = useState([])
+  const [targetLoading, setTargetLoading] = useState(false)
+  const [grantDays, setGrantDays] = useState('7')
+  const [grantingUser, setGrantingUser] = useState('')
+  const [grantMessage, setGrantMessage] = useState('')
+  const [grantError, setGrantError] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const reload = useCallback(async () => {
@@ -25,6 +32,29 @@ export default function AdminPremiumDirectory() {
     else { setSourceError(''); setSources(sourceSummary.data || []) }
     setLoading(false)
   }, [search, page])
+  const searchUsers = async () => {
+    const q = targetQuery.trim()
+    if (!q) { setTargetResults([]); setGrantError('กรอกชื่อหรืออีเมลของสมาชิกก่อน'); return }
+    setTargetLoading(true); setGrantError(''); setGrantMessage('')
+    const { data, error: err } = await supabase.rpc('nm_admin_search_premium_users', { p_search: q })
+    if (err) { setGrantError('ค้นหาสมาชิกไม่สำเร็จ: ' + err.message); setTargetResults([]) }
+    else { setTargetResults(data || []); if (!(data || []).length) setGrantError('ไม่พบสมาชิกที่ค้นหา') }
+    setTargetLoading(false)
+  }
+  const grantPremium = async user => {
+    const days = Number(grantDays)
+    const label = user.display_name || user.email || user.user_id
+    if (!window.confirm('ยืนยันเพิ่ม Premium ให้ ' + label + ' อีก ' + days + ' วันหรือไม่? หากมี Premium อยู่แล้ว ระบบจะต่ออายุจากวันหมดอายุเดิม')) return
+    setGrantingUser(user.user_id); setGrantError(''); setGrantMessage('')
+    const { data, error: err } = await supabase.rpc('nm_admin_grant_premium', { p_user_id: user.user_id, p_days: days })
+    if (err) setGrantError('เพิ่ม Premium ไม่สำเร็จ: ' + err.message)
+    else {
+      setGrantMessage('เพิ่ม Premium ให้ ' + label + ' สำเร็จ หมดอายุ ' + (data ? new Date(data).toLocaleString('th-TH') : 'ตามระบบ'))
+      await searchUsers()
+      await reload()
+    }
+    setGrantingUser('')
+  }
   const sourceLabel = provider => {
     const value = String(provider || '').toLowerCase()
     if (value === 'referral') return 'ชวนเพื่อน'
@@ -47,6 +77,31 @@ export default function AdminPremiumDirectory() {
         <span style={{fontSize:12,opacity:.72}}>ทั้งหมด · ใช้งาน {Number(source.active_count || 0).toLocaleString('th-TH')} คน</span>
       </article>)}
     </div>}
+    <div style={{border:'1px solid #a78bfa55',borderRadius:16,padding:14,margin:'16px 0',background:'linear-gradient(145deg,#8b5cf610,#ffffff04)'}}>
+      <h4 style={{margin:'0 0 6px'}}>เพิ่ม Premium ให้สมาชิก</h4>
+      <p style={{fontSize:12,opacity:.75,margin:'0 0 12px'}}>ค้นหาด้วยชื่อหรืออีเมล แล้วเลือกจำนวนวันที่ต้องการให้สิทธิ์</p>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <input aria-label="ค้นหาผู้ใช้เพื่อเพิ่ม Premium" placeholder="ชื่อสมาชิกหรืออีเมล" value={targetQuery}
+          onChange={e=>setTargetQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();searchUsers()}}}
+          style={{flex:'1 1 220px',minWidth:0,padding:12,borderRadius:12}}/>
+        <select aria-label="จำนวนวัน Premium" value={grantDays} onChange={e=>setGrantDays(e.target.value)} style={{padding:10,borderRadius:12}}>
+          <option value="1">1 วัน</option><option value="3">3 วัน</option><option value="7">7 วัน</option><option value="14">14 วัน</option><option value="30">30 วัน</option><option value="90">90 วัน</option><option value="365">365 วัน</option>
+        </select>
+        <button type="button" className="btn btn-ghost" onClick={searchUsers} disabled={targetLoading}>{targetLoading?'กำลังค้นหา…':'ค้นหาสมาชิก'}</button>
+      </div>
+      {grantError && <p role="alert" style={{color:'#fda4af',fontSize:13}}>{grantError}</p>}
+      {grantMessage && <p role="status" style={{color:'#86efac',fontSize:13}}>{grantMessage}</p>}
+      {targetResults.length>0 && <div style={{marginTop:12,display:'grid',gap:8}}>
+        {targetResults.map(user=><div key={user.user_id} style={{display:'flex',gap:10,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',padding:10,border:'1px solid #ffffff18',borderRadius:12}}>
+          <div style={{minWidth:0,flex:'1 1 180px'}}>
+            <strong style={{display:'block',overflowWrap:'anywhere'}}>{user.display_name || 'ไม่มีชื่อ'}</strong>
+            <span style={{display:'block',fontSize:12,opacity:.7,overflowWrap:'anywhere'}}>{user.email || user.user_id}</span>
+            <span style={{display:'block',fontSize:12,opacity:.7}}>{user.premium_active?'มี Premium อยู่':'ยังไม่มี Premium'}{user.premium_ends_at?' · หมดอายุ '+new Date(user.premium_ends_at).toLocaleDateString('th-TH'):''}</span>
+          </div>
+          <button type="button" className="btn" disabled={!!grantingUser} onClick={()=>grantPremium(user)}>{grantingUser===user.user_id?'กำลังเพิ่ม…':'เพิ่ม '+grantDays+' วัน'}</button>
+        </div>)}
+      </div>}
+    </div>
     <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
       <input aria-label="ค้นหาสมาชิก Premium" placeholder="ค้นหาชื่อสมาชิก" value={search}
         onChange={e => {setSearch(e.target.value);setPage(0)}}
