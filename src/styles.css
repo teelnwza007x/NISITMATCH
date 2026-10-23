@@ -5105,3 +5105,8 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media(prefers-reduced-motion:reduce){
   .chat-person,.chat-header .icon-btn,.send-btn,.chat-media-btn{transition:none!important}
 }
+
+/* Mobile notification bell: one compact count, no overlapping status badge. */
+.app-shell.home-swipe-locked .nm-discover-notifications{position:relative!important;isolation:isolate!important;overflow:visible!important}
+.app-shell.home-swipe-locked .nm-discover-notifications .nm-discover-unread{position:absolute!important;top:-5px!important;right:-5px!important;left:auto!important;bottom:auto!important;min-width:17px!important;width:auto!important;height:17px!important;padding:0 4px!important;box-sizing:border-box!important;border-radius:999px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#ec4899!important;border:2px solid #17131f!important;color:#fff!important;font-size:9px!important;font-weight:700!important;line-height:1!important;transform:none!important;animation:none!important;z-index:2!important;box-shadow:none!important}
+.app-shell.home-swipe-locked .nm-discover-notifications .nm-discover-unread-dot{display:none!important}
