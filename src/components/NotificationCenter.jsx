@@ -25,7 +25,7 @@ const FILTERS = [
   { id: 'announcements', label: 'ประกาศ' }
 ]
 
-export default function NotificationCenter({ onNavigate }) {
+export default function NotificationCenter({ onNavigate, onReadChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -67,6 +67,7 @@ export default function NotificationCenter({ onNavigate }) {
         return
       }
       setItems(old => old.map(x => x.key === item.key ? { ...x, read: true } : x))
+      onReadChange?.()
     }
     setWorking('')
     onNavigate?.(item.target === '/announcements' ? 'announcements' : item.target === '/admin' ? 'admin' : 'messages')
@@ -83,6 +84,7 @@ export default function NotificationCenter({ onNavigate }) {
       const keySet = new Set(keys)
       setItems(old => old.map(item => keySet.has(item.key) ? { ...item, read: true } : item))
       setError('')
+      onReadChange?.()
     }
     setWorking('')
   }
