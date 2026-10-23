@@ -102,14 +102,29 @@ create or replace function public.nm_mark_all_notifications_read(p_keys text[])
 returns boolean
 language plpgsql security definer set search_path = ''
 as $$
-declare
-  v_key text;
 begin
   if auth.uid() is null then raise exception 'Not authenticated'; end if;
   if coalesce(cardinality(p_keys), 0) > 100 then raise exception 'Too many notification keys'; end if;
-  foreach v_key in array coalesce(p_keys, array[]::text[]) loop
-    perform public.nm_mark_notification_read(v_key);
-  end loop;
+
+  insert into public.nm_notification_reads (user_id, notification_key)
+  select auth.uid(), k.notification_key
+  from (
+    select distinct unnest(coalesce(p_keys, array[]::text[])) as notification_key
+  ) k
+  where length(k.notification_key) between 1 and 100
+    and (
+      (k.notification_key like 'push:%' and exists (
+        select 1 from public.push_queue q
+        where q.user_id = auth.uid()
+          and 'push:' || q.id::text = k.notification_key
+      ))
+      or
+      (k.notification_key like 'announcement:%' and exists (
+        select 1 from public.nm_announcements a
+        where 'announcement:' || a.id::text = k.notification_key
+      ))
+    )
+  on conflict (user_id, notification_key) do nothing;
   return true;
 end;
 $$;
