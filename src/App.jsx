@@ -508,6 +508,7 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
   const noRef = useRef(null)
   const busyRef = useRef(false)
   const person = people[0]
+  const [enteringPersonId, setEnteringPersonId] = useState(null)
   useEffect(() => { for (const next of people.slice(1, 3)) preloadImage(swipePhotoUrl(next.avatar_path || next.photo_paths?.[0])) }, [people[1]?.id, people[2]?.id])
   const paint = useCallback((x, y, animate = false) => {
     const card = cardRef.current
@@ -524,6 +525,13 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
   useEffect(() => () => cancelAnimationFrame(dragFrame.current), [])
   useEffect(() => { cancelAnimationFrame(dragFrame.current); dragFrame.current = 0 }, [person?.id])
   useLayoutEffect(() => {
+    if (person?.id) {
+      setEnteringPersonId(person.id)
+      requestAnimationFrame(() => setEnteringPersonId(null))
+      // Ensure the entry class only lasts one paint; CSS handles the motion.
+      // A new profile resets this effect even when the deck stays mounted.
+      setPhoto(0)
+    }
     setPhoto(0)
     setSuperBurst(false)
     setShowSwipeMenu(false)
@@ -661,7 +669,7 @@ function SwipeDeck({ people, swipeRemaining = null, quotaDialogOpen = false, myI
   if (!person) return <div className="swipe-empty"><Heart size={40}/><h2>ดูครบทุกโปรไฟล์แล้ว</h2><p>ลองปรับตัวกรองเพื่อพบคนใหม่ ๆ</p></div>
   return <div className="swipe-stage"><div className="swipe-stack" aria-label="ปัดโปรไฟล์">
     {people[1] && <div className="swipe-card swipe-behind"><img className="swipe-behind-image" src={swipePhotoUrl(people[1].avatar_path || people[1].photo_paths?.[0]) || ph(people[1].display_name)} alt="" loading="eager" fetchPriority="high" decoding="async" draggable="false" /></div>}
-    <article className="swipe-card swipe-front" ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
+    <article className={'swipe-card swipe-front' + (enteringPersonId === person?.id ? ' nm-swipe-enter' : '')} ref={cardRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; cancelAnimationFrame(dragFrame.current); dragFrame.current = 0; dragNow.current = { x: 0, y: 0 }; paint(0, 0, true) }} style={{ touchAction: 'none' }}>
       {photoItems[photo]?.type === 'video' ? <TapSoundVideo key={photoItems[photo].key} className="swipe-media-video" draggable="false" onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} src={mediaPub(photoItems[photo].path)} label={`วิดีโอของ ${person.display_name}`} /> : <img draggable="false" src={swipePhotoUrl(photoItems[photo]?.path) || ph(person.display_name)} alt={person.display_name} loading="eager" fetchPriority="high" decoding="async" onError={(e) => { const original = pub(photoItems[photo]?.path); if (original && e.currentTarget.src !== original) { e.currentTarget.src = original; return } e.currentTarget.onerror = null; e.currentTarget.src = ph(person.display_name) }} />}
       <div className="swipe-photo-bars">{(photoItems.length ? photoItems : [null]).map((_, i) => <span key={photoItems[i]?.key || i} className={i === photo ? 'active' : ''}/>)}</div>
       <button type="button" className={'swipe-more-trigger ' + (showSwipeMenu ? 'active' : '')} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setShowSwipeMenu(v => !v) }} aria-label="ตัวเลือกโปรไฟล์" aria-expanded={showSwipeMenu} title="ตัวเลือกเพิ่มเติม"><MoreHorizontal size={22}/></button>
