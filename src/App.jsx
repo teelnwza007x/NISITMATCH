@@ -3954,7 +3954,7 @@ function SiteVisitorPresence() {
 
 function AppContent() {
   const [authCallback, setAuthCallback] = useState(() => isAuthCallbackPath())
-  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [authInitTimedOut, setAuthInitTimedOut] = useState(false), [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false), [view, setView] = useState(() => window.location.pathname === '/notifications' ? 'notifications' : window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
+  const [session, setSession] = useState(undefined), [profile, setProfile] = useState(undefined), [authInitTimedOut, setAuthInitTimedOut] = useState(false), [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false), [profileLoadAttempt, setProfileLoadAttempt] = useState(0), [view, setView] = useState(() => window.location.pathname === '/notifications' ? 'notifications' : window.location.pathname === '/announcements' ? 'announcements' : 'home'), [profileVisited, setProfileVisited] = useState(false), [modal, setModal] = useState(''), [toast, setToast] = useState(null), [nav, setNav] = useState(false)
   // Reset page position after the new view is committed, including direct route changes.
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
@@ -4164,7 +4164,7 @@ function AppContent() {
     if (!userId || profile !== undefined) { setProfileLoadTimedOut(false); return }
     const timeout = window.setTimeout(() => setProfileLoadTimedOut(true), 12000)
     return () => window.clearTimeout(timeout)
-  }, [userId, profile])
+  }, [userId, profile, profileLoadAttempt])
   const loadUnread = useCallback(async () => { if (!userId) return; const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false).in('type', ['interest', 'match', 'hangout_message']); setUnread(count || 0) }, [userId])
   // Message badges are separate from activity notifications: unread chat messages
   // animate the Messages tab, without generating a noisy notification for each text.
@@ -4739,7 +4739,7 @@ const loadMatches = useCallback(async () => {
     ? <main className="page-center" role="alert"><section className="empty-state"><h3>เชื่อมต่อระบบไม่สำเร็จ</h3><p>ระบบยืนยันตัวตนตอบกลับช้า อาจเป็นปัญหาชั่วคราวของเซิร์ฟเวอร์ ข้อมูลของคุณยังไม่ถูกลบ</p><button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>ลองเชื่อมต่ออีกครั้ง</button></section></main>
     : <div className="page-center"><span className="spin" /></div>
   if (user && profile === undefined) return profileLoadTimedOut
-    ? <main className="page-center" role="alert"><section className="empty-state"><h3>โหลดโปรไฟล์ไม่สำเร็จ</h3><p>ระบบยังติดต่อฐานข้อมูลไม่ได้ ลองโหลดโปรไฟล์ใหม่โดยไม่ต้องออกจากระบบ</p><button type="button" className="btn btn-primary" onClick={() => loadProfile()}>ลองอีกครั้ง</button></section></main>
+    ? <main className="page-center" role="alert"><section className="empty-state"><h3>โหลดโปรไฟล์ไม่สำเร็จ</h3><p>ระบบยังติดต่อฐานข้อมูลไม่ได้ ลองโหลดโปรไฟล์ใหม่โดยไม่ต้องออกจากระบบ</p><button type="button" className="btn btn-primary" onClick={() => { setProfileLoadTimedOut(false); setProfileLoadAttempt(attempt => attempt + 1); loadProfile() }}>ลองอีกครั้ง</button></section></main>
     : <div className="page-center"><span className="spin" /></div>
   if (authCallback) return <AuthLinkScreen onFinished={() => { clearAuthCallbackUrl(); setAuthCallback(false) }} />
   if (!user) return <><Landing onLogin={() => setModal('login')} onRegister={() => setModal('register')} />{modal && <AuthModal mode={modal} setMode={setModal} close={() => setModal('')} notify={notify} />}{Toast}</>
