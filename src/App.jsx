@@ -3772,20 +3772,40 @@ function PremiumListPage({ kind, user, notify, onOpenProfile, onGoPremium }) {
   const [locked, setLocked] = useState(false)
   useEffect(() => {
     let active = true
-    const rpc = kind === 'likes' ? 'get_received_likes' : 'get_profile_visitors'
-    supabase.rpc(rpc).then(({data,error}) => {
-      if (!active) return
-      setLoading(false)
-      if (error) {
-        const msg = String(error.message || '').toLowerCase()
-        if (msg.includes('premium') || msg.includes('subscription')) setLocked(true)
-        else notify(`โหลดข้อมูลไม่สำเร็จ: ${error.message} · ตรวจว่าได้รัน SQL v76 แล้ว`)
-        return
+    const load = async () => {
+      try {
+        // Check the caller's entitlement first. Avoid intentionally throwing a
+        // PostgreSQL exception just to discover that this Premium-only page is locked.
+        const { data: premium, error: premiumError } = await supabase.rpc('is_profile_premium', { p_profile_id: user?.id })
+        if (!active) return
+        if (premiumError) {
+          setLoading(false)
+          notify(`ตรวจสอบสถานะ Premium ไม่สำเร็จ: ${premiumError.message}`)
+          return
+        }
+        if (premium !== true) {
+          setLocked(true)
+          setLoading(false)
+          return
+        }
+        const rpc = kind === 'likes' ? 'get_received_likes' : 'get_profile_visitors'
+        const { data, error } = await supabase.rpc(rpc)
+        if (!active) return
+        setLoading(false)
+        if (error) {
+          const msg = String(error.message || '').toLowerCase()
+          if (msg.includes('premium') || msg.includes('subscription')) setLocked(true)
+          else notify(`โหลดข้อมูลไม่สำเร็จ: ${error.message} · ตรวจว่าได้รัน SQL v76 แล้ว`)
+          return
+        }
+        setItems(data || [])
+      } catch {
+        if (active) { setLoading(false); notify('เชื่อมต่อข้อมูลไม่สำเร็จ') }
       }
-      setItems(data || [])
-    }).catch(() => { if (active) { setLoading(false); notify('เชื่อมต่อข้อมูลไม่สำเร็จ') } })
+    }
+    load()
     return () => { active = false }
-  }, [kind, notify])
+  }, [kind, notify, user?.id])
   const isLikes = kind === 'likes'
   return <div className="v76-page"><Heading kicker={isLikes?'YOUR ADMIRERS':'PROFILE VISITORS'} title={isLikes?'คนที่กดใจคุณ':'คนที่เข้าชมโปรไฟล์'} sub={isLikes?'คนที่ส่งหัวใจมาให้คุณ อาจเป็นคนที่กำลังรอให้คุณทัก':'ดูคนที่แวะเข้ามาดูโปรไฟล์ของคุณ'} />
     {locked ? <div className="v76-locked-panel"><div className="v76-lock-icon"><Crown size={28}/></div><h2>ฟีเจอร์สำหรับ Premium</h2><p>อัปเกรดเพื่อดูรายชื่อแบบเต็ม โดยข้อมูลจะแสดงเมื่อระบบ Premium เปิดใช้งานและตรวจสอบสิทธิ์แล้ว</p><button className="v76-primary-cta" onClick={onGoPremium}>ดูแพ็กเกจ Premium <ArrowRight size={17}/></button></div> : loading ? <div className="page-center"><span className="spin"/></div> : items.length ? <div className="v76-people-grid">{items.map(item => <button className="v76-person-row" key={item.id} onClick={()=>onOpenProfile(item)}><Av u={item} cls="v76-person-avatar"/><span><b>{item.display_name}{item.age?`, ${item.age}`:''}</b><small>{uniName(item.university_id)}{item.faculty?` · ${item.faculty}`:''}</small><small>{item.viewed_at?`เข้าชม ${new Date(item.viewed_at).toLocaleDateString('th-TH')}`:item.liked_at?`กดใจ ${new Date(item.liked_at).toLocaleDateString('th-TH')}`:''}</small></span><ArrowRight size={17}/></button>)}</div> : <div className="v76-empty"><div><HeartHandshake size={30}/></div><h2>{isLikes?'ยังไม่มีคนกดใจที่แสดงได้':'ยังไม่มีผู้เข้าชมที่แสดงได้'}</h2><p>{isLikes?'เมื่อมีคนกดใจคุณ รายชื่อจะแสดงตรงนี้เมื่อ Premium พร้อมใช้งาน':'เมื่อมีคนเปิดโปรไฟล์ รายชื่อจะเริ่มปรากฏที่นี่'}</p></div>}
