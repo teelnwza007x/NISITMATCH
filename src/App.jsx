@@ -1083,19 +1083,42 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
   // v50: independent inbox previews and per-room unread counters.
   const [inbox, setInbox] = useState({})
   const inboxRequest = useRef(0)
+  const inboxRefreshInFlight = useRef(false)
+  const inboxRefreshQueued = useRef(false)
+  const inboxRefreshTimer = useRef(null)
+  const inboxRefreshRunner = useRef(null)
   const refreshInbox = useCallback(async () => {
     if (document.visibilityState === 'hidden') return
     if (!me || !matches.length) { setInbox({}); return }
+    // Coalesce overlapping refreshes so a slow database response cannot cause
+    // multiple full inbox query batches to run at the same time.
+    if (inboxRefreshInFlight.current) { inboxRefreshQueued.current = true; return }
+    inboxRefreshInFlight.current = true
     const request = ++inboxRequest.current
-    const results = await Promise.all(matches.map(async m => {
-      const [latest, unread] = await Promise.all([
-        supabase.from('messages').select('id,body,sender_id,attachment_type,created_at').eq('match_id', m.id).order('created_at', { ascending: false }).limit(1),
-        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('match_id', m.id).neq('sender_id', me).is('read_at', null)
-      ])
-      return [m.id, { last: latest.data?.[0] || null, unread: unread.count || 0 }]
-    }))
-    if (request === inboxRequest.current) setInbox(previous => { const next = Object.fromEntries(results); return JSON.stringify(previous) === JSON.stringify(next) ? previous : next })
+    try {
+      const results = await Promise.all(matches.map(async m => {
+        const [latest, unread] = await Promise.all([
+          supabase.from('messages').select('id,body,sender_id,attachment_type,created_at').eq('match_id', m.id).order('created_at', { ascending: false }).limit(1),
+          supabase.from('messages').select('id', { count: 'exact', head: true }).eq('match_id', m.id).neq('sender_id', me).is('read_at', null)
+        ])
+        return [m.id, { last: latest.data?.[0] || null, unread: unread.count || 0 }]
+      }))
+      if (request === inboxRequest.current) setInbox(previous => { const next = Object.fromEntries(results); return JSON.stringify(previous) === JSON.stringify(next) ? previous : next })
+    } catch (error) {
+      console.warn('Inbox refresh failed:', error)
+    } finally {
+      inboxRefreshInFlight.current = false
+      if (inboxRefreshQueued.current) {
+        inboxRefreshQueued.current = false
+        if (inboxRefreshTimer.current) clearTimeout(inboxRefreshTimer.current)
+        inboxRefreshTimer.current = setTimeout(() => {
+          inboxRefreshTimer.current = null
+          inboxRefreshRunner.current?.()
+        }, 350)
+      }
+    }
   }, [me, matches])
+  inboxRefreshRunner.current = refreshInbox
   useEffect(() => {
     refreshInbox()
     // Debounce bursts of Realtime message events. The messages table is shared
@@ -1122,6 +1145,8 @@ function Messages({ me, matches, notify, reload, onOpenProfile, onMessagesRead, 
       inboxRequest.current++
       clearInterval(poll)
       if (inboxRefreshTimer) clearTimeout(inboxRefreshTimer)
+      if (inboxRefreshTimer.current) clearTimeout(inboxRefreshTimer.current)
+      inboxRefreshQueued.current = false
       document.removeEventListener('visibilitychange', visible)
       supabase.removeChannel(channel)
     }
