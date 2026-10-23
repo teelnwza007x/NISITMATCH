@@ -2974,9 +2974,30 @@ function PushPermissionCard({ user }) {
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext) { setState('unsupported'); return }
     if (Notification.permission === 'denied') { setState('denied'); return }
-    if (localStorage.getItem(dismissedKey) === 'later') { setState('later'); return }
     let active = true
-    navigator.serviceWorker.getRegistration().then(reg => reg?.pushManager.getSubscription()).then(sub => { if (active) setState(sub ? 'enabled' : 'invite') }).catch(() => { if (active) setState('invite') })
+    // A browser subscription is not proof that this user has a valid DB row.
+    // Re-register it on login/app launch, including after account switches.
+    const check = async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration()
+        const sub = await reg?.pushManager.getSubscription()
+        if (!active) return
+        if (sub && Notification.permission === 'granted') {
+          const json = sub.toJSON()
+          if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) throw new Error('Incomplete push subscription')
+          const { error } = await supabase.from('push_subscriptions').upsert({
+            user_id: user.id, endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth
+          }, { onConflict: 'endpoint' })
+          if (error) throw error
+          if (active) setState('enabled')
+        } else if (active) {
+          setState(localStorage.getItem(dismissedKey) === 'later' ? 'later' : 'invite')
+        }
+      } catch {
+        if (active) setState('invite')
+      }
+    }
+    check()
     return () => { active = false }
   }, [dismissedKey])
   const allow = async () => {
