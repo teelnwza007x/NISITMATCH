@@ -2804,7 +2804,8 @@ const VERIFIED_CAMPUS_DOMAINS = {
   dusit: { name: 'มหาวิทยาลัยสวนดุสิต', domains: ['mail.dusit.ac.th', 'suandusit.ac.th'] },
   abac: { name: 'มหาวิทยาลัยอัสสัมชัญ', domains: ['au.edu'] },
   cmu: { name: 'มหาวิทยาลัยเชียงใหม่', domains: ['cmu.ac.th'] },
-  cmru: { name: 'มหาวิทยาลัยราชภัฏเชียงใหม่', domains: ['cmru.ac.th'] },
+  cmru: { name: 'มหาวิทยาลัยราชภัฏเชียงใหม่', domains: ['g.cmru.ac.th'] },
+  sut: { name: 'มหาวิทยาลัยเทคโนโลยีสุรนารี', domains: ['sut.ac.th'] },
   bru: { name: 'มหาวิทยาลัยราชภัฏบุรีรัมย์', domains: ['live.bru.ac.th'] },
   rmuti: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน', domains: ['rmuti.ac.th'] },
   utcc: { name: 'มหาวิทยาลัยหอการค้าไทย', domains: ['live4.utcc.ac.th'] },
@@ -2829,7 +2830,7 @@ function CampusEmailVerification({ user }) {
   const [campusSearch, setCampusSearch] = useState('')
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
-    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','wu','nmu','ssru','catc','ru','mju','npru','cmu','cmru','bru','dusit']],
+    ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','wu','sut','nmu','ssru','catc','ru','mju','npru','cmu','cmru','bru','dusit']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt','rmutto','rmuti']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu','abac']]
   ]
