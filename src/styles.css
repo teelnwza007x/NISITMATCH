@@ -5416,3 +5416,17 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     border-top: 1px solid rgba(255,255,255,.09) !important;
   }
 }
+
+/* iOS Home Screen: standalone viewport can be shorter than the physical screen.
+   Use the measured screen height only in standalone mode to eliminate the dead
+   strip below navigation, while preserving the safe-area padding for controls. */
+@media (max-width: 800px) and (display-mode: standalone) {
+  html:has(.app-shell), body:has(.app-shell), #root:has(.app-shell) {
+    height: var(--nm-standalone-screen-height, 100dvh) !important;
+  }
+  .app-shell {
+    height: var(--nm-standalone-screen-height, 100dvh) !important;
+    max-height: var(--nm-standalone-screen-height, 100dvh) !important;
+    min-height: var(--nm-standalone-screen-height, 100dvh) !important;
+  }
+}
