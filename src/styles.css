@@ -5449,3 +5449,28 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     min-height: calc(76px + max(54px, env(safe-area-inset-top, 0px))) !important;
   }
 }
+
+/* Profile basic fields: prevent iOS date input intrinsic width from overlapping gender. */
+.nm-tab-form .form-row:has(input[type="date"]):has(select) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.nm-tab-form .form-row:has(input[type="date"]):has(select) > label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+.nm-tab-form .form-row:has(input[type="date"]):has(select) input[type="date"],
+.nm-tab-form .form-row:has(input[type="date"]):has(select) select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 380px) {
+  .nm-tab-form .form-row:has(input[type="date"]):has(select) { gap: 8px; }
+}
