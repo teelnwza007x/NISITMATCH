@@ -5444,7 +5444,7 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
   }
 }
 @media (max-width: 800px) and (display-mode: standalone) {
-  body > .chat-layout.chat-room-open.chat-fullscreen:not(.chat-keyboard-open) .chat-header {
+  body > .chat-layout.chat-room-open.chat-fullscreen .chat-header {
     padding-top: calc(12px + max(54px, env(safe-area-inset-top, 0px))) !important;
     min-height: calc(76px + max(54px, env(safe-area-inset-top, 0px))) !important;
   }
