@@ -4355,6 +4355,37 @@ function AppContent() {
     return () => { active = false; window.clearTimeout(timeout); data.subscription.unsubscribe() }
   }, [])
   useEffect(() => { if (userId) setModal('') }, [userId])
+  const [campusGate, setCampusGate] = useState({ loading: false, required: false, university: '', selected: '', busy: false, error: '' })
+  useEffect(() => {
+    let active = true
+    if (!userId || !profile?.id) { setCampusGate({ loading: false, required: false, university: '', selected: '', busy: false, error: '' }); return }
+    const options = UNIVERSITY_CAMPUSES[profile.university_id]
+    if (!options?.length || options.some(option => option.id === profile.campus)) { setCampusGate({ loading: false, required: false, university: '', selected: '', busy: false, error: '' }); return }
+    setCampusGate({ loading: true, required: false, university: '', selected: '', busy: false, error: '' })
+    supabase.from('student_verifications').select('status,university_id').eq('user_id', userId).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return
+        if (error) { setCampusGate({ loading: false, required: false, university: '', selected: '', busy: false, error: '' }); return }
+        const verifiedUniversity = data?.status === 'verified' ? data.university_id : ''
+        const required = verifiedUniversity === profile.university_id && !!UNIVERSITY_CAMPUSES[verifiedUniversity]?.length
+        setCampusGate({ loading: false, required, university: required ? verifiedUniversity : '', selected: '', busy: false, error: '' })
+      }).catch(() => { if (active) setCampusGate({ loading: false, required: false, university: '', selected: '', busy: false, error: '' }) })
+    return () => { active = false }
+  }, [userId, profile?.id, profile?.university_id, profile?.campus])
+  const saveRequiredCampus = async () => {
+    const university = campusGate.university
+    if (!UNIVERSITY_CAMPUSES[university]?.some(option => option.id === campusGate.selected)) {
+      setCampusGate(prev => ({ ...prev, error: 'กรุณาเลือกวิทยาเขตของคุณ' })); return
+    }
+    if (campusGate.busy || !userId || profile?.university_id !== university) return
+    setCampusGate(prev => ({ ...prev, busy: true, error: '' }))
+    const { data, error } = await supabase.from('profiles').update({ campus: campusGate.selected }).eq('id', userId).eq('university_id', university).select('id,campus').maybeSingle()
+    if (error || !data || data.campus !== campusGate.selected) {
+      setCampusGate(prev => ({ ...prev, busy: false, error: 'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง' })); return
+    }
+    setProfile(prev => ({ ...prev, campus: data.campus }))
+    setCampusGate(prev => ({ ...prev, required: false, busy: false }))
+  }
   const loadProfile = useCallback(async () => { if (!userId) return; setProfileLoadTimedOut(false); const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle(); if (error) { notify('โหลดโปรไฟล์ไม่สำเร็จ: ' + error.message); return } setProfile(data) }, [userId, notify])
   useEffect(() => {
     if (!userId || profile !== undefined) { setProfileLoadTimedOut(false); return }
@@ -5061,6 +5092,19 @@ function AppStartupLoading({ message = 'กำลังเตรียมพื�
   if (!user) return <><Landing onLogin={() => setModal('login')} onRegister={() => setModal('register')} />{modal && <AuthModal mode={modal} setMode={setModal} close={() => setModal('')} notify={notify} />}{Toast}</>
   if (!profile) return <main className="page-content onboard"><ProfilePage user={user} onboarding onSaved={loadProfile} notify={notify} /><button className="btn btn-ghost btn-small" onClick={() => supabase.auth.signOut()}><LogOut size={14} /> ออกจากระบบ</button>{Toast}</main>
 
+  if (campusGate.loading) return <AppStartupLoading message="กำลังตรวจสอบวิทยาเขต..." />
+  if (campusGate.required) return <main className="nm-campus-gate-page"><section className="nm-campus-gate-card" role="dialog" aria-modal="true" aria-labelledby="campus-gate-title">
+    <div className="nm-campus-gate-orb"><GraduationCap size={32}/></div>
+    <span className="nm-campus-gate-eyebrow"><ShieldCheck size={15}/> VERIFIED STUDENT · NISIT MATCH</span>
+    <h1 id="campus-gate-title">วิทยาเขตของคุณ <span>✦</span></h1>
+    <p className="nm-campus-gate-subtitle">ยืนยันอีเมลมหาวิทยาลัยสำเร็จแล้ว! เลือกวิทยาเขตที่คุณศึกษาอยู่เพื่อเริ่มค้นพบคนใกล้ตัว</p>
+    <div className="nm-campus-gate-school"><GraduationCap size={19}/><div><small>มหาวิทยาลัยที่ยืนยันแล้ว</small><strong>{uniName(campusGate.university)}</strong></div><ShieldCheck size={19}/></div>
+    <div className="nm-campus-gate-label">เลือกวิทยาเขต <span>จำเป็น</span></div>
+    <div className="nm-campus-gate-options">{(UNIVERSITY_CAMPUSES[campusGate.university] || []).map(option => <button key={option.id} type="button" className={'nm-campus-gate-option' + (campusGate.selected === option.id ? ' active' : '')} aria-pressed={campusGate.selected === option.id} onClick={() => setCampusGate(prev => ({ ...prev, selected: option.id, error: '' }))}><MapPin size={18}/><span>{option.name}</span><span className="nm-campus-gate-radio">{campusGate.selected === option.id && <Check size={13}/>}</span></button>)}</div>
+    {campusGate.error && <p className="nm-campus-gate-error" role="alert">{campusGate.error}</p>}
+    <button type="button" className="nm-campus-gate-submit" disabled={!campusGate.selected || campusGate.busy} onClick={saveRequiredCampus}>{campusGate.busy ? 'กำลังบันทึก...' : 'ยืนยันวิทยาเขต'} <ArrowRight size={18}/></button>
+    <p className="nm-campus-gate-footnote"><LockKeyhole size={13}/> เลือกเพียงครั้งเดียว · ไม่ต้องยืนยันอีเมลใหม่</p>
+  </section>{Toast}</main>
   if (discoveryReady && discoveryEditing) return <PreferencesEditor initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
   if (discoveryReady && !discovery) return <DiscoverySetup initial={discovery} profile={profile} onSave={saveDiscovery} onClose={() => setDiscoveryEditing(false)} />
 
