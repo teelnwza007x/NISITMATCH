@@ -3265,7 +3265,7 @@ function AdminDashboard({ onBack }) {
       <AdminPremiumDirectory/>
     </>}
     <style>{`@keyframes nmCelebrateEnter{from{opacity:0;transform:translateY(26px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes nmCelebrateCrown{0%{transform:scale(.3) rotate(-22deg);opacity:0}65%{transform:scale(1.18) rotate(8deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes nmCelebrateSparkle{0%,100%{opacity:.2;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.25) rotate(25deg)}}@keyframes nmCelebrateAura{0%,100%{box-shadow:0 0 25px #f6c75a44}50%{box-shadow:0 0 65px #f6c75a99}}.nm-celebrate-backdrop{position:fixed;inset:0;z-index:99999;background:rgba(5,5,15,.82);backdrop-filter:blur(14px);display:grid;place-items:center;padding:22px}.nm-celebrate-card{position:relative;overflow:hidden;width:min(100%,390px);padding:36px 26px 28px;border:1px solid rgba(245,197,90,.35);border-radius:30px;background:radial-gradient(circle at 50% 0%,#5b421f88,transparent 65%),linear-gradient(160deg,#201b2c,#0d0c17);text-align:center;color:#fff;box-shadow:0 30px 100px #0009;animation:nmCelebrateEnter .65s cubic-bezier(.2,1.4,.4,1) both}.nm-celebrate-crown{width:94px;height:94px;display:grid;place-items:center;margin:10px auto 22px;border-radius:50%;background:linear-gradient(145deg,#654720,#241b18);border:1px solid #f6c75a77;color:#f6c75a;animation:nmCelebrateCrown .85s .15s both,nmCelebrateAura 2.6s 1s infinite}.nm-celebrate-star{position:absolute;color:#f9d987;animation:nmCelebrateSparkle 2s infinite}.nm-celebrate-card h2{font-size:27px;line-height:1.2;margin:0 0 12px;color:#ffdf8a}.nm-celebrate-card p{color:#d6ced9;line-height:1.75;font-size:14px;margin:0 0 20px}.nm-celebrate-button{width:100%;border:0;border-radius:15px;padding:14px 18px;background:linear-gradient(110deg,#f9df94,#d99c38);color:#24180b;font-weight:800;font-size:15px;cursor:pointer}.nm-celebrate-label{font-size:11px;letter-spacing:.2em;color:#e7be6a;margin-bottom:16px}@media(prefers-reduced-motion:reduce){.nm-celebrate-card,.nm-celebrate-crown,.nm-celebrate-star{animation:none!important}}`}</style>
-    {previewPremium && <div className="nm-celebrate-backdrop" role="presentation" onClick={() => setPreviewPremium(false)}>
+    {previewPremium && createPortal(<div className="nm-celebrate-backdrop" role="presentation" onClick={() => setPreviewPremium(false)}>
       <div className="nm-celebrate-card" role="dialog" aria-modal="true" aria-labelledby="nm-admin-preview-title" onClick={e => e.stopPropagation()}>
         <span className="nm-celebrate-star" style={{top:55,left:48}}>✦</span><span className="nm-celebrate-star" style={{top:96,right:43,animationDelay:'.5s'}}>✧</span>
         <div className="nm-celebrate-label">NISIT MATCH EXCLUSIVE · DEMO</div>
@@ -3274,7 +3274,7 @@ function AdminDashboard({ onBack }) {
         <p>เปิดใช้งาน Premium สำเร็จแล้ว!<br/>ขอบคุณที่สนับสนุน NISIT MATCH<br/>สิทธิพิเศษทั้งหมดของคุณพร้อมใช้งานแล้ว</p>
         <button className="nm-celebrate-button" onClick={() => setPreviewPremium(false)}>ปิดตัวอย่าง ✦</button>
       </div>
-    </div>}
+    </div>, document.body)}
     {adminTab === 'alerts' && <AdminAlerts/>}
     {adminTab === 'profiles' && <AdminDirectory kind="profiles"/>}
     {adminTab === 'hangouts' && <AdminDirectory kind="hangouts"/>}
