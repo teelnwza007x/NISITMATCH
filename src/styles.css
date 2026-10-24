@@ -5270,3 +5270,18 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     padding-top: env(safe-area-inset-top, 0px) !important;
   }
 }
+
+/* iOS installed PWA: avoid scroll anchoring shifting the viewport across tabs. */
+@media (max-width: 800px) {
+  html, body { overscroll-behavior-y: none; overflow-anchor: none; }
+  .app-shell { overflow-anchor: none; }
+  .bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
