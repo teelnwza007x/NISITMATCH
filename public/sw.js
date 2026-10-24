@@ -10,10 +10,8 @@ self.addEventListener('push', event => {
     // Suppress duplicate delivery of the same announcement on this device.
     // Multiple subscriptions or retrying workers can deliver identical pushes.
     const tag = data.tag || 'nisit-match'
-    if (tag.startsWith('announcement-')) {
-      const existing = await self.registration.getNotifications({ tag })
-      if (existing.some(notification => Date.now() - notification.timestamp < 5 * 60 * 1000)) return
-    }
+    const existing = await self.registration.getNotifications({ tag })
+    if (existing.some(notification => Date.now() - notification.timestamp < 5 * 60 * 1000)) return
     await self.registration.showNotification(title, {
       body: data.body || 'มีเรื่องราวใหม่รอคุณอยู่',
       icon: '/nisit-match-logo.png',
