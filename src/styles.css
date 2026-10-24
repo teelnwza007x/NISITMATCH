@@ -5251,3 +5251,22 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @keyframes nmInboxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @media(max-width:700px){.chat-layout.chat-inbox-open{display:block!important;margin:0!important;width:100%!important}.chat-inbox-open .chat-list{width:100%!important;min-height:0!important}.chat-inbox-open .nm-inbox-head{padding:17px 14px!important}.chat-inbox-open .nm-inbox-empty{min-height:210px!important;padding:32px 14px 38px!important}}
 @media(prefers-reduced-motion:reduce){.chat-inbox-open .nm-inbox-empty-icon{animation:none!important}}
+
+/* iPhone Dynamic Island / notch: keep interactive page headers below the safe area. */
+@media (max-width: 800px) {
+  .app-shell:not(.home-swipe-locked) .topbar {
+    box-sizing: border-box !important;
+    height: calc(62px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(62px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+  .app-shell:not(.home-swipe-locked) .page-content {
+    scroll-padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  .app-shell.home-swipe-locked .topbar {
+    box-sizing: border-box !important;
+    height: calc(62px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(62px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+}
