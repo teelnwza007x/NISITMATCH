@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <script>
+    (() => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (!standalone) return;
+      const syncFullScreenHeight = () => {
+        const viewport = Math.max(window.innerHeight || 0, window.visualViewport?.height || 0);
+        const screenHeight = Math.max(window.screen?.height || 0, viewport);
+        if (screenHeight > 0) document.documentElement.style.setProperty('--nm-standalone-screen-height', screenHeight + 'px');
+      };
+      syncFullScreenHeight();
+      window.addEventListener('orientationchange', syncFullScreenHeight, { passive: true });
+      window.addEventListener('resize', syncFullScreenHeight, { passive: true });
+    })();
+  </script>
   <meta name="theme-color" content="#12101d" />
   <meta name="color-scheme" content="dark" />
   <style>
