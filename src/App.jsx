@@ -4750,6 +4750,31 @@ const loadMatches = useCallback(async () => {
     loadProfile()
     loadUnread()
   }, [userId, loadProfile, loadUnread])
+  // Revalidate campus on returning to the installed PWA. Existing users can have
+  // an empty campus in Supabase even when the in-memory profile is stale.
+  useEffect(() => {
+    if (!userId || !profile?.id) return
+    let checking = false
+    const recheck = async () => {
+      if (document.visibilityState !== 'visible' || checking) return
+      checking = true
+      try {
+        const { data, error } = await supabase.from('profiles')
+          .select('id,university_id,campus').eq('id', userId).maybeSingle()
+        if (!error && data) {
+          setProfile(prev => prev?.id === data.id
+            ? { ...prev, university_id: data.university_id, campus: data.campus }
+            : prev)
+        }
+      } finally { checking = false }
+    }
+    document.addEventListener('visibilitychange', recheck)
+    window.addEventListener('focus', recheck)
+    return () => {
+      document.removeEventListener('visibilitychange', recheck)
+      window.removeEventListener('focus', recheck)
+    }
+  }, [userId, profile?.id])
   // Match list depends on account identity, not profile object refreshes.
   useEffect(() => { if (profile?.id) loadMatches() }, [profile?.id, loadMatches])
   useEffect(() => {
