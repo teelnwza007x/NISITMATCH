@@ -2781,6 +2781,7 @@ if (typeof document !== 'undefined') {
 // Student mailbox domains checked against official university IT/email pages.
 // Mailbox access verifies control of an institutional mailbox, not enrollment status by itself.
 const VERIFIED_CAMPUS_DOMAINS = {
+  pim: { name: 'สถาบันการจัดการปัญญาภิวัฒน์', domains: ['pim.ac.th'] },
   kku: { name: 'มหาวิทยาลัยขอนแก่น', domains: ['kkumail.com', 'i.kku.ac.th'] },
   mahasarakham: { name: 'มหาวิทยาลัยมหาสารคาม', domains: ['msu.ac.th'] },
   kmitl: { name: 'สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง', domains: ['kmitl.ac.th'] },
@@ -2835,7 +2836,7 @@ function CampusEmailVerification({ user }) {
   const campusGroups = [
     ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','wu','sut','nmu','ssru','catc','ru','mju','npru','cmu','cmru','bru','dusit']],
     ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutp','rmutk','rmutt','rmutto','rmuti']],
-    ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu','abac']]
+    ['มหาวิทยาลัยเอกชน', ['pim','spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu','abac']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
   const campusResults = campusGroups.map(([title, ids]) => [title, ids.filter(id => {
