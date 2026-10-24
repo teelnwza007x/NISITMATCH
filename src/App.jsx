@@ -1,4 +1,5 @@
 import AdminPwaStats from './components/AdminPwaStats'
+import AdminCampusStats from './components/AdminCampusStats'
 import NotificationCenter from './components/NotificationCenter'
 import Announcements from './components/Announcements'
 import AdminPremiumDirectory from './components/AdminPremiumDirectory'
@@ -3217,9 +3218,10 @@ function AdminDashboard({ onBack }) {
       </>}
       <div className="nm-admin-block-title nm-admin-menu-title"><div><h3>เมนูจัดการ</h3><p>เลือกส่วนที่ต้องการดูหรือแก้ไข</p></div></div>
       <nav className="nm-admin-tabs" aria-label="เมนูผู้ดูแลระบบ">
-        {[['overview','ภาพรวม',Eye],['analytics','สถิติ',Clock],['announcements','ประกาศ',Send],['alerts','แจ้งเตือนและคำขอ',Bell],['profiles','สมาชิก',Users],['premium','Premium',Crown],['hangouts','Hangout',HeartHandshake],['email','อีเมล',MailCheck]].map(([id,label,Icon])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}><Icon size={17}/><span>{label}</span></button>)}
+        {[['overview','ภาพรวม',Eye],['analytics','สถิติ',Clock],['campus-stats','วิทยาเขต',MapPin],['announcements','ประกาศ',Send],['alerts','แจ้งเตือนและคำขอ',Bell],['profiles','สมาชิก',Users],['premium','Premium',Crown],['hangouts','Hangout',HeartHandshake],['email','อีเมล',MailCheck]].map(([id,label,Icon])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}><Icon size={17}/><span>{label}</span></button>)}
       </nav>
     </div>
+    {adminTab === 'campus-stats' && <AdminCampusStats supabase={supabase}/>}
     {(adminTab === 'analytics' || adminTab === 'overview') && <AdminPwaStats/>}
     {adminTab === 'analytics' && <section className="nm-admin-overview" aria-label="สถิติผู้ใช้งาน" style={{display:'grid',gap:14}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><h3 style={{margin:0}}>สถิติการเติบโต</h3><p style={{opacity:.7,fontSize:13,margin:'5px 0 0'}}>ข้อมูลสรุปจาก Supabase ไม่แสดงข้อความส่วนตัวของสมาชิก</p></div><button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{busy?'กำลังโหลด…':'รีเฟรช'}</button></div>
