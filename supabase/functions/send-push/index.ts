@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST' || !secret || req.headers.get('x-dispatch-secret') !== secret) {
     return new Response('Unauthorized', { status: 401 })
   }
-  const { data: queue, error } = await db.from('push_queue').select('id,user_id,type,attempts').is('processed_at',null).lt('attempts',3).order('created_at').limit(30)
+  const { data: queue, error } = await db.from('push_queue').select('id,user_id,type,attempts,title,body').is('processed_at',null).lt('attempts',3).order('created_at').limit(30)
   if (error) return new Response(error.message, { status: 500 })
   let processed = 0
   for (const item of queue || []) {
@@ -55,7 +55,10 @@ Deno.serve(async (req) => {
       : item.type === 'message' ? 'คุณมีข้อความใหม่ในแชท'
       : item.type === 'admin_report' ? 'มีรายงานสมาชิกใหม่รอตรวจสอบ'
       : 'มีคำขอโดเมนมหาวิทยาลัยใหม่'
-    const payload = JSON.stringify({ title: adminType ? 'NISIT MATCH · Admin' : 'NISIT MATCH', body, type: item.type, url: item.type === 'message' || item.type === 'match' ? '/messages' : '/', tag: 'nisit-'+item.id })
+    const senderName = item.type === 'message' ? String(item.title || '').trim().slice(0, 70) : ''
+    const pushTitle = item.type === 'message' && senderName ? senderName : adminType ? 'NISIT MATCH · Admin' : 'NISIT MATCH'
+    const pushBody = item.type === 'message' && item.body ? String(item.body).slice(0, 180) : body
+    const payload = JSON.stringify({ title: pushTitle, body: pushBody, type: item.type, url: item.type === 'message' || item.type === 'match' ? '/messages' : '/', tag: 'nisit-'+item.id })
     let transientFailure = false
     for (const s of subs || []) {
       try {
