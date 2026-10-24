@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
 export default function AdminPremiumDirectory() {
+  const [section, setSection] = useState('members')
+  const [purchases, setPurchases] = useState([])
+  const [purchasesLoading, setPurchasesLoading] = useState(false)
+  const [purchasesError, setPurchasesError] = useState('')
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
@@ -79,9 +83,40 @@ export default function AdminPremiumDirectory() {
     if (value === 'owner_grant') return 'สิทธิ์เจ้าของระบบ'
     return provider || 'อื่น ๆ'
   }
-  useEffect(() => { reload() }, [reload])
+  const loadPurchases = useCallback(async () => {
+    setPurchasesLoading(true); setPurchasesError('')
+    const { data, error: err } = await supabase.rpc('nm_admin_recent_premium_purchases', { p_limit: 50 })
+    if (err) { setPurchasesError(err.message); setPurchases([]) }
+    else setPurchases(data || [])
+    setPurchasesLoading(false)
+  }, [])
+  useEffect(() => { if (section === 'members') reload(); else loadPurchases() }, [section, reload, loadPurchases])
   return <section className="nm-admin-queue">
-    <h3>สมาชิก Premium</h3>
+    <h3>จัดการ Premium</h3>
+    <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'12px 0 18px'}}>
+      <button type="button" className={section==='members'?'btn':'btn btn-ghost'} onClick={()=>setSection('members')}>สมาชิกและจัดการสิทธิ์</button>
+      <button type="button" className={section==='purchases'?'btn':'btn btn-ghost'} onClick={()=>setSection('purchases')}>ผู้ซื้อ Premium ล่าสุด</button>
+    </div>
+    {section==='purchases' ? <div style={{display:'grid',gap:12}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+        <div><h4 style={{margin:'0 0 5px'}}>ประวัติการซื้อ Premium ล่าสุด</h4><small style={{opacity:.7}}>แสดงรายการชำระเงินจริงล่าสุดสูงสุด 50 รายการ ไม่รวมสิทธิ์ฟรี แอดมินมอบให้ หรือรายการทดสอบที่ระบุไว้</small></div>
+        <button type="button" className="btn btn-ghost" onClick={loadPurchases} disabled={purchasesLoading}>รีเฟรช</button>
+      </div>
+      {purchasesError && <p role="alert">โหลดประวัติการซื้อไม่สำเร็จ: {purchasesError}</p>}
+      {purchasesLoading ? <p>กำลังโหลด...</p> : !purchasesError && (purchases.length ? <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead><tr>{['ผู้ซื้อ','แพ็กเกจ','ยอดชำระ','ช่องทาง','วันที่ซื้อ'].map(h=><th key={h} style={{padding:10,textAlign:'left',whiteSpace:'nowrap'}}>{h}</th>)}</tr></thead>
+          <tbody>{purchases.map((p,i)=><tr key={p.provider+'-'+p.payment_id+'-'+i} style={{borderTop:'1px solid #ffffff16'}}>
+            <td style={{padding:10}}>{p.display_name || 'สมาชิก'}<small style={{display:'block',opacity:.55,fontSize:10}}>{p.user_id?.slice(0,8)}</small></td>
+            <td style={{padding:10}}>{p.plan || '—'}</td>
+            <td style={{padding:10,whiteSpace:'nowrap'}}>{(Number(p.amount_satang||0)/100).toLocaleString('th-TH',{minimumFractionDigits:2})} ฿</td>
+            <td style={{padding:10}}>{p.provider}</td>
+            <td style={{padding:10,whiteSpace:'nowrap'}}>{p.purchased_at?new Date(p.purchased_at).toLocaleString('th-TH'):'—'}</td>
+          </tr>)}</tbody>
+        </table>
+      </div> : <p>ยังไม่มีประวัติการซื้อ Premium</p>)}
+    </div> : <>
+    <h4>สมาชิก Premium</h4>
     <p>ข้อมูลสิทธิ์ Premium จาก Supabase เฉพาะผู้ดูแลระบบ</p>
     <p><strong>ใช้งานอยู่ {active} คน</strong> · รายการที่ค้นพบ {total} คน</p>
     {sourceError && <p role="status" style={{fontSize:12,opacity:.75}}>โหลดสรุปแหล่งที่มาไม่ได้: {sourceError}</p>}
@@ -154,5 +189,6 @@ export default function AdminPremiumDirectory() {
       <span>หน้า {page+1}</span>
       <button type="button" className="btn btn-ghost" disabled={loading||(page+1)*20>=total} onClick={()=>setPage(p=>p+1)}>ถัดไป</button>
     </div>
+    </>}
   </section>
 }
