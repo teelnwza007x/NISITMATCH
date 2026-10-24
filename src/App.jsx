@@ -2800,6 +2800,7 @@ const VERIFIED_CAMPUS_DOMAINS = {
   siam: { name: 'มหาวิทยาลัยสยาม', domains: ['siam.edu'] },
   nbu: { name: 'มหาวิทยาลัยนอร์ทกรุงเทพ', domains: ['northbkk.ac.th'] },
   wu: { name: 'มหาวิทยาลัยวลัยลักษณ์', domains: ['mail.wu.ac.th'] },
+  rmutp: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลพระนคร', domains: ['rmutp.ac.th'] },
   rmutk: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลกรุงเทพ', domains: ['mail.rmutk.ac.th'] },
   rmutt: { name: 'มหาวิทยาลัยเทคโนโลยีราชมงคลธัญบุรี', domains: ['mail.rmutt.ac.th'] },
   nu: { name: 'มหาวิทยาลัยนเรศวร', domains: ['nu.ac.th'] },
@@ -2833,7 +2834,7 @@ function CampusEmailVerification({ user }) {
   const [campusPickerOpen, setCampusPickerOpen] = useState(false)
   const campusGroups = [
     ['มหาวิทยาลัยของรัฐและสถาบันของรัฐ', ['kku','mahasarakham','ku','chula','tu','buu','swu','su','cra','nu','up','mu','mfu','wu','sut','nmu','ssru','catc','ru','mju','npru','cmu','cmru','bru','dusit']],
-    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutk','rmutt','rmutto','rmuti']],
+    ['มหาวิทยาลัยเทคโนโลยี / ราชมงคล', ['kmitl','kmutt','kmutnb','rmutp','rmutk','rmutt','rmutto','rmuti']],
     ['มหาวิทยาลัยเอกชน', ['spu','bu','utcc','rangsit','siam','nbu','huachiew','dpu','abac']]
   ]
   const normalizedCampusQuery = campusSearch.trim().toLocaleLowerCase('th')
