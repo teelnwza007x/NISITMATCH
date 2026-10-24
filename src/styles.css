@@ -5396,3 +5396,23 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     --nm-app-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Full-bleed iOS PWA: paint the entire screen; inset only interactive content. */
+@media (max-width: 800px) {
+  html:has(.app-shell), body:has(.app-shell), #root:has(.app-shell) {
+    background: #12101d !important;
+  }
+  .app-shell {
+    padding-top: 0 !important;
+    background: #12101d !important;
+  }
+  .app-shell .main-area,
+  .app-shell.home-swipe-locked .main-area {
+    padding-top: var(--nm-app-top) !important;
+    box-sizing: border-box !important;
+  }
+  .app-shell .bottom-nav {
+    background: #0b1020 !important;
+    border-top: 1px solid rgba(255,255,255,.09) !important;
+  }
+}
