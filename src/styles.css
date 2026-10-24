@@ -5285,3 +5285,36 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
     box-sizing: border-box !important;
   }
 }
+
+/* iOS standalone viewport: one consistent safe-area contract across all tabs.
+   The swipe screen has no .topbar; padding must be applied to .page-content. */
+@media (max-width: 800px) {
+  .app-shell .main-area { min-width: 0; }
+  .app-shell:not(.home-swipe-locked) .page-content {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
+    scroll-margin-top: 0;
+  }
+  .app-shell.home-swipe-locked .page-content {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+  }
+  .app-shell .bottom-nav {
+    bottom: 0 !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+/* iOS may report zero env in installed standalone windows even with a notch.
+   Reserve the status-bar/Dynamic Island space when standalone is active. */
+@media (max-width: 800px) and (display-mode: standalone) {
+  .app-shell:not(.home-swipe-locked) .page-content {
+    padding-top: calc(18px + max(54px, env(safe-area-inset-top, 0px))) !important;
+  }
+  .app-shell.home-swipe-locked .page-content {
+    padding-top: calc(12px + max(54px, env(safe-area-inset-top, 0px))) !important;
+    height: calc(100dvh - 76px - max(24px, env(safe-area-inset-bottom, 0px))) !important;
+    max-height: calc(100dvh - 76px - max(24px, env(safe-area-inset-bottom, 0px))) !important;
+  }
+  .app-shell .bottom-nav {
+    padding-bottom: calc(8px + max(24px, env(safe-area-inset-bottom, 0px))) !important;
+  }
+}
