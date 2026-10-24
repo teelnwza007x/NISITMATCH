@@ -10,7 +10,7 @@ const CAMPUSES = {
 }
 const CAMPUS_NAMES = {
  bangkhen:'บางเขน',kamphaengsaen:'กำแพงแสน',sriracha:'ศรีราชา',chalermphrakiat:'เฉลิมพระเกียรติ จ.สกลนคร',
- tha_prachan:'ท่าพระจันทร์',rangsit:'รังสิต',lampang:'ลำปาง',prasarnmit:'ประสานมิตร',ongkharak:'องครักษ์',
+ tha_prachan:'ท่าพระจันทร์',rangsit:'รังสิต',lampang:'ลำปาง',pattaya:'พัทยา',prasarnmit:'ประสานมิตร',ongkharak:'องครักษ์',
  bangsaen:'บางแสน',chanthaburi:'จันทบุรี',sakaeo:'สระแก้ว'
 }
 const UNI_NAMES = { ku:'มหาวิทยาลัยเกษตรศาสตร์',tu:'มหาวิทยาลัยธรรมศาสตร์',swu:'มหาวิทยาลัยศรีนครินทรวิโรฒ',buu:'มหาวิทยาลัยบูรพา' }
