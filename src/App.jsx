@@ -3219,7 +3219,7 @@ function AdminDashboard({ onBack }) {
         {[['overview','ภาพรวม',Eye],['analytics','สถิติ',Clock],['announcements','ประกาศ',Send],['alerts','แจ้งเตือนและคำขอ',Bell],['profiles','สมาชิก',Users],['premium','Premium',Crown],['hangouts','Hangout',HeartHandshake],['email','อีเมล',MailCheck]].map(([id,label,Icon])=><button key={id} type="button" aria-current={adminTab===id?'page':undefined} className={adminTab===id?'is-active':''} onClick={()=>setAdminTab(id)}><Icon size={17}/><span>{label}</span></button>)}
       </nav>
     </div>
-    {adminTab === 'analytics' && <AdminPwaStats/>}
+    {(adminTab === 'analytics' || adminTab === 'overview') && <AdminPwaStats/>}
     {adminTab === 'analytics' && <section className="nm-admin-overview" aria-label="สถิติผู้ใช้งาน" style={{display:'grid',gap:14}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><h3 style={{margin:0}}>สถิติการเติบโต</h3><p style={{opacity:.7,fontSize:13,margin:'5px 0 0'}}>ข้อมูลสรุปจาก Supabase ไม่แสดงข้อความส่วนตัวของสมาชิก</p></div><button type="button" className="btn btn-ghost" disabled={busy} onClick={reload}>{busy?'กำลังโหลด…':'รีเฟรช'}</button></div>
       {error && <p role="alert">{error}</p>}
