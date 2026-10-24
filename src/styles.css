@@ -5474,3 +5474,17 @@ body::after{bottom:-26vw;right:-15vw;background:radial-gradient(circle,var(--pur
 @media (max-width: 380px) {
   .nm-tab-form .form-row:has(input[type="date"]):has(select) { gap: 8px; }
 }
+
+/* Mobile profile fields: stack native iOS date and gender controls to avoid Safari intrinsic-size overlap. */
+.nm-tab-form .nm-profile-birth-gender > label { min-width: 0; box-sizing: border-box; }
+.nm-tab-form .nm-profile-birth-gender input[type="date"],
+.nm-tab-form .nm-profile-birth-gender select { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; }
+@media (max-width: 600px) {
+  .nm-tab-form .form-row.nm-profile-birth-gender {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+    width: 100%;
+  }
+  .nm-tab-form .nm-profile-birth-gender > label { width: 100%; }
+}
